@@ -14,6 +14,29 @@ Last updated: 2026-08-11, end of Phase 0.
 | Active gate | Phase 0 exit gate: PASS |
 | Submission deadline | 2026-08-13 12:00 UTC+2 |
 
+## Session order
+
+Fixed by the operator. Each step runs in a fresh session, and the prompt for each is
+committed under `docs/prompts/` so no step depends on conversational memory.
+
+1. Phase 0 independent validation. `docs/prompts/PHASE_00_VALIDATION.md`
+2. If PASS, Phase 0.5 seam probe. `docs/prompts/PHASE_00_5_SEAM_PROBE.md`
+3. If `SEAM PASS`, the autonomous run. `docs/prompts/PHASE_01_TO_10_AUTONOMOUS.md`
+4. If `SEAM REVISE`, redesign the attempt boundary before writing core contracts.
+5. After the build completes, a fresh session for adversarial review and submission prep.
+
+### Blocking prerequisite for step 2
+
+`.env` does not exist in this repository. Phase 0.5 forbids the session from copying a
+credential out of another repository, so without this it halts immediately:
+
+```bash
+cp .env.example .env    # then paste the kh_ organization key
+```
+
+Nothing else is required. The revert probe needs no contract deployment, no deployer key and
+no faucet. See the fixture note in `docs/prompts/PHASE_00_5_SEAM_PROBE.md`.
+
 ## Next exact task
 
 Probe the KeeperHub revert path before writing any covenant code.

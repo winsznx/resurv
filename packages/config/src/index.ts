@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { type RedactionOptions, redact } from './redact.ts';
+
+export * from './redact.ts';
 
 /**
  * Environment validation. Every process validates at startup and refuses to run on a
@@ -70,14 +73,48 @@ export function parseWorkerEnv(source: unknown): WorkerEnv {
 
 /**
  * Redaction for logs and error reports. Secrets must never reach a log line, a receipt, a
- * screenshot, or a phase summary.
+ * screenshot, or a phase summary. The mechanism lives in `./redact.ts`; what this file adds
+ * is knowledge of which keys this project declares as secret.
  */
-const SECRET_KEYS: ReadonlySet<string> = new Set(Object.keys(serverSecretsSchema.shape));
+export const DECLARED_SECRET_KEYS: readonly string[] = Object.keys(serverSecretsSchema.shape);
 
-export function redactEnv(source: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(source)) {
-    out[key] = SECRET_KEYS.has(key) && value !== undefined ? '[redacted]' : value;
+/**
+ * The secret values present in a raw environment, so they can be redacted out of a message
+ * that happens to quote one under an innocuous key.
+ */
+export function knownSecretValues(source: unknown): string[] {
+  if (typeof source !== 'object' || source === null) return [];
+  const record = source as Record<string, unknown>;
+  return DECLARED_SECRET_KEYS.map((key) => readStringOrNothing(record, key)).filter(
+    (value): value is string => value !== undefined,
+  );
+}
+
+/**
+ * A Worker binding object can be a proxy that throws on property access. Diagnostics must
+ * never be the thing that takes the Worker down, so an unreadable key is one fewer known
+ * secret rather than an exception.
+ */
+function readStringOrNothing(record: Record<string, unknown>, key: string): string | undefined {
+  try {
+    const value = record[key];
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  } catch {
+    return undefined;
   }
-  return out;
+}
+
+/**
+ * Recursive, cycle-safe. Nested objects and arrays are redacted to the same standard as the
+ * top level, which the Phase 0 implementation did not do.
+ */
+export function redactEnv(
+  source: Record<string, unknown>,
+  options: RedactionOptions = {},
+): Record<string, unknown> {
+  return redact(source, {
+    ...options,
+    additionalSecretKeys: [...DECLARED_SECRET_KEYS, ...(options.additionalSecretKeys ?? [])],
+    knownSecrets: [...knownSecretValues(source), ...(options.knownSecrets ?? [])],
+  }) as Record<string, unknown>;
 }

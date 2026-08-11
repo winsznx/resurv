@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.ts';
 
 const request = (path: string) => new Request(`https://resurv.test${path}`);
@@ -46,5 +46,41 @@ describe('unknown routes', () => {
     const response = await worker.fetch(request('/api/nope'), validEnv, ctx);
     expect(response.status).toBe(404);
     expect(((await response.json()) as { error: string }).error).toBe('not_found');
+  });
+});
+
+/**
+ * The error path is the one place an arbitrary string reaches a log line. A binding object
+ * that throws while being read produces a plain Error carrying whatever the thrower put in
+ * it, which is the realistic shape of a leak: an upstream message quoted into our logs.
+ */
+describe('the unhandled error path', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const hostileEnv = new Proxy(
+    {},
+    {
+      get() {
+        throw new Error('binding read failed for key kh_TEST_SECRET_VALUE');
+      },
+    },
+  );
+
+  it('answers 500 without a detail body', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const response = await worker.fetch(request('/api/health'), hostileEnv, ctx);
+    expect(response.status).toBe(500);
+    expect(await response.text()).not.toContain('kh_TEST_SECRET_VALUE');
+  });
+
+  it('redacts the secret out of the log line rather than printing the error raw', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await worker.fetch(request('/api/health'), hostileEnv, ctx);
+    expect(logged).toHaveBeenCalled();
+    const line = logged.mock.calls.map((call) => call.join(' ')).join('\n');
+    expect(line).not.toContain('kh_TEST_SECRET_VALUE');
+    expect(line).toContain('[redacted]');
   });
 });

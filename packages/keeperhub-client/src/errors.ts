@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ORG_API_KEY_PREFIX, WEBHOOK_KEY_PREFIX } from './constants.ts';
 
 /**
  * KeeperHub does not use one error envelope. A 401 returns `{error}` with no detail and no
@@ -59,17 +60,16 @@ export function isApiKeyShapeValid(key: string): {
   valid: boolean;
   reason?: string;
 } {
-  if (key.startsWith('wfb_')) {
+  if (key.startsWith(WEBHOOK_KEY_PREFIX)) {
     return {
       valid: false,
-      reason:
-        'This is a webhook (user) key. The execution endpoints need an organization key starting with kh_.',
+      reason: `This is a webhook (user) key. The execution endpoints need an organization key starting with ${ORG_API_KEY_PREFIX}.`,
     };
   }
-  if (!key.startsWith('kh_')) {
-    return { valid: false, reason: 'Organization API keys start with kh_.' };
+  if (!key.startsWith(ORG_API_KEY_PREFIX)) {
+    return { valid: false, reason: `Organization API keys start with ${ORG_API_KEY_PREFIX}.` };
   }
-  if (key.length <= 'kh_'.length) {
+  if (key.length <= ORG_API_KEY_PREFIX.length) {
     return { valid: false, reason: 'Key is only a prefix.' };
   }
   return { valid: true };

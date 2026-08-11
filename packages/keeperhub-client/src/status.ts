@@ -1,9 +1,16 @@
 /**
  * Execution status normalization.
  *
- * Every rule in this file exists because a live probe contradicted the documentation.
- * See docs/CLAIMS.md and the Phase 2 seam record. Do not "simplify" this into a switch
- * with a `default: failed` branch, which is precisely the bug it prevents.
+ * Provenance, corrected after the Phase 0 independent review found this file overstating it.
+ * No KeeperHub call has ever been made from this repository, and there is no Phase 2 seam
+ * record: Phase 2 has not happened. Every rule below comes from official documentation, from
+ * two official documents disagreeing with each other, or from the sibling `keeperhub-flightcheck`
+ * spike, and the level of each is recorded in `docs/CLAIMS.md`. Read the ledger before
+ * treating any of it as measured.
+ *
+ * What survives regardless of provenance is the failure mode this file is shaped around: do
+ * not "simplify" it into a switch with a `default: failed` branch. An unrecognized status
+ * must not become an invented outcome.
  */
 
 /**
@@ -12,9 +19,10 @@
 export const DOCUMENTED_EXECUTION_STATUSES = ['pending', 'running', 'completed', 'failed'] as const;
 
 /**
- * Observed live but absent from the endpoint reference. The first-verified-transaction
- * guide describes it as non-terminal: the status endpoint keeps asking you to poll.
- * Treating it as a failure reports a false negative for a transaction still settling.
+ * Absent from the endpoint reference, described by the first-verified-transaction guide as a
+ * state that keeps asking you to poll. Two official documents disagree, so `docs/CLAIMS.md`
+ * rates this `DOCUMENTED (conflicting)` rather than measured. Treating it as a failure would
+ * report a false negative for a transaction that is still settling, so it is non-terminal.
  */
 export const UNDOCUMENTED_EXECUTION_STATUSES = ['unconfirmed'] as const;
 
@@ -63,6 +71,12 @@ export type ReceiptVerdict = 'LANDED' | 'REVERTED' | 'UNKNOWN';
  * a failed execution carrying `timeout` may describe a transaction that later lands. Neither
  * value may be mapped to success or to failure. They are unknown, and the reconciler must
  * settle them against chain.
+ *
+ * The `reverted` and `safe_inner_failure` mapping is the hypothesis Phase 0.5 exists to test,
+ * not settled behavior: `docs/CLAIMS.md` rates "a reverted broadcast is distinguishable from
+ * a transport failure" as ASSUMED and unmeasured, and `safe_inner_failure` has never been
+ * observed by this project at all. The seam probe records what actually comes back and this
+ * mapping changes to match it, rather than the probe being read as confirmation.
  */
 export function classifyReceiptStatus(status: string): ReceiptVerdict {
   switch (status.trim().toLowerCase()) {

@@ -12,6 +12,8 @@ resurv/
     worker/               Hono on Cloudflare Workers. Serves /api/* and the built SPA.
   packages/
     contracts/            Foundry. Solidity 0.8.36, evm_version cancun.
+    repo-policy/          Executable repository policy: permission boundary, tracked secrets,
+                          cross-language state machine pin. Tests only, ships nothing.
     domain/               Pure reference model: covenant + orchestration state machines.
     keeperhub-client/     Status normalization, error envelopes, idempotency derivation.
     chain/                Base Sepolia constants and independent RPC endpoints.
@@ -45,30 +47,46 @@ whether configuration parsed, naming any failing variable without ever echoing i
 
 ## The reference state machine
 
-`CovenantStatus` exists three times and all three are pinned to each other:
+`CovenantStatus` exists three times, and a fourth definition exists twice as a test-only
+oracle:
 
 | Where | What pins it |
 |---|---|
-| `packages/contracts/src/CovenantStatus.sol` | `test_ordinalsAreStable` |
-| `packages/domain/src/covenant-status.ts` | `is contiguous and gap-free` |
+| `packages/contracts/src/CovenantStatus.sol` | equivalence with the Solidity reference model over all 64 pairs |
+| `packages/domain/src/covenant-status.ts` | equivalence with the TypeScript reference model over all 64 pairs |
 | `packages/db` `onchain_status` enum | `schema.test.ts` compares against the domain names |
+| `packages/contracts/test/model/CovenantStatusReference.sol` | compared to its TypeScript twin by `@resurv/repo-policy` |
+| `packages/domain/test/model/covenant-status-reference.ts` | same test, character for character |
 
 The contract emits the numeric ordinal and TypeScript decodes it, so a reordering is a
-decoding bug, not a rename. Three suites fail if anyone tries.
+decoding bug, not a rename. `@resurv/repo-policy` parses the Solidity enum out of source and
+compares names and ordinals against `@resurv/domain`, which is the pairing that was never
+actually compared at Phase 0: each side asserted its own literals against itself.
 
-The absorbing property of terminal states is machine-checked by a stateful invariant, not
-just asserted: 256 runs at depth 64, 16,384 handler calls, no transition ever applied after
-a terminal state was reached.
+The reference models exist because of ADR-009. A property test whose generator is filtered by
+the implementation under test proves only that the implementation agrees with itself, which is
+what the Phase 0 invariant suite did.
+
+Terminal absorption is machine-checked against the model's definition of terminal, not the
+library's: 256 runs at depth 64, every call a real transition attempt, with applied
+transitions, rejected attempts and pair coverage reported per run. The property was confirmed
+by mutation rather than by inspection. Five source mutations, each detected. See
+`docs/phase-logs/PHASE_00_REMEDIATION.md`.
 
 ## What the KeeperHub client encodes
 
-Every rule in `packages/keeperhub-client` exists because a live probe contradicted the docs.
-The seam evidence is recorded in `docs/CLAIMS.md`.
+Provenance first, because the Phase 0 version of this section claimed every rule came from a
+live probe contradicting the docs. It did not. No KeeperHub call has ever been made from this
+repository. The rules below come from official documentation, from two official documents
+disagreeing, or from the sibling `keeperhub-flightcheck` spike, and about half of them had no
+ledger row at all until the Phase 0 remediation added one. Read `docs/CLAIMS.md` for the level
+of each before relying on any of it.
 
 - The documented status set is a lower bound. Anything unrecognized normalizes to `UNKNOWN`
   and non-terminal, so a `switch` with `default: fail` cannot report a false failure for a
   transaction that is still settling.
-- `unconfirmed` is real, non-terminal, and missing from the endpoint reference.
+- `unconfirmed` is non-terminal and missing from the endpoint reference, on the strength of
+  two official documents disagreeing. Rated `DOCUMENTED (conflicting)`, not observed by us.
 - `not_found` and `timeout` receipt statuses are `UNKNOWN`, never success and never failure.
 - A would-revert simulation is an *answer*, delivered as HTTP 400. Callers branch on the
   `wouldRevert` field, never on the status code.

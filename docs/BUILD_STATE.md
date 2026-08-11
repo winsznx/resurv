@@ -3,39 +3,45 @@
 Canonical handoff document. Read this first in a new session. Updated at the end of every
 phase.
 
-Last updated: 2026-08-11, end of Phase 0.
+Last updated: 2026-08-11, end of the Phase 0 remediation.
 
 ## Where we are
 
 | | |
 |---|---|
-| Current phase | Phase 0 complete. Phase 1 not started. |
-| Completed phases | 0 |
-| Active gate | Phase 0 exit gate: PASS |
+| Current phase | Phase 0 complete and remediated. Phase 0.5 not started. Phase 1 not started. |
+| Completed phases | 0, plus the Phase 0 remediation |
+| Active gate | Phase 0 independent validation: FAIL. Phase 0 remediation: see `docs/phase-logs/PHASE_00_REMEDIATION.md` |
 | Submission deadline | 2026-08-13 12:00 UTC+2 |
+
+Phase 0 self-graded PASS. An independent session then re-executed everything and returned
+FAIL, recorded in `docs/phase-logs/PHASE_00_INDEPENDENT_REVIEW.md`. The remediation that
+answers it is `docs/phase-logs/PHASE_00_REMEDIATION.md`. Read both before trusting anything
+in the Phase 0 log, which contains figures the review disproved.
 
 ## Session order
 
 Fixed by the operator. Each step runs in a fresh session, and the prompt for each is
 committed under `docs/prompts/` so no step depends on conversational memory.
 
-1. Phase 0 independent validation. `docs/prompts/PHASE_00_VALIDATION.md`
-2. If PASS, Phase 0.5 seam probe. `docs/prompts/PHASE_00_5_SEAM_PROBE.md`
-3. If `SEAM PASS`, the autonomous run. `docs/prompts/PHASE_01_TO_10_AUTONOMOUS.md`
-4. If `SEAM REVISE`, redesign the attempt boundary before writing core contracts.
-5. After the build completes, a fresh session for adversarial review and submission prep.
+1. Phase 0 independent validation. `docs/prompts/PHASE_00_VALIDATION.md` — **done, FAIL**
+2. Phase 0 remediation — **done**, this is the current state
+3. Phase 0.5 seam probe. `docs/prompts/PHASE_00_5_SEAM_PROBE.md`
+4. If `SEAM PASS`, the autonomous run. `docs/prompts/PHASE_01_TO_10_AUTONOMOUS.md`
+5. If `SEAM REVISE`, redesign the attempt boundary before writing core contracts.
+6. After the build completes, a fresh session for adversarial review and submission prep.
 
-### Blocking prerequisite for step 2
+### Blocking prerequisite for the seam probe
 
-`.env` does not exist in this repository. Phase 0.5 forbids the session from copying a
-credential out of another repository, so without this it halts immediately:
+No environment file exists in this repository, and no live secret has ever been placed here.
+Phase 0.5 forbids the session from copying a credential out of another repository, so a human
+has to create the file and paste the `kh_` organization key before that session starts.
 
-```bash
-cp .env.example .env    # then paste the kh_ organization key
-```
-
-Nothing else is required. The revert probe needs no contract deployment, no deployer key and
-no faucet. See the fixture note in `docs/prompts/PHASE_00_5_SEAM_PROBE.md`.
+This is deliberately not something an agent session can do: the permission boundary denies
+Bash commands that name the environment file, and denies reading, editing and writing it. Do
+it in an ordinary terminal, copying `.env.example`. Nothing else is required. The revert probe
+needs no contract deployment, no deployer key and no faucet. See the fixture note in
+`docs/prompts/PHASE_00_5_SEAM_PROBE.md`.
 
 ## Next exact task
 
@@ -85,30 +91,57 @@ manual step and the value must never be echoed.
 
 ## Tests
 
-85 total, all passing.
+Counted so the number cannot flatter itself. Substantive tests are tests that assert
+something; the two empty harnesses are listed separately and never folded into a total.
 
 | Suite | Count |
 |---|---|
-| `@resurv/domain` | 17 |
+| `@resurv/domain` | 34 |
 | `@resurv/keeperhub-client` | 30 |
-| `@resurv/config` | 7 |
+| `@resurv/config` | 33 |
 | `@resurv/db` | 7 |
 | `@resurv/chain` | 7 |
-| `@resurv/worker` | 5 |
+| `@resurv/worker` | 7 |
+| `@resurv/repo-policy` | 157 |
 | `@resurv/web` | 0 |
-| `contracts` unit and fuzz | 9 |
-| `contracts` invariant | 3 |
+| **TypeScript substantive total** | **275** |
+| `contracts` unit and fuzz | 21 |
+| `contracts` invariant | 5 |
+| **Foundry total** | **26** |
 
-Fuzz: 512 runs per test. Invariants: 256 runs at depth 64, 16,384 handler calls each, 0
-reverts, 0 counterexamples.
+| Harness | Specs |
+|---|---|
+| `pnpm test:integration` (`apps/worker/test/integration`) | **0** |
+| `pnpm test:e2e` (`apps/web/test/e2e`) | **0** |
+
+Both harnesses exit 0 with `--passWithNoTests`. Their commands existing is what the Phase 0
+gate required. It is not coverage and it is not counted. Phase 0 reported "85 tests total"
+across 73 TypeScript and 12 Foundry; the figures were right and the framing invited a reader
+to include the empty suites, so the split above is now explicit.
+
+`@resurv/repo-policy` is large because it is mostly parameterized fixtures: one case per
+blocked command, per permitted command, per secret path. That is the shape the work needs, and
+157 assertions there is not equivalent to 157 assertions about the product.
+
+Fuzz: 512 runs per test. Invariants: 256 runs at depth 64. Every one of the 16,384 handler
+calls per invariant is a real transition attempt, roughly 8 to 15 of which mutate state per
+run, across 3 to 5 covenant lifecycles, covering 20 to 33 distinct ordered pairs per run. The
+handler prints those figures in `afterInvariant`. The Phase 0 framing of "16,384 calls" as
+strength of evidence was misleading: most of those calls were guaranteed early returns.
 
 ## Commands, all verified working
 
-`pnpm gate` runs the whole sequence and exits 0. See `docs/RUNBOOKS.md`.
+`pnpm gate` runs every command `CLAUDE.md` declares required and exits 0. It did not before
+the remediation: `test:integration` and `test:e2e` were missing from it while two documents
+called it the full sequence. See `docs/RUNBOOKS.md`.
+
+Turbo caching means a green `pnpm gate` can be a replay of an earlier log. For evidence, use
+`TURBO_FORCE=true pnpm gate` and check that `Cached: 0`.
 
 ## Unresolved blockers
 
-None blocking right now.
+None blocking the seam probe. F6-A, the permission bypass that did block it, is fixed and
+regression-tested; the remediation log records the evidence.
 
 ## Unresolved assumptions
 
@@ -124,15 +157,26 @@ Tracked in `docs/CLAIMS.md`. The ones that will bite first:
 
 ## Known defects and limitations
 
-- `test:integration` and `test:e2e` run with `--passWithNoTests` and currently contain zero
-  specs. The commands exist and exit 0, which satisfies the Phase 0 gate but must not be
-  mistaken for coverage. First real specs land with the orchestrator and the proof page.
+- `test:integration` and `test:e2e` run with `--passWithNoTests` and contain zero specs. The
+  commands exist and exit 0, which satisfies the Phase 0 gate but must not be mistaken for
+  coverage. First real specs land with the orchestrator and the proof page.
 - `@resurv/web` has no tests and no product UI. Deliberate: Phase 0 forbids UI work.
 - Supabase is designed but unwired. Repository interfaces exist; no driver implementation.
 - No hooks configured in `.claude/settings.json` despite PRD 29.4 mentioning them. Deferred as
   low value against the deadline.
-- The Claude Code permission deny list is pattern-matched on command strings. It stops the
-  obvious form of a destructive command and not a rewrite. Treat it as a speed bump.
+- The Claude Code permission boundary is configuration checked by our own tests, not a
+  sandbox. A command that reads a secret without naming a protected path is not stopped. See
+  `docs/THREAT_MODEL.md` T10 and T11 for what it does and does not cover.
+- The state machine evidence is about a pure library. No covenant contract exists, so every
+  `VERIFIED (model only)` row in the ledger says nothing about escrow, fees or atomicity.
+- The reference models are hand transcriptions of PRD 9.1. A misreading would be mirrored in
+  both languages and no test would object.
+- The KeeperHub source snapshot and seam checklist that PRD 2429 names, and that the Phase 0
+  log marked PASS, does not exist. It is an outstanding input to Phase 0.5.
+- Eight seam behaviors encoded in `@resurv/keeperhub-client` are `ASSUMED` with no committed
+  source pointer. They are inputs to the probe, not conclusions from it.
+- Every reproduction so far has resolved dependencies from a warm local store. A genuinely
+  cold-network install is unproven.
 
 ## Scope deliberately cut against the deadline
 

@@ -65,20 +65,30 @@ jobs:
       - run: forge test -vv
       - run: forge test --match-path 'test/invariant/*' -vv
 
-  secrets:
-    name: no secrets in the tree
+  policy:
+    name: no secrets in the tree, no permission bypass
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
+      # Full history: a file that was committed and later ignored is still a leak, and a
+      # shallow clone cannot see it. The detector reports a shallow clone rather than
+      # passing quietly, so this depth is load-bearing.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-      # A tracked .env is the single most common way a key leaks. Fail loudly rather than
-      # relying on .gitignore having been correct at the moment the file was created.
-      - name: reject tracked env files and keystores
-        run: |
-          matches=$(git ls-files | grep -E '(^|/)\.env($|\.)|\.(pem|key|p12|pfx|keystore)$' | grep -v '\.env\.example$' || true)
-          if [ -n "$matches" ]; then
-            echo "tracked secret-bearing files:"
-            echo "$matches"
-            exit 1
-          fi
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # @resurv/repo-policy owns both checks: the tracked-secret detector (with fixtures for
+      # every category .gitignore protects) and the Claude Code permission boundary
+      # regression tests. See docs/THREAT_MODEL.md T6, T10 and T11.
+      - run: pnpm --filter @resurv/repo-policy test

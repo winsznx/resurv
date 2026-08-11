@@ -42,8 +42,16 @@ Resolution date: 2026-08-11.
 
 | Dependency | Pinned | Source | Notes |
 |---|---|---|---|
-| forge-std | v1.16.2 | GitHub tags | Installed with `--no-git`, vendored under `packages/contracts/lib`. |
-| openzeppelin-contracts | v5.6.1 | npm `latest` dist-tag | See OZ note below. |
+| forge-std | v1.16.2 | GitHub tags | Pinned git submodule at `bf647bd` under `packages/contracts/lib`. |
+| openzeppelin-contracts | v5.6.1 | npm `latest` dist-tag | Pinned git submodule at `5fd1781`. See OZ note below. |
+
+Both are submodules, not vendored files. `git ls-files -s packages/contracts/lib` returns two
+entries at mode `160000`, and a clone without `--recurse-submodules` produces empty directories.
+The Phase 0 wording here claimed they were vendored and needed no install step, which was false
+in both halves: they are gitlinks, and populating them is a network fetch from GitHub. Foundry
+1.7.1 performs that fetch itself when `lib` is empty, so a plain clone does still pass the gate
+on a networked machine, which is convenient and is not the same property as vendoring. See
+`docs/RUNBOOKS.md` for the canonical clone and the repair command.
 
 ## Compatibility notes worth keeping
 
@@ -51,13 +59,24 @@ Resolution date: 2026-08-11.
 
 `typescript@latest` now resolves to the 7.x line. 6.0.3 is the last 7-preceding stable. Rather
 than guess at ecosystem readiness, 7.0.2 was pinned and the whole workspace typechecked
-against it: 14 turbo tasks across React 19, Hono, Drizzle, viem, Vite 8 and the Workers types
-all pass with the full strict option set enabled. One config change was required,
+against it with the full strict option set enabled. One config change was required,
 `allowImportingTsExtensions`, which is a consequence of importing `.ts` specifiers directly
 and not a TS-7 defect.
 
+Two corrections from the Phase 0 independent review. The task count stated here was 14 and was
+not reproducible; a forced run reports **10 turbo tasks** as of the Phase 0 remediation, which
+added `@resurv/repo-policy` to the 9 that existed before. And what was verified is RESURV's own
+source compiled against React 19, Hono, Drizzle, viem, Vite 8 and the Workers types, not those
+packages' own declaration files: `tsconfig.base.json` sets `skipLibCheck: true`. Turning it off
+surfaces errors in `@vitest/utils`, `tinybench` and `vite` declarations that are missing DOM
+globals under the deliberate `lib: ["ES2023"]` setting, appear identically under TypeScript 6,
+and are a configuration consequence rather than a TS-7 defect.
+
 Rollback path if a later phase hits a TS-7 incompatibility: change `typescript` to `6.0.3` in
 the root and in each package, reinstall, rerun `pnpm typecheck`. No source changes expected.
+The independent reviewer executed that rollback in a fresh clone with a `typescript: 6.0.3`
+workspace override: typecheck and test both pass with zero source changes, which is what makes
+the pin defensible rather than merely declared.
 
 ### OpenZeppelin: npm and GitHub disagree, and we took the stable channel
 

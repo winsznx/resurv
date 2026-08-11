@@ -84,7 +84,9 @@ release rather than picking a comfortable one.
 ### Decision
 
 Pin 7.0.2, then verify by typechecking the entire workspace under the full strict option set
-before committing to it. All 14 tasks pass.
+before committing to it. All turbo typecheck tasks pass: 9 at Phase 0, 10 after the Phase 0
+remediation added `@resurv/repo-policy`. The "14 tasks" figure recorded here at Phase 0 was
+wrong and did not reproduce.
 
 ### Consequences
 
@@ -125,6 +127,13 @@ Rejected because the operating instruction names Supabase explicitly and forbids
 to another hosted database. Flagged here because it is the one place where the infrastructure
 constraint and the deadline pull in opposite directions.
 
+### Load-bearing premise, now tracked
+
+"There is no list-executions endpoint" carries this whole ADR. It is consistent with
+`packages/keeperhub-client/src/constants.ts`, but that file is ours, so it proves nothing on
+its own. The claim now has a `DOCUMENTED` row in `docs/CLAIMS.md`. If the premise is wrong the
+ADR weakens and the persistence argument has to be remade.
+
 ### Open item
 
 Supabase project credentials are not available. When the orchestrator needs a live
@@ -158,10 +167,98 @@ build tasks generated no output. Apps build; libraries do not.
 
 ## ADR-007: The reference state machine exists in Solidity and TypeScript, cross-pinned
 
-Date: 2026-08-11. Status: accepted. Phase: 0.
+Date: 2026-08-11. Status: accepted, amended 2026-08-11 by the Phase 0 remediation. Phase: 0.
 
 `CovenantStatus` ordinals are consensus-relevant: the contract emits the numeric value and
-the TypeScript decoder reads it. Both sides assert the ordinals independently
-(`test/CovenantStatus.t.sol` and `packages/domain/test/covenant-status.test.ts`), and
-`packages/db` asserts its Postgres enum matches the domain names in order. A reordering
-breaks three test suites in three languages rather than silently mis-decoding an event.
+the TypeScript decoder reads it.
+
+The Phase 0 form of this ADR overstated what was cross-pinned. Each side asserted its own
+literals against itself: `test/CovenantStatus.t.sol` compared the Solidity enum to constants
+in the same file, and `covenant-status.test.ts` asserted the TypeScript object was contiguous.
+Only the Postgres-to-TypeScript pairing had a shared oracle. The consensus-relevant pairing,
+Solidity to TypeScript, rested on two people typing the same eight names in the same order.
+
+`@resurv/repo-policy` now reads `packages/contracts/src/CovenantStatus.sol` and compares the
+declared enum members and their ordinals against `@resurv/domain`, and compares the two
+hand-transcribed reference models character for character. A reordering in either language now
+fails a test that reads both files.
+
+---
+
+## ADR-008: The Claude Code permission boundary is executable policy, not a document
+
+Date: 2026-08-11. Status: accepted. Phase: 0 remediation.
+
+### Context
+
+`.claude/settings.json` put deploys, secret mutation and signing behind `ask`, and the Phase 0
+log presented that as a control. The independent review showed the tier was reachable anyway:
+`Bash(pnpm --filter:*)`, `Bash(pnpm run:*)` and `Bash(pnpm exec:*)` were prefix rules over
+command runners, so `pnpm --filter @resurv/worker deploy` ran `wrangler deploy` with no prompt,
+using the command form `docs/DEPLOYMENTS.md` itself recommends. `Bash(turbo run:*)` was the
+same defect and had not been noticed.
+
+### Decision
+
+Three changes, in order of how much they carry.
+
+1. No allow rule may combine a command runner with a wildcard. Runner invocations are exact
+   matches naming one reviewed script (`Bash(pnpm --filter contracts test)`), and the runners
+   themselves sit in `ask`.
+2. Deny rules match the dangerous inner command wherever it appears, since Bash patterns take
+   a wildcard at any position. `Bash(*wrangler deploy*)` catches the wrapped forms the allow
+   list can no longer reach.
+3. `packages/repo-policy` asserts all of it. The proven bypasses are test cases; every
+   workspace script is enumerated and any script with an external effect must not be
+   auto-approved under any wrapper; every `pnpm --filter` allow rule must name a script that
+   exists.
+
+### What this is not
+
+Not a sandbox. Claude Code's own documentation says permission rules apply to its built-in
+tools and to file commands it recognizes in Bash, and not to arbitrary subprocesses. A script
+started by an allowed root command is invisible to the engine, which is why the policy test
+also reads the scripts. `docs/THREAT_MODEL.md` T10 and T11 state the residual risk.
+
+### Revisit if
+
+Claude Code's matching semantics change, or a phase needs a command the exact-match list
+cannot express without a wildcard over a runner.
+
+---
+
+## ADR-009: Property tests are judged against an independent reference model
+
+Date: 2026-08-11. Status: accepted. Phase: 0 remediation.
+
+### Context
+
+The Phase 0 invariant handler opened with
+`if (!CovenantStatusLib.canTransition(status, to)) return;`. The implementation under test was
+also the gatekeeper deciding which inputs the fuzzer was allowed to try, so the suite could
+only prove the library agreed with itself. The reviewer demonstrated three defects that left
+all three invariants green, including an `isTerminal` that returned false for every state,
+while `pnpm --filter contracts test:invariant` exited 0.
+
+### Decision
+
+Every property test compares the implementation to a reference model that is transcribed from
+the PRD, structurally different from production, and never calls production code. The model is
+a flat character table in both languages; production is a branch chain in Solidity and a record
+of name arrays in TypeScript. Handlers attempt the full pair space unconditionally and record
+what the implementation allowed, rather than filtering inputs through it first.
+
+Reported coverage is behavioral: applied transitions, rejected attempts, distinct pairs
+attempted and applied, distinct states visited. A handler call that cannot mutate anything is
+not depth, and the Phase 0 "16,384 calls" figure was mostly guaranteed early returns.
+
+### Consequences
+
+Two models now have to be kept in step, which is the cost. The cross-language test in
+`@resurv/repo-policy` makes drift between them a failing test, and a model that drifts from the
+implementation fails the equivalence test in its own language.
+
+### Revisit if
+
+The covenant contract lands and the state machine gains real preconditions. The model then has
+to describe those preconditions too, or it stops being an oracle for anything but the graph.

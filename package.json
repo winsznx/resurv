@@ -18,7 +18,7 @@
     "test:integration": "turbo run test:integration",
     "test:e2e": "turbo run test:e2e",
     "build": "turbo run build",
-    "gate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm --filter contracts test && pnpm --filter contracts test:invariant && pnpm build",
+    "gate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:integration && pnpm test:e2e && pnpm build && pnpm --filter contracts test && pnpm --filter contracts test:invariant",
     "clean": "turbo run clean && rm -rf node_modules/.cache .turbo"
   },
   "devDependencies": {

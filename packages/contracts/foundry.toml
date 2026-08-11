@@ -33,7 +33,10 @@ max_test_rejects = 100000
 [profile.default.invariant]
 runs = 256
 depth = 64
-fail_on_revert = false
+# The handler has no legitimate revert path, so a revert is a defect rather than noise. The
+# Phase 0 independent review flagged `false` as a trap that would silently swallow every
+# `require` once a handler wraps a real stateful contract.
+fail_on_revert = true
 call_override = false
 
 # CI turns the dials up. Used by .github/workflows/ci.yml.
@@ -43,6 +46,7 @@ runs = 5000
 [profile.ci.invariant]
 runs = 1000
 depth = 128
+fail_on_revert = true
 
 [fmt]
 line_length = 100

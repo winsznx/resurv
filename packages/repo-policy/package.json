@@ -1,0 +1,23 @@
+{
+  "name": "@resurv/repo-policy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Executable repository policy. The Claude Code permission boundary, the tracked-secret detector and the Solidity-to-TypeScript state machine pin are checked by tests rather than asserted in a document.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@resurv/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  }
+}

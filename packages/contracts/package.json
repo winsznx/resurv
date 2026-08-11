@@ -1,0 +1,17 @@
+{
+  "name": "contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RESURV Foundry project. Named `contracts` without a scope so the documented `pnpm --filter contracts` commands in CLAUDE.md resolve literally.",
+  "scripts": {
+    "build": "forge build",
+    "typecheck": "forge build --sizes",
+    "lint": "forge fmt --check",
+    "lint:fix": "forge fmt",
+    "test": "forge test -vv",
+    "test:invariant": "forge test --match-path 'test/invariant/*' -vv",
+    "test:fuzz": "forge test --match-test testFuzz -vv",
+    "coverage": "forge coverage --report lcov",
+    "clean": "forge clean"
+  }
+}

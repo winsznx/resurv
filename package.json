@@ -1,0 +1,30 @@
+{
+  "name": "resurv",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Outcome-gated execution covenant. Recovery actions execute through KeeperHub until a declared onchain safe state is true, then the responder is paid.",
+  "packageManager": "pnpm@11.21.0",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome check . && pnpm --filter contracts lint",
+    "lint:fix": "biome check --write .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "test:e2e": "turbo run test:e2e",
+    "build": "turbo run build",
+    "gate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm --filter contracts test && pnpm --filter contracts test:invariant && pnpm build",
+    "clean": "turbo run clean && rm -rf node_modules/.cache .turbo"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.8",
+    "@types/node": "26.2.0",
+    "turbo": "2.10.9",
+    "typescript": "7.0.2"
+  }
+}

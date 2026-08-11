@@ -1,0 +1,24 @@
+{
+  "name": "@resurv/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "migrate:generate": "drizzle-kit generate",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@resurv/domain": "workspace:*",
+    "drizzle-orm": "0.45.2"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.10",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  }
+}

@@ -1,0 +1,27 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm requires postinstall scripts to be approved explicitly. Both entries below fetch a
+# platform-native binary for a first-party build tool, which is why they need a script.
+# Keep this list minimal and justify every addition.
+allowBuilds:
+  # Bundler used by Vite and by wrangler's build step.
+  esbuild: true
+  # The Workers runtime. Required for `wrangler dev` and for the Workers vitest pool.
+  workerd: true
+  '@biomejs/biome': true
+
+minimumReleaseAgeExclude:
+  - '@biomejs/biome@2.5.8'
+  - '@biomejs/cli-darwin-arm64@2.5.8'
+  - '@biomejs/cli-darwin-x64@2.5.8'
+  - '@biomejs/cli-linux-arm64-musl@2.5.8'
+  - '@biomejs/cli-linux-arm64@2.5.8'
+  - '@biomejs/cli-linux-x64-musl@2.5.8'
+  - '@biomejs/cli-linux-x64@2.5.8'
+  - '@biomejs/cli-win32-arm64@2.5.8'
+  - '@biomejs/cli-win32-x64@2.5.8'
+  - '@cloudflare/workers-types@5.20260811.1'
+  - miniflare@5.20260804.0-alpha
+  - wrangler@4.120.1

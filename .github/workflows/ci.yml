@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Turns the fuzz and invariant dials up. See [profile.ci] in packages/contracts/foundry.toml.
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  javascript:
+    name: format, lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # --frozen-lockfile fails if the lockfile does not match package.json, which is what
+      # keeps a dependency from drifting in without a reviewed change.
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm format:check
+      - run: pnpm exec biome check .
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm test:integration
+      - run: pnpm test:e2e
+      - run: pnpm build
+
+  contracts:
+    name: forge fmt, build, test, invariant
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: packages/contracts
+    steps:
+      # Foundry dependencies are pinned git submodules, so a shallow checkout without them
+      # produces a build that fails on a missing forge-std rather than on our code.
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - run: forge fmt --check
+      - run: forge build --sizes
+      - run: forge test -vv
+      - run: forge test --match-path 'test/invariant/*' -vv
+
+  secrets:
+    name: no secrets in the tree
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      # A tracked .env is the single most common way a key leaks. Fail loudly rather than
+      # relying on .gitignore having been correct at the moment the file was created.
+      - name: reject tracked env files and keystores
+        run: |
+          matches=$(git ls-files | grep -E '(^|/)\.env($|\.)|\.(pem|key|p12|pfx|keystore)$' | grep -v '\.env\.example$' || true)
+          if [ -n "$matches" ]; then
+            echo "tracked secret-bearing files:"
+            echo "$matches"
+            exit 1
+          fi

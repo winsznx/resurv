@@ -1,0 +1,51 @@
+[profile.default]
+src = "src"
+out = "out"
+test = "test"
+script = "script"
+libs = ["lib"]
+
+# Pinned at scaffold time. See docs/VERSIONS.md for the resolution record.
+solc = "0.8.36"
+
+# Base Sepolia supports Cancun. Pinned explicitly rather than inherited from the compiler
+# default, so a solc upgrade cannot silently change the emitted opcode set.
+evm_version = "cancun"
+
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+
+# Deterministic artifacts: metadata hashes otherwise vary per machine and break the
+# runtime-bytecode comparison used in the proof ladder.
+bytecode_hash = "none"
+cbor_metadata = false
+
+# No filesystem access from tests or scripts unless a later phase justifies it.
+fs_permissions = []
+
+deny = "warnings"
+
+[profile.default.fuzz]
+runs = 512
+max_test_rejects = 100000
+
+[profile.default.invariant]
+runs = 256
+depth = 64
+fail_on_revert = false
+call_override = false
+
+# CI turns the dials up. Used by .github/workflows/ci.yml.
+[profile.ci.fuzz]
+runs = 5000
+
+[profile.ci.invariant]
+runs = 1000
+depth = 128
+
+[fmt]
+line_length = 100
+tab_width = 4
+bracket_spacing = false
+int_types = "long"

@@ -1,0 +1,30 @@
+{
+  "name": "@resurv/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:integration": "vitest run --dir test/integration --passWithNoTests",
+    "deploy": "wrangler deploy",
+    "clean": "rm -rf dist .turbo .wrangler"
+  },
+  "dependencies": {
+    "@resurv/chain": "workspace:*",
+    "@resurv/config": "workspace:*",
+    "@resurv/db": "workspace:*",
+    "@resurv/domain": "workspace:*",
+    "@resurv/keeperhub-client": "workspace:*",
+    "@resurv/web": "workspace:*",
+    "hono": "4.13.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260811.1",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10",
+    "wrangler": "4.120.1"
+  }
+}

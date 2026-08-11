@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+/**
+ * Design tokens transcribed from design.md, which is the design authority for this
+ * repository. Values are copied, not reinterpreted. Components are built in the frontend
+ * phase; this file exists so no phase invents a second palette.
+ */
+@theme {
+  --color-obsidian: #09090b;
+  --color-graphite: #18181b;
+  --color-slate: #27272a;
+  --color-iron: #3f3f46;
+  --color-steel: #52525b;
+  --color-fog: #71717a;
+  --color-ash: #a1a1aa;
+  --color-mist: #d4d4d8;
+  --color-cloud: #ececee;
+  --color-paper: #f4f4f5;
+  --color-snow: #ffffff;
+  --color-ember: #ff5a00;
+  --color-magenta-spark: #fe45e2;
+
+  --font-cosmica:
+    "Cosmica", "DM Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
+
+  --text-caption: 12px;
+  --text-body: 15px;
+  --text-body-lg: 18px;
+  --text-subheading: 20px;
+  --text-heading-sm: 32px;
+  --text-heading: 40px;
+  --text-heading-lg: 56px;
+  --text-display: 64px;
+
+  --radius-badges: 12px;
+  --radius-inputs: 14px;
+  --radius-buttons: 14px;
+  --radius-cards: 36px;
+  --radius-icons: 40px;
+  --radius-pills: 10000px;
+}
+
+:root {
+  --leading-caption: 1.64;
+  --leading-body: 1.45;
+  --leading-body-lg: 1.45;
+  --leading-subheading: 1.5;
+  --leading-heading-sm: 1.5;
+  --leading-heading: 1.28;
+  --leading-heading-lg: 1.28;
+  --leading-display: 1.12;
+
+  --page-max-width: 1200px;
+  --section-gap: 80px;
+  --card-padding: 28px;
+  --element-gap: 8px;
+
+  --surface-canvas: var(--color-paper);
+  --surface-card: var(--color-snow);
+  --surface-subtle-card: #fafafa;
+  --surface-dark: var(--color-graphite);
+  --surface-deep-dark: var(--color-slate);
+}
+
+body {
+  background-color: var(--surface-canvas);
+  color: var(--color-graphite);
+  font-family: var(--font-cosmica);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  -webkit-font-smoothing: antialiased;
+}

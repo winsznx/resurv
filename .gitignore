@@ -1,0 +1,120 @@
+# ---------------------------------------------------------------------------
+# Secrets. Nothing in this block may ever reach source control.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# Wrangler resolves secrets into these at runtime.
+.wrangler/
+wrangler.toml.bak
+
+# Supabase local stack writes generated credentials and pooler config here.
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+supabase/config.local.toml
+
+# Keys, keystores, and anything a deploy step might emit.
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+keystore/
+keystores/
+secrets/
+.secrets/
+private/
+*.private.json
+deployer.json
+account.json
+
+# Foundry writes an encrypted keystore here when `cast wallet import` is used.
+.foundry/
+
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+
+# packages/contracts/lib is deliberately NOT ignored. Foundry dependencies are pinned as
+# git submodules so a fresh clone resolves the exact audited commit.
+
+# ---------------------------------------------------------------------------
+# Build output
+# ---------------------------------------------------------------------------
+dist/
+build/
+out/
+.next/
+.output/
+.vite/
+*.tsbuildinfo
+
+# Foundry
+packages/contracts/out/
+packages/contracts/cache/
+packages/contracts/broadcast/**/dry-run/
+
+# ---------------------------------------------------------------------------
+# Caches
+# ---------------------------------------------------------------------------
+.turbo/
+.cache/
+.eslintcache
+.vitest/
+
+# ---------------------------------------------------------------------------
+# Test and coverage output
+# ---------------------------------------------------------------------------
+coverage/
+lcov.info
+*.lcov
+.nyc_output/
+packages/contracts/lcov.info
+
+# ---------------------------------------------------------------------------
+# Logs
+# ---------------------------------------------------------------------------
+*.log
+npm-debug.log*
+yarn-error.log*
+logs/
+
+# ---------------------------------------------------------------------------
+# OS and editor
+# ---------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.shared.json
+
+# ---------------------------------------------------------------------------
+# Claude Code local overrides (may contain machine-specific paths)
+# ---------------------------------------------------------------------------
+.claude/settings.local.json
+
+# ---------------------------------------------------------------------------
+# Runtime evidence that is regenerated, never authored
+# ---------------------------------------------------------------------------
+evidence/runs/*.local.json
+tmp/
+.tmp/

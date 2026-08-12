@@ -15,6 +15,7 @@ function record(id: string): AttemptRecord {
     canonicalBody: '{"a":1}',
     canonicalBodyHash: 'sha256:beef',
     idempotencyKey: `key-${id}`,
+    fromBlock: 1,
     state: 'KEY_COMMITTED',
     executionId: undefined,
     transactionHash: undefined,

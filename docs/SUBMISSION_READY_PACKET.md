@@ -10,7 +10,7 @@ Three assets are required and incomplete submissions are not judged:
 |---|---|
 | GitHub repository link | **needed.** This repository has no git remote yet |
 | Demo video | **needed.** Script in `docs/DEMO_SCRIPT.md`, checklist in `docs/DEMO_CAPTURE_CHECKLIST.md`. A human records it |
-| Link to a real transaction executed through KeeperHub | **ready:** https://sepolia.basescan.org/tx/0x9ea030674ca2e9ee8729bf00a6fbf53cd48320c23d0ae0a0b9780bb0da59dbcb |
+| Link to a real transaction executed through KeeperHub | **ready:** https://sepolia.basescan.org/tx/0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab |
 
 ---
 
@@ -108,9 +108,9 @@ shipped.
 
 ## Real KeeperHub transaction
 
-https://sepolia.basescan.org/tx/0x9ea030674ca2e9ee8729bf00a6fbf53cd48320c23d0ae0a0b9780bb0da59dbcb
+https://sepolia.basescan.org/tx/0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab
 
-Block 45397010, status `0x1`, 245,531 gas. Six logs in this order: `AttemptStarted`, the vault's
+Block 45398879, status `0x1`, 245,555 gas. Six logs in this order: `AttemptStarted`, the vault's
 `Transfer` to the approved recipient, `VaultEvacuated`, `AttemptSucceeded`, the escrow's
 `Transfer` to the responder, `CovenantSatisfied`.
 

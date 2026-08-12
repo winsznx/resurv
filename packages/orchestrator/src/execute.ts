@@ -137,6 +137,7 @@ export async function executeSemanticAttempt(
     canonicalBody: plan.canonicalBody,
     canonicalBodyHash: plan.canonicalBodyHash,
     idempotencyKey: plan.idempotencyKey,
+    fromBlock: plan.fromBlock,
     state: 'KEY_COMMITTED',
     executionId: undefined,
     transactionHash: undefined,
@@ -182,13 +183,21 @@ export async function executeSemanticAttempt(
 
   // 4. Reconcile against chain. Even the no-effect candidate goes through here, because the
   //    only thing that may confirm "nothing happened" is the chain saying so.
+  //
+  //    Both anchors come from the durable record rather than from this invocation. The
+  //    settlement window measures time since the key was committed, so a resumed process does
+  //    not restart the clock and can actually reach `PROVEN_NOT_BROADCAST`; and the log search
+  //    starts at the head this attempt started from, so a resumed process cannot skip over the
+  //    block its own transaction landed in.
+  const committedAt = Date.parse(reserved.record.createdAt);
   return reconcile(plan, options, {
     exchanges,
     executionId,
     hintedTransactionHash: readTransactionHash(response.body) ?? undefined,
     candidate: classification.candidate,
     inFlightReported: false,
-    start: now(),
+    start: Number.isFinite(committedAt) ? committedAt : now(),
+    searchFromBlock: reserved.record.fromBlock,
     wait,
     log,
   });
@@ -205,7 +214,10 @@ interface ReconcileContext {
    * that nothing was broadcast, however long the settlement window has been open.
    */
   inFlightReported: boolean;
+  /** Milliseconds since the epoch at which this attempt's key was durably committed. */
   readonly start: number;
+  /** The chain head at that moment, taken from the durable record and never recomputed. */
+  readonly searchFromBlock: number;
   readonly wait: (ms: number) => Promise<void>;
   readonly log: (message: string) => void;
 }
@@ -283,7 +295,7 @@ async function reconcile(
     // Step 2: ask the chain. This is the only route that survives an API change, and the only
     // one that can prove an absence.
     if (context.hintedTransactionHash === null || context.hintedTransactionHash === undefined) {
-      const found = await findEffectOnChain(plan, options);
+      const found = await findEffectOnChain(plan, options, context.searchFromBlock);
       if (found !== undefined) {
         context.hintedTransactionHash = found;
         context.log(`recovered transaction ${found} from chain logs alone`);
@@ -413,12 +425,14 @@ export function receiptCarriesEffect(
 async function findEffectOnChain(
   plan: AttemptPlan,
   options: ExecuteOptions,
+  fromBlock: number,
 ): Promise<string | undefined> {
   const head = await getBlockNumber(options.rpc ?? {});
   const query = {
     ...(plan.expectedEffect.address === undefined ? {} : { address: plan.expectedEffect.address }),
     topics: plan.expectedEffect.topics,
-    fromBlock: plan.fromBlock,
+    // The durable floor, never a freshly read head. See `AttemptRecord.fromBlock`.
+    fromBlock,
     toBlock: (head ?? 'latest') as number | 'latest',
   };
   const logs = await getLogs(query, options.rpc ?? {});

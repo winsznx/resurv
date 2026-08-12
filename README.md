@@ -5,16 +5,16 @@ state is true, and the responder is paid inside the transaction that made it tru
 
 | | |
 |---|---|
-| **Real KeeperHub transaction** | [`0x9ea03067…da59dbcb`](https://sepolia.basescan.org/tx/0x9ea030674ca2e9ee8729bf00a6fbf53cd48320c23d0ae0a0b9780bb0da59dbcb) — the successful attempt, block 45397010 |
+| **Real KeeperHub transaction** | [`0xf7f9aace…29d86ab`](https://sepolia.basescan.org/tx/0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab) — the successful attempt, block 45398879 |
 | **Public proof page** | `apps/web`, deployed to Cloudflare. Needs no login, no credential, no RESURV server in the trust path |
-| **Covenant** | `0xb8c1c6ecb47cd4ed69755ca28e651348e72d58700ecf63da6e2c25896265694d` on Base Sepolia |
-| **Covenant manager** | [`0x01cd0adb80df64d223e6e95789d29f144e87a037`](https://sepolia.basescan.org/address/0x01cd0adb80df64d223e6e95789d29f144e87a037) |
+| **Covenant** | `0xd7250d1fd4c0f996475b78a00489ce0668bad187b342ca61d88983bf0ec7e14f` on Base Sepolia |
+| **Covenant manager** | [`0xfcafbc81f253e62a3818ecda7a7a71e557c65b21`](https://sepolia.basescan.org/address/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21) |
 | **Tests** | 703 TypeScript, 102 Foundry, all green. `pnpm gate` exits 0 |
 
 Check the headline for yourself in one command:
 
 ```bash
-cast receipt 0x9ea030674ca2e9ee8729bf00a6fbf53cd48320c23d0ae0a0b9780bb0da59dbcb \
+cast receipt 0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab \
   --rpc-url https://sepolia.base.org
 ```
 

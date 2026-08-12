@@ -6,7 +6,7 @@ import {
   redactedJson,
   redactString,
 } from '@resurv/config';
-import { DEPLOYMENT, RECEIPT } from '@resurv/proof';
+import { DEPLOYMENT, decodeVerifierContext, RECEIPT } from '@resurv/proof';
 import { Hono } from 'hono';
 
 /**
@@ -100,7 +100,12 @@ app.get('/api/proof/summary', (c) =>
       terminalStatusIsSatisfied: RECEIPT.outcome.terminalStatus === 5,
       verifierReturnedTrue: RECEIPT.outcome.satisfied,
       vaultEmptied: RECEIPT.outcome.vaultBalance === '0',
-      recipientReceivedTheMinimum: RECEIPT.outcome.safeBalance !== '0',
+      // Against the minimum the covenant actually declared, decoded from the committed verifier
+      // context. An earlier version asserted only that the balance was non-zero, which is a
+      // weaker statement than the covenant made and would have passed on a dust delivery.
+      recipientReceivedTheMinimum:
+        BigInt(RECEIPT.outcome.safeBalance) >=
+        decodeVerifierContext().safeBaseline + decodeVerifierContext().minimumReceived,
       responderPaid: RECEIPT.outcome.responderBalance !== '0',
       primaryActionRefusedBeforeBroadcast:
         RECEIPT.steps.find((step) => step.label === 'attempt-primary')?.state ===

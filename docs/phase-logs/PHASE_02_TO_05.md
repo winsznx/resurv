@@ -81,9 +81,9 @@ Nine KeeperHub-executed transactions for the deployment, eight for the demo, plu
 | | |
 |---|---|
 | Contracts | `deployments/base-sepolia.json`, six, all predicted |
-| Covenant | `0xb8c1c6ecb47cd4ed69755ca28e651348e72d58700ecf63da6e2c25896265694d` |
-| Success transaction | `0x9ea030674ca2e9ee8729bf00a6fbf53cd48320c23d0ae0a0b9780bb0da59dbcb` |
-| Block, gas | 45397010, 245,531 |
+| Covenant | `0xd7250d1fd4c0f996475b78a00489ce0668bad187b342ca61d88983bf0ec7e14f` |
+| Success transaction | `0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab` |
+| Block, gas | 45398879, 245,555 |
 | Terminal status | `SATISFIED` |
 | Verifier, read live | `satisfied: true`, observed 1,000,000 |
 | Vault, recipient, responder | 0 · 1.000000 rUSD · 1.000000 rUSD |

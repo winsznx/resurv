@@ -26,6 +26,17 @@ export interface AttemptRecord {
   readonly canonicalBody: string;
   readonly canonicalBodyHash: string;
   readonly idempotencyKey: string;
+  /**
+   * The chain head before the first request left. Durable for the same reason the key is: a
+   * resumed process searching for the attempt's onchain marker has to start where the attempt
+   * started, not at the head it happens to see now.
+   *
+   * Recomputing it on resume was a real defect. A crash, a later re-run, and a log search that
+   * begins at the current head skips the very block the transaction landed in, and the reconciler
+   * concludes `PROVEN_NOT_BROADCAST` for an attempt that succeeded. That verdict is the one that
+   * invites a second economic effect.
+   */
+  readonly fromBlock: number;
   readonly state: AttemptState;
   readonly executionId: string | undefined;
   readonly transactionHash: string | undefined;

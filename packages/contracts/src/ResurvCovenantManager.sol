@@ -27,10 +27,16 @@ import {IResurvAction} from "./interfaces/IResurvAction.sol";
 ///      Two things this contract carries that the orchestrator cannot, both measured in Phase
 ///      0.5 (`docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md`):
 ///
-///      1. Semantic idempotency is onchain and permanent. KeeperHub's transport idempotency
-///         bounds economic effects per idempotency key for 24 hours; a *new* key for the same
-///         action was measured executing it a second time. `usedAttemptIds` is what actually
-///         stops a duplicate economic effect, forever.
+///      1. Semantic idempotency is onchain and permanent, and the boundary is worth stating
+///         precisely. KeeperHub's transport idempotency bounds effects per idempotency key for
+///         24 hours; a *new* key for the same action was measured executing it a second time.
+///         `usedAttemptIds` burns one identity — covenant, action, pre-state, sequence — forever,
+///         so a replay of *that* attempt can never commit again. It does not by itself bound
+///         repeats of the same action against an unchanged world, because `attemptSequence` is
+///         chosen by the caller: `action.maxAttempts` and `maxTotalAttempts` are what bound
+///         those, and the orchestrator's durable record is what keeps a retry on the same
+///         sequence. An audit found an earlier version of this comment claiming the burn alone
+///         was the permanent bound, which credited the contract with an orchestrator property.
 ///      2. Access control keys on the KeeperHub organization wallet. Under gas sponsorship
 ///         `receipt.from` is a relayer and `receipt.to` a router, while `msg.sender` at the
 ///         target is the organization wallet. A contract that authorized on anything visible
@@ -223,6 +229,7 @@ contract ResurvCovenantManager is AccessControl, EIP712, ReentrancyGuard {
     error GlobalPause();
     error InvalidParameters();
     error FeeTokenNotAllowed();
+    error VerifierStarved();
 
     modifier whenNotPaused() {
         if (paused) revert GlobalPause();
@@ -589,6 +596,13 @@ contract ResurvCovenantManager is AccessControl, EIP712, ReentrancyGuard {
     ///      and refunds the escrow to the requester. Permissionless, because refusing to close a
     ///      covenant whose promise is already kept only strands escrow. The demo does not use
     ///      this path.
+    ///      Deliberately **not** gated on the deadline. An independent audit found that gating it
+    ///      there closed every exit at once: `expireCovenant` refuses to refund while the outcome
+    ///      is true, and `executeAttempt` and this function both refuse after the deadline, so a
+    ///      covenant whose outcome became true near its deadline was stuck in `TRIGGERED` with
+    ///      its escrow unrecoverable, forever, on an immutable contract. The precondition that
+    ///      matters here is that the outcome is true, and that does not stop being true at a
+    ///      deadline.
     function finalizeAlreadySatisfied(bytes32 covenantId, bytes calldata verifierContext)
         external
         nonReentrant
@@ -596,8 +610,6 @@ contract ResurvCovenantManager is AccessControl, EIP712, ReentrancyGuard {
     {
         Covenant storage covenant = _covenants[covenantId];
         if (covenant.status != CovenantStatus.TRIGGERED) revert InvalidStatus();
-        // forge-lint: disable-next-line(block-timestamp)
-        if (block.timestamp > covenant.deadline) revert CovenantHasExpired();
         if (keccak256(verifierContext) != covenant.verifierContextHash) {
             revert InvalidVerifierContext();
         }
@@ -645,13 +657,7 @@ contract ResurvCovenantManager is AccessControl, EIP712, ReentrancyGuard {
             revert InvalidVerifierContext();
         }
 
-        try IOutcomeVerifier(covenant.verifier).evaluate(covenantId, verifierContext) returns (
-            bool satisfied, bytes32, uint256
-        ) {
-            if (satisfied) revert OutcomeAlreadySatisfied();
-        } catch {
-            // Not verifiable. Fall through to the refund rather than trapping the escrow.
-        }
+        _refuseExpiryIfOutcomeIsTrue(covenant.verifier, covenantId, verifierContext);
 
         covenant.status = CovenantStatus.EXPIRED;
         uint256 refunded = _settleEscrow(covenant, covenant.requester);
@@ -750,6 +756,55 @@ contract ResurvCovenantManager is AccessControl, EIP712, ReentrancyGuard {
     // ---------------------------------------------------------------------------------------
     // Internal
     // ---------------------------------------------------------------------------------------
+
+    /// @notice The gas an expiry must be able to give a verifier before it may conclude anything
+    ///         from that verifier's silence.
+    /// @dev The floor is deliberately generous. A verifier that cannot answer inside it is not one
+    ///      this contract can distinguish from a starved one, and the safe reading of that is to
+    ///      refuse the refund rather than to grant it.
+    uint256 public constant VERIFIER_GAS_FLOOR = 1_000_000;
+
+    /// @dev Asks the verifier whether the outcome is already true, and refuses the expiry if it
+    ///      is. Three failures found by audit shaped every line of this:
+    ///
+    ///      1. A `try/catch` around a typed call does **not** catch everything. Solidity's
+    ///         `extcodesize` guard and its return-data decoding both raise in the *caller's*
+    ///         frame, so a codeless verifier and a verifier returning malformed data each
+    ///         reverted `expireCovenant` outright, trapping the escrow permanently. A low-level
+    ///         `staticcall` with an explicit length check is the only shape that actually treats
+    ///         "cannot answer" as an answer.
+    ///      2. The caller chooses the gas. Under EIP-150 a child gets 63/64 of what is left, so a
+    ///         caller could starve an honest but expensive verifier into silence and take the
+    ///         refund over a true outcome, falsifying PRD invariant 10.14.8. The floor, plus the
+    ///         standard post-call check that the child did not consume essentially everything it
+    ///         was given, is what closes that.
+    ///      3. Silence is not evidence of falsity, and it is not evidence of truth either. When
+    ///         the verifier cannot answer, the escrow is refunded, because escrow trapped behind
+    ///         a broken oracle forever is the worse failure. When the verifier *was starved*, the
+    ///         expiry reverts, because that is a caller's choice rather than a verifier's defect.
+    function _refuseExpiryIfOutcomeIsTrue(
+        address verifier,
+        bytes32 covenantId,
+        bytes calldata verifierContext
+    ) internal view {
+        if (gasleft() < VERIFIER_GAS_FLOOR) revert VerifierStarved();
+
+        uint256 before = gasleft();
+        (bool ok, bytes memory returned) = verifier.staticcall(
+            abi.encodeCall(IOutcomeVerifier.evaluate, (covenantId, verifierContext))
+        );
+
+        if (!ok) {
+            // A child that burns essentially everything it was given is indistinguishable from
+            // one that was given too little. Refuse rather than refund on that basis.
+            if (gasleft() < before / 64) revert VerifierStarved();
+            return; // genuinely not verifiable
+        }
+        if (returned.length != 96) return; // not conforming, so not verifiable
+
+        (bool satisfied,,) = abi.decode(returned, (bool, bytes32, uint256));
+        if (satisfied) revert OutcomeAlreadySatisfied();
+    }
 
     /// @dev The single exit for escrowed value. Marks the covenant settled before transferring,
     ///      so a token with a callback cannot re-enter into a second payout even if the

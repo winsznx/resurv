@@ -7,12 +7,12 @@ contract call. No deployer key and no faucet were involved. ADR-014.
 
 | Contract | Address | Deployment transaction |
 |---|---|---|
-| `ResurvCovenantManager` | [`0x01cd0adb80df64d223e6e95789d29f144e87a037`](https://sepolia.basescan.org/address/0x01cd0adb80df64d223e6e95789d29f144e87a037) | [`0x2fc86c90…`](https://sepolia.basescan.org/tx/0x2fc86c90a0150d857a6177518ef2c7311655c8aa3647cb36af53718d54f45d4f) |
-| `PauseAction` | [`0x345fdcfe25d6fbb436b02589dadbaabed413789a`](https://sepolia.basescan.org/address/0x345fdcfe25d6fbb436b02589dadbaabed413789a) | [`0xf47f0b75…`](https://sepolia.basescan.org/tx/0xf47f0b7530318dda032eed22bbd92ac0bf44ef221c6a1d8c6dc25b096ba581d1) |
-| `EvacuateERC20Action` | [`0x944def229e6ff8321738ee5caf9487182ab31c02`](https://sepolia.basescan.org/address/0x944def229e6ff8321738ee5caf9487182ab31c02) | [`0x6f20a3bb…`](https://sepolia.basescan.org/tx/0x6f20a3bb84758e6435ac3b13f7a4fc5e586c2c85cedfc5789cc8a15cee666f4a) |
-| `VaultSafeStateVerifier` | [`0x453bd9bec0caa6e13bbd9f0ede86a4b1794dc5c8`](https://sepolia.basescan.org/address/0x453bd9bec0caa6e13bbd9f0ede86a4b1794dc5c8) | [`0x105f2776…`](https://sepolia.basescan.org/tx/0x105f2776518fcaaef1efaeec774798ae423c6f4c50bc1035f535ef8d817027f5) |
-| `DemoVault` | [`0x721a99416f2c32a139e1a96a647e8d4e006db335`](https://sepolia.basescan.org/address/0x721a99416f2c32a139e1a96a647e8d4e006db335) | [`0x4e1a55c2…`](https://sepolia.basescan.org/tx/0x4e1a55c29e9b1d7f1cbe22b62344c303dd3176ed1e404ec0ef03b458d8174144) |
-| `TestUSD` | [`0x791e9c8995b58a4da393896c9d51819e50c66c47`](https://sepolia.basescan.org/address/0x791e9c8995b58a4da393896c9d51819e50c66c47) | [`0x61efa2ce…`](https://sepolia.basescan.org/tx/0x61efa2ce67be5cfc90a7536f1a31c111a57ec8e476f19d41554137abb4cf7a1d) |
+| `ResurvCovenantManager` | [`0xfcafbc81f253e62a3818ecda7a7a71e557c65b21`](https://sepolia.basescan.org/address/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21) | [`0x15f7ba75…`](https://sepolia.basescan.org/tx/0x15f7ba7514e72da39aa57054f7d11035526213461289a15d2d941338b3f3cf2a) |
+| `PauseAction` | [`0x84c21e26ed405f6959b53a577afc677854f35fb6`](https://sepolia.basescan.org/address/0x84c21e26ed405f6959b53a577afc677854f35fb6) | [`0x2bc138df…`](https://sepolia.basescan.org/tx/0x2bc138df69b0ed56cf9b592834203742eabecd486e36c42b2551d75cdf274c31) |
+| `EvacuateERC20Action` | [`0x498bd80ebc30d51de9764a20abc96b50d6840416`](https://sepolia.basescan.org/address/0x498bd80ebc30d51de9764a20abc96b50d6840416) | [`0x46ed7032…`](https://sepolia.basescan.org/tx/0x46ed703252e3d12b11c9359a45c8b83038fb2ae36bcf0e75316dcf1989a723c3) |
+| `VaultSafeStateVerifier` | [`0xde41aab7341db6ef25f513df51a264faf23ca737`](https://sepolia.basescan.org/address/0xde41aab7341db6ef25f513df51a264faf23ca737) | [`0x2fa32479…`](https://sepolia.basescan.org/tx/0x2fa32479531b99ee78b5fe3c95eb7809133fe14fa4ce5b2d1944e2793355f2db) |
+| `DemoVault` | [`0x60ff59ea3eac52fd0c02dd8e31a368b4bd2f1cb8`](https://sepolia.basescan.org/address/0x60ff59ea3eac52fd0c02dd8e31a368b4bd2f1cb8) | [`0xc1f5fac1…`](https://sepolia.basescan.org/tx/0xc1f5fac1a76e065deed1b7f2f36e773c49df2d12712b143d216ff1c8deb1fd4b) |
+| `TestUSD` | [`0x96981488e239142e340bf32679059baa56bae2b1`](https://sepolia.basescan.org/address/0x96981488e239142e340bf32679059baa56bae2b1) | [`0x06428a7f…`](https://sepolia.basescan.org/tx/0x06428a7fd795c6f771086c4718e664d86116bbf94e956c2eabf38dbe836b3802) |
 
 Bytecode hashes, salts, constructor arguments, compiler settings, KeeperHub execution ids and
 the source commit are in `deployments/base-sepolia.json`, written by the deployment itself.
@@ -33,13 +33,13 @@ lacks `createCovenantEncoded` and nothing references it. ADR-015.
 
 ### The canonical covenant
 
-`0xb8c1c6ecb47cd4ed69755ca28e651348e72d58700ecf63da6e2c25896265694d`
+`0xd7250d1fd4c0f996475b78a00489ce0668bad187b342ca61d88983bf0ec7e14f`
 
 | | |
 |---|---|
-| Success transaction | [`0x9ea030674ca2e9ee8729bf00a6fbf53cd48320c23d0ae0a0b9780bb0da59dbcb`](https://sepolia.basescan.org/tx/0x9ea030674ca2e9ee8729bf00a6fbf53cd48320c23d0ae0a0b9780bb0da59dbcb) |
-| Block | 45397010 |
-| Gas used | 245,531 |
+| Success transaction | [`0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab`](https://sepolia.basescan.org/tx/0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab) |
+| Block | 45398879 |
+| Gas used | 245,555 |
 | Terminal status | `SATISFIED` |
 | Fee released | 1.000000 rUSD to `0xb0b0…b0b0` |
 
@@ -104,14 +104,14 @@ Sourcify, because it needs no API key and Basescan's v2 API does:
 
 ```bash
 cd packages/contracts
-forge verify-contract 0x01cd0adb80df64d223e6e95789d29f144e87a037 \
+forge verify-contract 0xfcafbc81f253e62a3818ecda7a7a71e557c65b21 \
   src/ResurvCovenantManager.sol:ResurvCovenantManager \
   --chain 84532 --verifier sourcify \
   --constructor-args "$(cast abi-encode 'constructor(address,address,address,address[])' \
       0xfd35ae935de7be93ffd585d6627268d833ed834c \
       0xfd35ae935de7be93ffd585d6627268d833ed834c \
       0xfd35ae935de7be93ffd585d6627268d833ed834c \
-      '[0x791e9c8995b58a4da393896c9d51819e50c66c47]')"
+      '[0x96981488e239142e340bf32679059baa56bae2b1]')"
 ```
 
 ## Database: Supabase Postgres

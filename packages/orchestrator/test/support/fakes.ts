@@ -85,6 +85,8 @@ export interface FakeChainState {
 
 export class FakeRpc {
   readonly calls: string[] = [];
+  /** Every `eth_getLogs` filter, so a test can assert which block the search actually started at. */
+  readonly logQueries: { fromBlock: string; toBlock: string }[] = [];
 
   constructor(readonly state: FakeChainState) {}
 
@@ -92,8 +94,15 @@ export class FakeRpc {
 
   readonly fetch: typeof fetch = async (input, init) => {
     const origin = typeof input === 'string' ? input : String(input);
-    const request = JSON.parse(String(init?.body ?? '{}')) as { method: string };
+    const request = JSON.parse(String(init?.body ?? '{}')) as {
+      method: string;
+      params?: unknown[];
+    };
     this.calls.push(`${origin} ${request.method}`);
+    if (request.method === 'eth_getLogs') {
+      const filter = request.params?.[0] as { fromBlock: string; toBlock: string };
+      this.logQueries.push({ fromBlock: filter.fromBlock, toBlock: filter.toBlock });
+    }
 
     const answer = (result: unknown): Response =>
       new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result }), {

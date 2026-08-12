@@ -46,13 +46,14 @@ export const CONTRACT_CREATION_UNSALTED_TOPIC =
   '0x4db17dd5e4732fb6da34a148104a592783ca119a1e7bb8829eba6cbadef0b511' as const;
 
 /**
- * Bumped from `resurv/v1` when `createCovenantEncoded` was added. CREATE2 addresses are a
+ * Bumped to v2 when `createCovenantEncoded` was added, and to v3 when an independent audit
+ * found two ways a covenant's escrow could be trapped permanently. CREATE2 addresses are a
  * function of the salt and the init code, so a changed contract lands at a new address anyway,
  * but the contracts whose bytecode did not change would have collided with their own first
  * deployment. Bumping the namespace keeps one deployment coherent instead of splitting it
  * across two generations. The v1 addresses stay on chain, unused and unreferenced.
  */
-export const SALT_NAMESPACE = 'resurv/v2';
+export const SALT_NAMESPACE = 'resurv/v3';
 
 export class SaltRejectedError extends Error {
   constructor(reason: string) {

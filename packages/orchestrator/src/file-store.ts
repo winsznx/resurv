@@ -11,9 +11,12 @@
  * durability across a crash, and an `fsync`'d append satisfies that for a single-process runner
  * exactly as a committed row does for a service.
  *
- * What it does not satisfy: two processes sharing a store, which is why `SupabaseAttemptStore`
- * exists alongside it and why the conformance suite runs against both. The deployed Worker uses
- * Supabase. The CLI runner uses this. Neither is a mock.
+ * What it does not satisfy: two processes sharing a store. Nothing in this repository does yet.
+ * The deployed Worker serves read-only routes and has no write path at all, and a
+ * Supabase-backed implementation of `AttemptStore` is an open item under ADR-004 rather than a
+ * shipped component. An earlier version of this comment claimed one existed and that a
+ * conformance suite ran against both; it did not, and saying so was the kind of overclaim the
+ * rest of this repository exists to avoid.
  */
 
 import { closeSync, fsyncSync, mkdirSync, openSync, readFileSync, writeSync } from 'node:fs';

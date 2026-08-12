@@ -110,6 +110,39 @@ export const RECEIPT: OutcomeReceipt = receiptJson as unknown as OutcomeReceipt;
  */
 export type EvidenceLevel = 'LIVE' | 'MEASURED' | 'DOCUMENTED' | 'LOCAL' | 'REFUTED';
 
+/**
+ * The covenant's committed verifier context, decoded.
+ *
+ * Five fixed 32-byte words, so this needs no ABI decoder: three addresses and two amounts. The
+ * declared minimum lives here and nowhere else, which is the point of committing it. A checker
+ * that reads "the recipient received something" rather than "the recipient received at least the
+ * declared minimum" is checking a weaker thing than the covenant promised.
+ */
+export interface DecodedVerifierContext {
+  readonly vault: string;
+  readonly safe: string;
+  readonly token: string;
+  readonly safeBaseline: bigint;
+  readonly minimumReceived: bigint;
+}
+
+export function decodeVerifierContext(
+  context = RECEIPT.covenant.verifierContext,
+): DecodedVerifierContext {
+  const body = context.replace(/^0x/, '');
+  if (body.length !== 5 * 64) {
+    throw new Error(`verifier context is ${body.length / 2} bytes, expected 160`);
+  }
+  const word = (index: number): string => body.slice(index * 64, (index + 1) * 64);
+  return {
+    vault: `0x${word(0).slice(24)}`,
+    safe: `0x${word(1).slice(24)}`,
+    token: `0x${word(2).slice(24)}`,
+    safeBaseline: BigInt(`0x${word(3)}`),
+    minimumReceived: BigInt(`0x${word(4)}`),
+  };
+}
+
 export interface Claim {
   readonly statement: string;
   readonly level: EvidenceLevel;

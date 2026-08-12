@@ -532,7 +532,16 @@ contract CovenantInvariantTest is Test {
         assertEq(held, owed, "manager holds value it does not owe");
     }
 
+    /// @dev Foundry calls `setUp` before each of the 256 runs and `afterInvariant` once, at the
+    ///      end, so these figures describe the **last run only** — roughly one four-hundredth of
+    ///      the campaign. An audit found the previous framing of this block read as campaign-wide
+    ///      coverage and was off by two orders of magnitude. The per-selector table Foundry
+    ///      prints alongside is the campaign total; this is a depth check on one episode, which
+    ///      is what it is useful for: it shows whether a single run can reach a covenant that is
+    ///      created, armed, triggered, attempted and settled, or whether the handler is spending
+    ///      its depth bouncing off status checks.
     function afterInvariant() public view {
+        console.log("--- last run only, not the 256-run campaign ---");
         console.log("covenants created       ", handler.created());
         console.log("covenants armed         ", handler.armedCount());
         console.log("triggers accepted       ", handler.triggered());

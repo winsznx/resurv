@@ -31,6 +31,28 @@ const PLAN: AttemptPlan = {
   fromBlock: 1,
 };
 
+/** A durable record shaped like the one a previous process would have left behind. */
+function baseRecord() {
+  return {
+    semanticAttemptId: PLAN.semanticAttemptId,
+    covenantId: PLAN.covenantId,
+    actionIndex: PLAN.actionIndex,
+    attemptSequence: PLAN.attemptSequence,
+    expectedStateHash: undefined,
+    canonicalBody: PLAN.canonicalBody,
+    canonicalBodyHash: PLAN.canonicalBodyHash,
+    idempotencyKey: PLAN.idempotencyKey,
+    fromBlock: PLAN.fromBlock,
+    state: 'KEY_COMMITTED' as const,
+    executionId: undefined,
+    transactionHash: undefined,
+    createdAt: '2026-08-12T00:00:00Z',
+    updatedAt: '2026-08-12T00:00:00Z',
+    reconciliationRounds: 0,
+    note: undefined,
+  };
+}
+
 function runtime(keeperhub: FakeKeeperhub, rpc: FakeRpc, store = new InMemoryAttemptStore()) {
   return {
     store,
@@ -316,23 +338,7 @@ describe('crash and concurrency', () => {
 
   it('resumes a claim left behind by a crash instead of creating a second attempt', async () => {
     // #given a record the previous process wrote before it died
-    await store.reserve({
-      semanticAttemptId: PLAN.semanticAttemptId,
-      covenantId: PLAN.covenantId,
-      actionIndex: PLAN.actionIndex,
-      attemptSequence: PLAN.attemptSequence,
-      expectedStateHash: undefined,
-      canonicalBody: PLAN.canonicalBody,
-      canonicalBodyHash: PLAN.canonicalBodyHash,
-      idempotencyKey: PLAN.idempotencyKey,
-      state: 'KEY_COMMITTED',
-      executionId: undefined,
-      transactionHash: undefined,
-      createdAt: '2026-08-12T00:00:00Z',
-      updatedAt: '2026-08-12T00:00:00Z',
-      reconciliationRounds: 0,
-      note: undefined,
-    });
+    await store.reserve(baseRecord());
 
     const keeperhub = new FakeKeeperhub()
       .onExecute({
@@ -352,24 +358,86 @@ describe('crash and concurrency', () => {
     expect(keeperhub.requests[0]?.body).toBe(PLAN.canonicalBody);
   });
 
+  /**
+   * The defect this pins was found by review, not by a test, and its failure mode is the worst
+   * one available: a resumed process searching the chain from the *current* head skips the block
+   * its own transaction landed in, concludes nothing was broadcast, and invites a second
+   * economic effect. The floor has to come from the durable record.
+   */
+  it('searches the chain from the block the attempt started at, not the block it resumed at', async () => {
+    // #given a claim written when the head was block 0x11, and a chain now far past it
+    await store.reserve({
+      ...baseRecord(),
+      fromBlock: 0x11,
+      createdAt: new Date(Date.now() - 10 * 60_000).toISOString(),
+    });
+
+    const keeperhub = new FakeKeeperhub().onExecute({
+      status: 409,
+      body: { error: 'running', code: 'idempotency_in_progress', retryable: true },
+    });
+    const rpc = new FakeRpc({
+      blockNumber: '0x3000',
+      receipt: receiptWithExpectedEvent(),
+      logs: [
+        {
+          address: TARGET,
+          topics: [EXPECTED_TOPIC],
+          data: '0x',
+          blockNumber: '0x12',
+          transactionHash: '0xabc',
+          logIndex: '0x0',
+        },
+      ],
+    });
+
+    // #when a fresh plan is built, as a re-run would build it, with a much later floor
+    const stalePlan: AttemptPlan = { ...PLAN, fromBlock: 0x2fff };
+    const outcome = await executeSemanticAttempt(stalePlan, runtime(keeperhub, rpc, store));
+
+    // #then the stored floor was used, so the effect was found
+    expect(outcome.state).toBe('CONFIRMED');
+    expect(outcome.transactionHash).toBe('0xabc');
+    const searched = rpc.logQueries.at(-1);
+    expect(searched?.fromBlock).toBe('0x11');
+  });
+
+  /**
+   * The settlement window measures time since the key was committed. Restarting the clock on
+   * every invocation makes `PROVEN_NOT_BROADCAST` unreachable through the documented
+   * "come back later" recovery, which quietly turns a bounded resolution into an unbounded one.
+   */
+  it('measures the settlement window from the durable commit, not from this invocation', async () => {
+    // #given a claim committed ten minutes ago, and nothing on chain
+    await store.reserve({
+      ...baseRecord(),
+      createdAt: new Date(Date.now() - 10 * 60_000).toISOString(),
+    });
+    const keeperhub = new FakeKeeperhub().onExecute({
+      status: 202,
+      body: { executionId: undefined, status: 'failed', transactionHash: null, receipts: [] },
+    });
+    const rpc = new FakeRpc({ logs: [] });
+
+    // #when a window longer than this invocation but shorter than the elapsed time is used
+    const options = runtime(keeperhub, rpc, store);
+    const outcome = await executeSemanticAttempt(PLAN, {
+      ...options,
+      settlementWindowMs: 60_000,
+    });
+
+    // #then the elapsed time counted, so the attempt resolved rather than looping forever
+    expect(outcome.state).toBe('EXECUTED_NO_EFFECT');
+  });
+
   it('does not start a second attempt for a semantic id that already settled', async () => {
     // #given a terminal record
     await store.reserve({
-      semanticAttemptId: PLAN.semanticAttemptId,
-      covenantId: PLAN.covenantId,
-      actionIndex: PLAN.actionIndex,
-      attemptSequence: PLAN.attemptSequence,
-      expectedStateHash: undefined,
-      canonicalBody: PLAN.canonicalBody,
-      canonicalBodyHash: PLAN.canonicalBodyHash,
-      idempotencyKey: PLAN.idempotencyKey,
+      ...baseRecord(),
       state: 'CONFIRMED',
       executionId: 'exec-old',
       transactionHash: '0xold',
-      createdAt: '2026-08-12T00:00:00Z',
-      updatedAt: '2026-08-12T00:00:00Z',
       reconciliationRounds: 1,
-      note: undefined,
     });
     const keeperhub = new FakeKeeperhub().onExecute({ status: 202, body: {} });
     const rpc = new FakeRpc({});

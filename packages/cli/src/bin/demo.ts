@@ -60,6 +60,7 @@ import {
   SIGNAL_WINDOW_SECONDS,
 } from '../demo-config.ts';
 import { readManifest } from '../deployments.ts';
+import { openRunState } from '../run-state.ts';
 import { fail, liveRuntime, step } from '../runtime.ts';
 
 const PROOF_DIR = join(REPO_ROOT, 'docs', 'proof');
@@ -150,7 +151,14 @@ async function main(): Promise<void> {
     ],
   );
 
-  const runLabel = new Date().toISOString().replace(/[:.]/g, '-');
+  // The run label is durable, because every semantic attempt id in this run is derived from it.
+  // A restart that minted a fresh label would mint a fresh idempotency namespace, and the
+  // crash-recovery guarantee the orchestrator spends real effort providing would be defeated at
+  // its only caller. `--resume` reuses the recorded run; the default starts a new covenant,
+  // which is the right default because a covenant is a one-shot object.
+  const runState = openRunState(dryRun);
+  const runLabel = runState.runLabel;
+  step(`run ${runLabel}${runState.resumed ? ' (resumed)' : ''}`);
   const covenantSalt = keccak256(toHex(`resurv/demo/${dryRun ? 'dry' : runLabel}`));
   const covenantId = keccak256(
     encodeAbiParameters(
@@ -336,41 +344,53 @@ async function main(): Promise<void> {
   // 3. The incident. A signed risk trigger, relayed by anyone, authored only by the authority.
   // ---------------------------------------------------------------------------------------
   step('--- trigger: a signed risk signal moves the covenant to TRIGGERED');
-  const validAfter = BigInt(Math.floor(Date.now() / 1000) - 60);
-  const validUntil = validAfter + BigInt(SIGNAL_WINDOW_SECONDS);
-  const signalHash = keccak256(toHex(`vault-drain-alert/${runLabel}`));
-  const signature = await triggerAccount.signTypedData({
-    domain: {
-      name: 'RESURV',
-      version: '1',
-      chainId: TARGET_CHAIN_ID,
-      verifyingContract: manager as `0x${string}`,
-    },
-    types: {
-      TriggerSignal: [
-        { name: 'covenantId', type: 'bytes32' },
-        { name: 'signalHash', type: 'bytes32' },
-        { name: 'nonce', type: 'uint32' },
-        { name: 'validAfter', type: 'uint64' },
-        { name: 'validUntil', type: 'uint64' },
-      ],
-    },
-    primaryType: 'TriggerSignal',
-    message: {
-      covenantId,
+  // Signed once and written down, so a resumed run replays the identical trigger body rather
+  // than authoring a second one with a new window. The private key is never persisted.
+  if (runState.trigger === undefined) {
+    const validAfter = BigInt(Math.floor(Date.now() / 1000) - 60);
+    const validUntil = validAfter + BigInt(SIGNAL_WINDOW_SECONDS);
+    const signalHash = keccak256(toHex(`vault-drain-alert/${runLabel}`));
+    const signature = await triggerAccount.signTypedData({
+      domain: {
+        name: 'RESURV',
+        version: '1',
+        chainId: TARGET_CHAIN_ID,
+        verifyingContract: manager as `0x${string}`,
+      },
+      types: {
+        TriggerSignal: [
+          { name: 'covenantId', type: 'bytes32' },
+          { name: 'signalHash', type: 'bytes32' },
+          { name: 'nonce', type: 'uint32' },
+          { name: 'validAfter', type: 'uint64' },
+          { name: 'validUntil', type: 'uint64' },
+        ],
+      },
+      primaryType: 'TriggerSignal',
+      message: { covenantId, signalHash, nonce: 0, validAfter, validUntil },
+    });
+    runState.trigger = {
       signalHash,
       nonce: 0,
-      validAfter,
-      validUntil,
-    },
-  });
+      validAfter: validAfter.toString(),
+      validUntil: validUntil.toString(),
+      signature,
+      authority: triggerAccount.address,
+    };
+    runState.save();
+  }
+  const trigger = runState.trigger;
+  const signalHash = trigger.signalHash as `0x${string}`;
+  const validAfter = BigInt(trigger.validAfter);
+  const validUntil = BigInt(trigger.validUntil);
+  const signature = trigger.signature;
 
   const triggerArgs = [
     covenantId,
     signalHash,
-    '0',
-    validAfter.toString(),
-    validUntil.toString(),
+    String(trigger.nonce),
+    trigger.validAfter,
+    trigger.validUntil,
     signature,
   ];
   await send('trigger', manager, 'trigger', managerAbi, triggerArgs, TOPIC.covenantTriggered);

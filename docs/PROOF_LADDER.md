@@ -15,7 +15,7 @@ The hackathon submission must reach at least rung 9.
 | 5 | KeeperHub seam tests | **REACHED** | `packages/seam-probe`, 16 scenarios run live 2026-08-12, evidence committed, 42 offline tests asserting the findings against it |
 | 6 | Base fork integration | **not reached** | No `--fork-url` suite exists. Superseded in practice by rung 7: the contracts are deployed on the real chain and the demo ran against them, which is a stronger statement than a fork test, and is not the same statement |
 | 7 | Base Sepolia deployment | **REACHED** | Six contracts and three configuration calls, `deployments/base-sepolia.json`, every address predicted offchain and matched |
-| 8 | Real KeeperHub atomic attempt | **REACHED** | [`0x9ea03067…`](https://sepolia.basescan.org/tx/0x9ea030674ca2e9ee8729bf00a6fbf53cd48320c23d0ae0a0b9780bb0da59dbcb): six logs in one transaction, the action, the verifier result, the state transition and the fee |
+| 8 | Real KeeperHub atomic attempt | **REACHED** | [`0xf7f9aace…`](https://sepolia.basescan.org/tx/0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab): six logs in one transaction, the action, the verifier result, the state transition and the fee |
 | 9 | Public proof page and verification | **REACHED, with one qualifier** | `apps/web` plus `/api/proof`, `/api/proof/summary`, `/api/deployment`. The qualifier is below |
 | 10 | Capped Base mainnet canary | out of scope for v1 | |
 | 11 | Independent audit and production launch | out of scope for v1 | |

@@ -471,3 +471,56 @@ trade for a system whose failure mode is paying twice.
 The organization wallet is funded and a would-revert call reaches the chain, which would make
 `REVERTED` reachable from a broadcast rather than only in principle. The lifecycle already
 carries that state; what would change is how often it is entered.
+
+---
+
+## ADR-014: Contracts are deployed by a CREATE2 factory through a sponsored KeeperHub call
+
+Date: 2026-08-12. Status: accepted. Phase: 1.
+
+### Context
+
+RESURV has no funded deployer. The KeeperHub organization wallet holds zero native currency and
+gets its gas sponsored, and sponsorship pays a transaction fee rather than giving the wallet a
+balance. `forge script --broadcast` needs a funded key and a faucet trip, both of which are
+human steps this build cannot perform. KeeperHub's Direct Execution API has endpoints for a
+transfer, a contract call and a check-and-execute, and none for a deployment.
+
+### Decision
+
+Deploy through **CreateX** at `0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed`, which is already
+deployed on Base Sepolia and whose `deployCreate2(bytes32 salt, bytes initCode)` is an ordinary
+ABI function. A KeeperHub contract call to that function is a contract call like any other, so
+it is sponsored like any other, and RESURV deploys its own contracts with no funding at all.
+
+Verified before adopting it: `cast code` returns 23 KB of runtime at that address on chain
+84532, and `cast selectors` finds `0x26307668`, which is `deployCreate2(bytes32,bytes)`.
+
+### Consequences, and one of them shaped every constructor
+
+`msg.sender` inside a constructor is the factory, not the operator. Every contract in this
+repository therefore takes its admin, pauser and executor as explicit constructor arguments,
+and none of them reads `msg.sender`. A contract that granted `DEFAULT_ADMIN_ROLE` to
+`msg.sender` here would have handed a public factory the keys to the escrow.
+
+The deployed address is read from the receipt's logs rather than from a return value, because a
+KeeperHub write response carries neither return data nor, in the 202 body, a transaction hash.
+
+Explorer verification uses Sourcify, which needs no API key. Basescan's v2 API does, and that
+key is a user-owned credential this build does not have.
+
+### Alternatives rejected
+
+The canonical deterministic-deployment proxy at `0x4e59b448…` is also present on Base Sepolia
+and is cheaper, but it takes raw calldata with no ABI. KeeperHub's `/contract-call` builds
+calldata from a function name and an ABI, so there is no way to express a bare `salt ++ initCode`
+payload through it.
+
+Asking for a funded deployer key. Rejected as the *first* option rather than as an option: it
+is the fallback if this path fails, and it is a `USER ACTION REQUIRED` that costs a round trip
+and a faucet.
+
+### Revisit if
+
+KeeperHub adds a deployment endpoint, or a funded deployer becomes available and reproducibility
+would be better served by a plain `forge script`.

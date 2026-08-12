@@ -26,13 +26,24 @@ fs_permissions = []
 
 deny = "warnings"
 
+# Our own source must compile clean. OpenZeppelin 5.6.1 uses `error` as an identifier in
+# `ECDSA.sol`, which solc 0.8.36 warns about because it is becoming a keyword. That is the
+# audited release npm ships as `latest` (see docs/VERSIONS.md) and it is not ours to patch, so
+# warnings originating in `lib` are excluded by path rather than by error code. Excluding the
+# code would have silenced the same warning in our own contracts.
+ignored_warnings_from = ["lib"]
+
 [profile.default.fuzz]
 runs = 512
 max_test_rejects = 100000
 
 [profile.default.invariant]
 runs = 256
-depth = 64
+# Raised from 64 when the covenant handler landed. Nine handler entry points at depth 64 gave
+# roughly seven calls each per run, and a covenant needs create, fund, trigger and attempt in
+# that order before anything interesting can happen. The measured effect is in the phase log:
+# successful attempts per run went from zero to a number worth reporting.
+depth = 128
 # The handler has no legitimate revert path, so a revert is a defect rather than noise. The
 # Phase 0 independent review flagged `false` as a trap that would silently swallow every
 # `require` once a handler wraps a real stateful contract.

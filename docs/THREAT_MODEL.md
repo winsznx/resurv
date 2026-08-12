@@ -92,7 +92,14 @@ Controls in place, each with the test that holds it up:
 - `/api/health` names failing variables and never their values, and the unhandled-error path
   serializes through redaction before it reaches a log line. Both have tests.
 - Claude Code permissions deny reads of `.env`, `.dev.vars`, keystores, `~/.ssh` and `~/.aws`,
-  and deny Bash commands whose text names those paths.
+  and deny Bash commands whose text names those paths. Extended by the pre-seam hardening pass
+  to the host credential stores outside this repository and to the declared secret variable
+  names. See T13.
+- No CI job is committed that could not pass on a clean runner. The workspace job installs the
+  Foundry toolchain and the submodules its commands actually reach, and
+  `packages/repo-policy/test/ci-workflow.test.ts` derives that requirement from the script
+  graph. A job that cannot run is not a control, and the Phase 0 form of that job could not
+  have run.
 
 Status: `IN PLACE` for the controls above.
 
@@ -199,6 +206,107 @@ and that Phase 0.5 puts the key in a file the deny rules name. This is a boundar
 the cost of an accident, not a sandbox. For OS-level enforcement Claude Code offers a sandbox
 mode, which this project has not adopted.
 
+Amended by the pre-seam hardening pass: the interpreter tier described above is `ask`, and
+`ask` was measured not to prompt. See T13. The path-naming deny rules are what carry this
+control, and they were measured blocking. The interpreters remain in `ask` because denying
+`sed`, `jq` and `awk` outright would cost more than it buys, and because a `deny` rule on the
+path already stops them from reaching a credential.
+
+### T13. The boundary stopped at the repository edge, and `ask` does not prompt
+
+Two findings, measured rather than modeled, both from the pre-seam hardening pass on
+2026-08-12. Full record in `docs/phase-logs/PRE_SEAM_HARDENING.md`.
+
+**The credential that governs the Worker secret was readable.** The asset table above lists the
+KeeperHub API key as living in `.env` and in a Worker secret. Creating and replacing that
+Worker secret needs a Cloudflare OAuth token, which lives in `~/.wrangler/config/default.toml`,
+outside the repository and named by no rule. `ls -d ~/.npmrc` was run in a live session before
+the change and executed with no prompt. The same held for `~/.config/gh/hosts.yml`,
+`~/.claude.json`, `~/.docker/config.json` and the gcloud credential store. Nothing in the
+repository's own model could see it, because `packages/repo-policy` did not model the built-in
+read-only command set and reported those commands as `prompt` when the real outcome was "runs".
+
+**An `ask` rule was measured not to prompt.** `jq --version` and `sed -n 1p package.json` both
+ran with no prompt in the same session, under rules that have said `Bash(jq *)` and
+`Bash(sed *)` since the Phase 0 remediation. A `deny` rule in the same session blocked. The
+permission mode a session starts in is resolved by the client, not by `defaultMode` in this
+file, so `ask` is advisory here. Nothing load-bearing may rest on it.
+
+**A third finding, and it is the one worth remembering.** A Bash pattern containing `$` never
+matches anything. `Bash(*~/.*)` denied `ls -d ~/.zshrc`; the sibling rule `Bash(*$HOME/.*)`
+did not deny `ls -d $HOME/.zshrc`, and `Bash(*echo $*)` did not deny `echo $HOME`. A rule
+written that way reads as a control and is not one. This is not in the vendor documentation.
+
+Controls:
+
+- Deny rules name each credential store by the part of the path that cannot be respelled:
+  `Bash(*.wrangler*)`, `Bash(*.config/gh/*)`, `Bash(*.npmrc*)`, `Bash(*.claude.json*)`,
+  `Bash(*.docker/*)`, `Bash(*gcloud*)`, `Bash(*.netrc*)`, `Bash(*.git-credentials*)`,
+  `Bash(*.kube/*)`, `Bash(*.gnupg/*)`, `Bash(*.cloudflared*)`. A substring rule is
+  spelling-independent: `~/.npmrc`, `$HOME/.npmrc` and `/Users/mac/.npmrc` all carry `.npmrc`.
+- Three catch-alls cover home dotfiles nobody enumerated: `Bash(*~/.*)`, `Bash(*HOME/.*)` and
+  `Bash(*/Users/*/.*)` with the Linux sibling `Bash(*/home/*/.*)`.
+- Since `$` cannot appear in a pattern, `echo $KEEPERHUB_API_KEY` is stopped by denying the
+  *name*: `Bash(*KEEPERHUB_API_KEY*)`, plus the generic `Bash(*API_KEY*)`, `Bash(*SECRET*)`,
+  `Bash(*_TOKEN*)`, `Bash(*PASSWORD*)`, `Bash(*PRIVATE_KEY*)`, `Bash(*CREDENTIALS*)`,
+  `Bash(*MNEMONIC*)`. This costs `grep -rn API_KEY` from Bash; the Grep tool is unaffected.
+- Environment dumping is denied in every form found: `printenv`, `env`, `/usr/bin/env`,
+  `export`, `export -p`, `declare`, `declare -p`, `set`, `compgen -v`.
+- The corresponding `Read` deny rules were rewritten from `//Users/mac/...` to `~/...`, so they
+  are not specific to one machine, and `Write(./.env)` was deleted: Claude Code never consults
+  a `Write` path rule and warns about it at startup. `Edit(./.env)` covers Write already.
+- `packages/repo-policy/src/bash-rules.ts` now models the built-in read-only set and exposes
+  `runsWithoutPrompt`, so a test cannot pass by asserting `not.toBe('allow')` about a command
+  that runs anyway. `patternIsInert` models the `$` defect and a test fails if any committed
+  rule carries one.
+- `packages/repo-policy/test/credential-surfaces.test.ts` asserts `deny` specifically, never
+  "not allow", for every surface above, in tilde, `$HOME` and absolute spellings, plus a set of
+  spellings no catch-all covers so each named rule is load-bearing on its own.
+
+Status: `IN PLACE` for the named stores and for the declared secret variables.
+
+Residual, stated plainly:
+
+- The enumeration is of credential stores we thought of. A tool that invents a new dotfile is
+  covered by the home catch-alls only if it puts it in the home directory.
+- A file read through an ask-tier interpreter is not stopped in a session where `ask`
+  auto-approves, unless its path or a denied variable name appears in the command string.
+- None of this is OS-level enforcement. A subprocess that opens a file itself is outside
+  Claude Code's reach entirely, which its own documentation says. The sandbox mode that would
+  enforce at the OS level has not been adopted.
+- The observed permission mode is a property of the client session, not of this file. A
+  different mode changes which tier prompts, and nothing in the repository can assert it.
+
+### T14. An auto-approved script name outlives the body that was reviewed
+
+`Bash(pnpm lint)` approves a name. The command it runs is a string in `package.json` that the
+permission engine never sees, and until the pre-seam hardening pass nothing checked it. The
+remediation review proved it twice: appending `&& wrangler deploy` to the root `lint` script
+survived the whole suite, and so did a new `"ship": "wrangler versions upload"` with a matching
+allow rule. Eleven root scripts were auto-approved and enumerated by no test.
+
+Controls, in `packages/repo-policy/src/approved-scripts.ts`:
+
+- The graph is resolved rather than listed. Each allow rule is followed through
+  `pnpm <script>`, `pnpm --filter <pkg> <script>` and `turbo run <task>` into the workspace,
+  with `turbo.json`'s `dependsOn` walked against the real dependency graph. 51 scripts are
+  reachable today; the Phase 0 tests saw the workspace ones and none of the root ones.
+- Every leaf must match `APPROVED_LEAF_COMMANDS`, anchored at both ends. An unrecognized
+  binary fails whether or not anyone predicted it, which is what covers `npx`, `pnpm dlx`,
+  `node scripts/x.js` and any future deployment tool.
+- The reachable set must equal a reviewed inventory, and each script's body must still be the
+  reviewed text. A new allow-listed script fails until someone reviews it.
+- Ten mutations were run against the committed suite and all ten were caught, including the
+  two the previous review recorded as survivors. Recorded in
+  `docs/phase-logs/PRE_SEAM_HARDENING.md`.
+
+Status: `IN PLACE`.
+
+Residual: this is a drift guard, not an integrity control. Anyone with commit access can edit
+`package.json`, the manifest and the test in one change and nothing will object. It stops the
+accident and the unnoticed edit, which is the class of failure that actually happened here. It
+does not stop a hostile contributor, and no test in this repository does.
+
 ### T12. Self-referential property testing
 
 A property test is vacuous when the implementation under test also controls which inputs the
@@ -237,8 +345,11 @@ that reason, and the covenant contract's real preconditions are not modeled at a
 - The RESURV admin role and the KeeperHub organization wallet are trusted. The product is not
   trustless and must never be described as such.
 - The Claude Code permission boundary is configuration, checked by our own tests against
-  Claude Code's documented matching behavior. It is not a sandbox and nothing in this
-  repository may describe it as one. T10 and T11 state what it does and does not stop.
+  Claude Code's documented matching behavior and against three behaviors measured live. It is
+  not a sandbox and nothing in this repository may describe it as one. T10, T11, T13 and T14
+  state what it does and does not stop.
+- Only `deny` is load-bearing. `ask` was measured to auto-approve in the permission mode this
+  project's sessions run in, so it is documentation of intent rather than a control.
 - Base Sepolia has no private mempool, so nothing about MEV protection may be claimed.
 - Gas sponsorship was observed once, on one organization, on one chain. It is reported as
   observed, never promised.

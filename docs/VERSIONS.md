@@ -43,7 +43,7 @@ Resolution date: 2026-08-11.
 | Dependency | Pinned | Source | Notes |
 |---|---|---|---|
 | forge-std | v1.16.2 | GitHub tags | Pinned git submodule at `bf647bd` under `packages/contracts/lib`. |
-| openzeppelin-contracts | v5.6.1 | npm `latest` dist-tag | Pinned git submodule at `5fd1781`. See OZ note below. |
+| openzeppelin-contracts | v5.6.1 | npm `latest` dist-tag | Pinned git submodule at `5fd1781`. `git submodule status` prints `(v4.8.0-1122-g5fd1781b)` for it, which is the same commit described against a different tag. See OZ note below. |
 
 Both are submodules, not vendored files. `git ls-files -s packages/contracts/lib` returns two
 entries at mode `160000`, and a clone without `--recurse-submodules` produces empty directories.

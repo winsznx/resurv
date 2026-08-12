@@ -3,21 +3,26 @@
 Canonical handoff document. Read this first in a new session. Updated at the end of every
 phase.
 
-Last updated: 2026-08-11, end of the Phase 0 remediation.
+Last updated: 2026-08-12, end of the pre-seam hardening pass.
 
 ## Where we are
 
 | | |
 |---|---|
-| Current phase | Phase 0 complete and remediated. Phase 0.5 not started. Phase 1 not started. |
-| Completed phases | 0, plus the Phase 0 remediation |
-| Active gate | Phase 0 independent validation: FAIL. Phase 0 remediation: see `docs/phase-logs/PHASE_00_REMEDIATION.md` |
+| Current phase | Phase 0 complete, remediated, independently re-validated, and hardened. Phase 0.5 not started. Phase 1 not started. |
+| Completed phases | 0, the Phase 0 remediation, the pre-seam hardening pass |
+| Active gate | Phase 0 remediation independent validation: **PASS**. See `docs/phase-logs/PHASE_00_REMEDIATION_INDEPENDENT_REVIEW.md` |
 | Submission deadline | 2026-08-13 12:00 UTC+2 |
 
-Phase 0 self-graded PASS. An independent session then re-executed everything and returned
-FAIL, recorded in `docs/phase-logs/PHASE_00_INDEPENDENT_REVIEW.md`. The remediation that
-answers it is `docs/phase-logs/PHASE_00_REMEDIATION.md`. Read both before trusting anything
-in the Phase 0 log, which contains figures the review disproved.
+Read the phase logs in order, because the earlier ones contain figures the later ones
+disproved:
+
+1. `PHASE_00.md` — self-graded PASS. Contains numbers the review refuted.
+2. `PHASE_00_INDEPENDENT_REVIEW.md` — FAIL, four blocking findings.
+3. `PHASE_00_REMEDIATION.md` — the answer to those four.
+4. `PHASE_00_REMEDIATION_INDEPENDENT_REVIEW.md` — PASS, eight new non-blocking findings, and
+   clearance for live credential entry.
+5. `PRE_SEAM_HARDENING.md` — closes those eight before a credential arrives. PASS.
 
 ## Session order
 
@@ -25,11 +30,14 @@ Fixed by the operator. Each step runs in a fresh session, and the prompt for eac
 committed under `docs/prompts/` so no step depends on conversational memory.
 
 1. Phase 0 independent validation. `docs/prompts/PHASE_00_VALIDATION.md` — **done, FAIL**
-2. Phase 0 remediation — **done**, this is the current state
-3. Phase 0.5 seam probe. `docs/prompts/PHASE_00_5_SEAM_PROBE.md`
-4. If `SEAM PASS`, the autonomous run. `docs/prompts/PHASE_01_TO_10_AUTONOMOUS.md`
-5. If `SEAM REVISE`, redesign the attempt boundary before writing core contracts.
-6. After the build completes, a fresh session for adversarial review and submission prep.
+2. Phase 0 remediation — **done**
+3. Phase 0 remediation independent re-validation — **done, PASS**
+4. Pre-seam hardening — **done, PASS**, this is the current state
+5. Phase 0.5 seam probe. `docs/prompts/PHASE_00_5_SEAM_PROBE.md` — **next**, blocked on the
+   human prerequisite below
+6. If `SEAM PASS`, the autonomous run. `docs/prompts/PHASE_01_TO_10_AUTONOMOUS.md`
+7. If `SEAM REVISE`, redesign the attempt boundary before writing core contracts.
+8. After the build completes, a fresh session for adversarial review and submission prep.
 
 ### Blocking prerequisite for the seam probe
 
@@ -37,11 +45,16 @@ No environment file exists in this repository, and no live secret has ever been 
 Phase 0.5 forbids the session from copying a credential out of another repository, so a human
 has to create the file and paste the `kh_` organization key before that session starts.
 
+The variable is `KEEPERHUB_API_KEY`. It is the only one required. The file is `.env` at the
+repository root, copied from `.env.example`. `docs/RUNBOOKS.md` has the full path under "The
+one local secret Phase 0.5 needs", including the loader Phase 0.5 has to add, and the reasons
+a repository-local ignored file beats an exported shell variable.
+
 This is deliberately not something an agent session can do: the permission boundary denies
-Bash commands that name the environment file, and denies reading, editing and writing it. Do
-it in an ordinary terminal, copying `.env.example`. Nothing else is required. The revert probe
-needs no contract deployment, no deployer key and no faucet. See the fixture note in
-`docs/prompts/PHASE_00_5_SEAM_PROBE.md`.
+Bash commands that name the environment file or the variable, denies reading, editing and
+writing the file, and denies every environment-dump form. Do it in an ordinary terminal.
+Nothing else is required. The revert probe needs no contract deployment, no deployer key and
+no faucet. See the fixture note in `docs/prompts/PHASE_00_5_SEAM_PROBE.md`.
 
 ## Next exact task
 
@@ -98,13 +111,13 @@ something; the two empty harnesses are listed separately and never folded into a
 |---|---|
 | `@resurv/domain` | 34 |
 | `@resurv/keeperhub-client` | 30 |
-| `@resurv/config` | 33 |
+| `@resurv/config` | 38 |
 | `@resurv/db` | 7 |
 | `@resurv/chain` | 7 |
 | `@resurv/worker` | 7 |
-| `@resurv/repo-policy` | 157 |
+| `@resurv/repo-policy` | 381 |
 | `@resurv/web` | 0 |
-| **TypeScript substantive total** | **275** |
+| **TypeScript substantive total** | **504** |
 | `contracts` unit and fuzz | 21 |
 | `contracts` invariant | 5 |
 | **Foundry total** | **26** |
@@ -120,8 +133,10 @@ across 73 TypeScript and 12 Foundry; the figures were right and the framing invi
 to include the empty suites, so the split above is now explicit.
 
 `@resurv/repo-policy` is large because it is mostly parameterized fixtures: one case per
-blocked command, per permitted command, per secret path. That is the shape the work needs, and
-157 assertions there is not equivalent to 157 assertions about the product.
+blocked command, per permitted command, per secret path, per auto-approved script. That is the
+shape the work needs, and 381 assertions there is not equivalent to 381 assertions about the
+product. It grew from 157 during the pre-seam hardening pass, which added the credential
+surfaces, the auto-approved script graph and the CI workflow policy.
 
 Fuzz: 512 runs per test. Invariants: 256 runs at depth 64. Every one of the 16,384 handler
 calls per invariant is a real transition attempt, roughly 8 to 15 of which mutate state per
@@ -141,7 +156,12 @@ Turbo caching means a green `pnpm gate` can be a replay of an earlier log. For e
 ## Unresolved blockers
 
 None blocking the seam probe. F6-A, the permission bypass that did block it, is fixed and
-regression-tested; the remediation log records the evidence.
+regression-tested; the remediation log records the evidence. The eight findings the
+independent re-validation raised are closed or explicitly deferred in
+`docs/phase-logs/PRE_SEAM_HARDENING.md`.
+
+The only outstanding input is human: `.env` with a `kh_` organization key under
+`KEEPERHUB_API_KEY`.
 
 ## Unresolved assumptions
 
@@ -166,7 +186,16 @@ Tracked in `docs/CLAIMS.md`. The ones that will bite first:
   low value against the deadline.
 - The Claude Code permission boundary is configuration checked by our own tests, not a
   sandbox. A command that reads a secret without naming a protected path is not stopped. See
-  `docs/THREAT_MODEL.md` T10 and T11 for what it does and does not cover.
+  `docs/THREAT_MODEL.md` T10, T11, T13 and T14 for what it does and does not cover.
+- An `ask` rule was measured not to prompt in the permission mode this project's sessions run
+  in. Only `deny` blocked. Everything load-bearing is a deny rule; `ask` records intent. See
+  ADR-010. Nothing in this repository can assert which mode a session starts in.
+- A Bash permission pattern containing `$` matches nothing, so such a rule reads as a control
+  and is not one. Undocumented by the vendor, measured here, guarded by a test. See ADR-011.
+- No CI job has ever run, because this repository has no git remote. The jobs are now capable
+  of passing on a clean runner, which the Phase 0 form of the JavaScript job was not.
+- The auto-approved script manifest is a drift guard, not an integrity control. A contributor
+  who edits `package.json`, the manifest and the test in one change defeats it. T14.
 - The state machine evidence is about a pure library. No covenant contract exists, so every
   `VERIFIED (model only)` row in the ledger says nothing about escrow, fees or atomicity.
 - The reference models are hand transcriptions of PRD 9.1. A misreading would be mirrored in

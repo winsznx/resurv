@@ -83,6 +83,18 @@ describe('secret path detection', () => {
 describe('detection rules and .gitignore agree', () => {
   const gitignore = readRepoFile('.gitignore');
 
+  /**
+   * Lines, not substrings. The Phase 0 remediation review (N4) showed the substring form was
+   * satisfiable by a sibling: deleting `secrets/` left `.secrets/` behind, which contains it,
+   * and the same held for `keystore/` under `keystores/` and `.env` under `.env.*`.
+   */
+  const ignoredLines = new Set(
+    gitignore
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith('#')),
+  );
+
   it.each([
     '.env',
     '.dev.vars',
@@ -100,14 +112,14 @@ describe('detection rules and .gitignore agree', () => {
     'supabase/.env',
     '.wrangler/',
     '.foundry/',
-  ])('%s is ignored and is also a detection rule', (entry) => {
-    expect(gitignore).toContain(entry);
+  ])('%s is ignored on a line of its own and is also a detection rule', (entry) => {
+    expect(ignoredLines).toContain(entry);
   });
 
   it('un-ignores the example files the detector deliberately permits', () => {
-    expect(gitignore).toContain('!.env.example');
-    expect(gitignore).toContain('!.env.*.example');
-    expect(gitignore).toContain('!.dev.vars.example');
+    expect(ignoredLines).toContain('!.env.example');
+    expect(ignoredLines).toContain('!.env.*.example');
+    expect(ignoredLines).toContain('!.dev.vars.example');
     expect(classifySecretPath('.env.staging.example')).toBeUndefined();
   });
 

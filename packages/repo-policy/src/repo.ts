@@ -20,11 +20,15 @@ export interface WorkspacePackage {
   readonly dir: string;
   readonly name: string;
   readonly scripts: Readonly<Record<string, string>>;
+  /** Declared dependency names, both tiers. Filtered to workspace members by the caller. */
+  readonly dependencies: readonly string[];
 }
 
 interface PackageManifest {
   readonly name?: string;
   readonly scripts?: Record<string, string>;
+  readonly dependencies?: Record<string, string>;
+  readonly devDependencies?: Record<string, string>;
 }
 
 const WORKSPACE_DIRS = ['apps', 'packages'] as const;
@@ -42,7 +46,15 @@ export function workspacePackages(): WorkspacePackage[] {
         continue;
       }
       if (manifest.name === undefined) continue;
-      found.push({ dir, name: manifest.name, scripts: manifest.scripts ?? {} });
+      found.push({
+        dir,
+        name: manifest.name,
+        scripts: manifest.scripts ?? {},
+        dependencies: [
+          ...Object.keys(manifest.dependencies ?? {}),
+          ...Object.keys(manifest.devDependencies ?? {}),
+        ],
+      });
     }
   }
   return found;

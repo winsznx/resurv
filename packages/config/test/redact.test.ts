@@ -172,3 +172,80 @@ describe('deliberate over-redaction, recorded rather than discovered later', () 
     expect(redactString(message)).toBe(message);
   });
 });
+
+describe('diagnostics never become the failure', () => {
+  /**
+   * N6 from the Phase 0 remediation review. `knownSecretValues` guarded property access from
+   * the start, with the stated reason that a Worker binding can be a proxy that throws. The
+   * walker did not, so `onError` calling `redactedJson` on a value with a throwing getter
+   * would have thrown inside the handler whose whole job is to keep the Worker up.
+   */
+  it('survives a throwing property getter', () => {
+    const hostile = {
+      ok: 'plain',
+      get boom(): string {
+        throw new Error('property access denied');
+      },
+    };
+    expect(() => redactedJson(hostile)).not.toThrow();
+    expect(redactedJson(hostile)).toContain('[unreadable]');
+    expect(redactedJson(hostile)).toContain('plain');
+  });
+
+  it('survives a throwing getter nested inside a structure', () => {
+    const hostile = {
+      level: {
+        list: [
+          {
+            get token(): string {
+              throw new Error('property access denied');
+            },
+          },
+        ],
+      },
+    };
+    expect(() => redactedJson(hostile)).not.toThrow();
+  });
+
+  it('survives an Error whose message getter throws', () => {
+    const hostile = new Error('placeholder');
+    Object.defineProperty(hostile, 'message', {
+      get(): string {
+        throw new Error('property access denied');
+      },
+      enumerable: false,
+      configurable: true,
+    });
+    expect(() => redactedJson(hostile)).not.toThrow();
+    expect(redactedJson(hostile)).toContain('[unreadable]');
+  });
+
+  it('survives a proxy that throws on every read, in redact and in knownSecretValues alike', () => {
+    const hostile = new Proxy(
+      {},
+      {
+        get(): never {
+          throw new Error('binding unavailable');
+        },
+        ownKeys(): string[] {
+          return ['KEEPERHUB_API_KEY'];
+        },
+        getOwnPropertyDescriptor(): PropertyDescriptor {
+          return { enumerable: true, configurable: true };
+        },
+      },
+    );
+    expect(knownSecretValues(hostile)).toStrictEqual([]);
+    expect(() => redactedJson(hostile)).not.toThrow();
+  });
+
+  it('still drops a symbol-keyed or non-enumerable secret rather than serializing it', () => {
+    const marker = Symbol('KEEPERHUB_API_KEY');
+    const value: Record<string | symbol, unknown> = { [marker]: FAKE.keeperhubOrgKey };
+    Object.defineProperty(value, 'hidden', {
+      value: FAKE.keeperhubOrgKey,
+      enumerable: false,
+    });
+    assertNothingSurvives(redact(value));
+  });
+});

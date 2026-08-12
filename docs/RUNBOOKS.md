@@ -26,9 +26,22 @@ rather than the no-install-step property a vendored dependency would give you. O
 without network access, or in any tool that reads the tree without invoking forge, the empty
 directories are what you get. Clone with submodules and the question does not arise.
 
-Verify with `git submodule status`: `forge-std` at `bf647bd` (v1.16.2) and
-`openzeppelin-contracts` at `5fd1781` (v5.6.1). CI does this with
-`actions/checkout` and `submodules: recursive`.
+Verify with `git submodule status`, run from `packages/contracts`:
+
+```
+ bf647bd6046f2f7da30d0c2bf435e5c76a780c1b lib/forge-std (v1.16.2)
+ 5fd1781b1454fd1ef8e722282f86f9293cacf256 lib/openzeppelin-contracts (v4.8.0-1122-g5fd1781b)
+```
+
+The second line is the pin `docs/VERSIONS.md` records as v5.6.1, and the two do not disagree.
+`git submodule status` describes the checked-out commit against the nearest reachable
+annotated tag in that repository, and OpenZeppelin's history reaches `v4.8.0` that way, so the
+output reads `v4.8.0-1122-g5fd1781b`: 1122 commits past `v4.8.0`, at `5fd1781b`. The version is
+confirmed inside the submodule instead, where `git tag --points-at HEAD` returns `v5.6.1` and
+`package.json` says `"version": "5.6.1"`. Two documents transcribed this line as `(v5.6.1)`
+before the pre-seam hardening pass, which is output the command has never produced.
+
+CI populates both with `actions/checkout` and `submodules: recursive`.
 
 A `.env` file is not required to run the gate. Nothing in the current test suite makes a
 network call or reads a credential. `cp .env.example .env` and pasting a `kh_` organization
@@ -121,6 +134,63 @@ Do not weaken the check. `CLAUDE.md` forbids suppressing type, lint, security or
 failures, and a skipped test needs a written reason and a phase reference. Fix the cause,
 rerun the gate, and record what happened in that phase's log.
 
+## The one local secret Phase 0.5 needs
+
+Nothing in this repository has ever held a live credential, and `pnpm gate` does not need one.
+Phase 0.5 needs exactly one, and this is the whole path.
+
+| | |
+|---|---|
+| Variable | `KEEPERHUB_API_KEY` |
+| Value | an organization key beginning `kh_`. A `wfb_` webhook key cannot execute |
+| File | `.env` at the repository root, copied from `.env.example` |
+| Who creates it | a human, in an ordinary terminal, before the session starts |
+| Who reads it | the test or Worker process, at runtime |
+
+`KEEPERHUB_API_KEY` is the only required one. `DATABASE_URL`, `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY` are optional in `serverSecretsSchema` and Phase 0.5 needs none of
+them.
+
+```bash
+cp .env.example .env    # then paste the kh_ key with an editor
+```
+
+Why an ignored repository-local file and not an exported shell variable: a variable in the
+environment is reachable by `printenv`, by `env`, and by any process that inherits it, and it
+survives into every subsequent command in that terminal. A file is reachable only by something
+that opens it, and `.env` is denied to `Read`, to `Edit` and to any Bash command whose text
+names it. The trade is deliberate and `docs/THREAT_MODEL.md` T13 records it.
+
+The rules that hold this up, all measured rather than assumed:
+
+- `.gitignore` covers `.env` and `.env.*` while un-ignoring `.env.example`, and
+  `@resurv/repo-policy` fails if any secret-bearing file is ever tracked, in the working tree
+  or anywhere in reachable history.
+- `Read(./.env)` and `Edit(./.env)` deny both file tools. `Edit` covers Write.
+- `Bash(*.env*)` denies any command naming the file, so `cat`, `head`, `sed` and `grep` cannot
+  print it even though Claude Code runs those without a prompt.
+- `Bash(*KEEPERHUB_API_KEY*)` denies any command naming the variable, in any form, which is
+  what stops `echo $KEEPERHUB_API_KEY`. A pattern cannot contain `$`, so the name is the hook.
+  See ADR-011.
+- `printenv`, `env`, `export -p`, `declare -p`, `set` and `compgen -v` are denied.
+- Diagnostics redact on three grounds: key name, value shape, and known values pulled from the
+  parsed configuration. `apps/worker/src/index.ts` serializes through `redactedJson` and
+  `/api/health` names failing variables, never their values.
+
+What Phase 0.5 has to add, and has not been added here because building it now would ship
+untested code with no consumer: a loader. Node does not read `.env` by itself, `--env-file=.env`
+would put the filename on a command line the deny rules block, and vitest only exposes
+`VITE_`-prefixed variables. The loader is a vitest setup module that reads the file with
+`node:fs` and populates `process.env`, referenced from `vitest.config.ts` rather than from the
+command line. `wrangler dev` reads `.dev.vars` by itself and needs no loader.
+
+Rules for the value, which apply for the whole life of the project:
+
+- never committed, never pasted into a terminal, a log, an issue, a phase summary or a screenshot
+- never echoed, and never named on a command line
+- never copied into a durable document, including this one
+- rotate through the KeeperHub dashboard, then `wrangler secret put` by hand. See below
+
 ## If the permission policy blocks you
 
 `packages/repo-policy` encodes the boundary as tests. If a legitimate command is refused, the
@@ -128,3 +198,18 @@ fix is to add a narrow, exact allow rule to `.claude/settings.json` and let
 `test/permission-boundary.test.ts` confirm it does not reopen a known bypass. Widening a rule
 into a prefix over a command runner (`pnpm exec`, `npx`, `turbo run`) will fail that test,
 which is the point.
+
+Four refusals are deliberate and will not be relaxed. Work around them rather than filing them
+as bugs:
+
+| Refused | Do this instead |
+|---|---|
+| any Bash command naming a home dotfile, including `ls ~/.config/...` | nothing in this project needs one |
+| any Bash command containing `API_KEY`, `SECRET`, `TOKEN`, `PASSWORD`, `PRIVATE_KEY` | use the Grep tool, which is a separate surface |
+| `printenv`, `env`, `set`, `export -p` | read the schema in `packages/config/src/index.ts` |
+| any command naming `.env` or `.dev.vars` | the file is created and edited by a human |
+
+If a new allow-listed script is needed, add the rule **and** add the script to
+`REVIEWED_AUTO_APPROVED_SCRIPTS` in `packages/repo-policy/src/approved-scripts.ts` with its
+exact body. The suite fails until both exist, which is what turns adding authority into a
+reviewed act rather than a one-line edit. See `packages/repo-policy/README.md`.

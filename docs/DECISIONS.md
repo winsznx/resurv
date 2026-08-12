@@ -262,3 +262,138 @@ implementation fails the equivalence test in its own language.
 
 The covenant contract lands and the state machine gains real preconditions. The model then has
 to describe those preconditions too, or it stops being an oracle for anything but the graph.
+
+---
+
+## ADR-010: Only `deny` is a control; `ask` is documentation of intent
+
+Date: 2026-08-12. Status: accepted. Phase: pre-seam hardening.
+
+### Context
+
+The Phase 0 remediation put interpreters, package installs, deploy tooling and signing behind
+`ask`, and both the remediation log and the independent review reasoned about `ask` as "the
+user is prompted". Two probes in a live session on 2026-08-12 disagreed. `jq --version` and
+`sed -n 1p package.json` both executed with no prompt under `Bash(jq *)` and `Bash(sed *)`,
+while `ls -d ~/.npmrc` under a new deny rule was blocked outright.
+
+The permission mode a session starts in is resolved by the client. The VS Code extension picks
+it, and `defaultMode` in `.claude/settings.json` does not decide it. So the project cannot
+assert which tier prompts, and it should stop pretending it can.
+
+### Decision
+
+Anything the project relies on goes in `deny`. `ask` stays where it is, for the value it has
+under a mode that honors it and as a record of what we consider risky, and nothing is
+described as controlled because it is in `ask`.
+
+Concretely: every host credential store, every declared secret variable name, and every
+environment-dump form is a deny rule.
+`packages/repo-policy/test/credential-surfaces.test.ts` asserts `decide(...) === 'deny'` rather
+than `not.toBe('allow')`, and a separate assertion fails if any of those surfaces resolves to
+`ask`.
+
+### Alternatives rejected
+
+Setting `permissions.disableAutoMode: "disable"` would force `ask` to mean ask. Rejected: the
+session order in `docs/BUILD_STATE.md` includes a long autonomous run, and disabling the mode
+that run depends on to rescue a weaker tier trades a real capability for a control we can get
+by writing `deny` instead.
+
+Moving the interpreters (`sed`, `jq`, `awk`, `rg`, `node -e`) to `deny`. Rejected: they are
+ordinary tools, and the thing they could reach is already denied by path. The cost is daily and
+the benefit is covered.
+
+### Revisit if
+
+A future Claude Code release makes the effective mode readable from the session, or the
+operator standardizes on a mode where `ask` prompts.
+
+---
+
+## ADR-011: A Bash permission pattern may not contain `$`
+
+Date: 2026-08-12. Status: accepted. Phase: pre-seam hardening.
+
+### Context
+
+`Bash(*~/.*)` blocked `ls -d ~/.zshrc`. The sibling rule `Bash(*$HOME/.*)`, written in the same
+commit and intended to cover the other spelling, did not block `ls -d $HOME/.zshrc`.
+`Bash(*echo $*)` did not block `echo $HOME`. Measured, not inferred. The shape is consistent
+with the pattern being compiled to a regular expression without escaping `$`, which then
+anchors at end-of-input, but the cause does not matter to us. The effect does: such a rule
+looks like a control in the file and blocks nothing.
+
+Nothing in the vendor's permissions reference mentions this.
+
+### Decision
+
+No Bash pattern in `.claude/settings.json` contains `$`. Where a rule needs to stop a shell
+variable expansion, it names the variable instead: `Bash(*KEEPERHUB_API_KEY*)` rather than
+`Bash(*echo $KEEPERHUB_API_KEY*)`, backed by the generic `Bash(*API_KEY*)`, `Bash(*SECRET*)`,
+`Bash(*_TOKEN*)` and their siblings. Where a rule needs to stop a home path, it names the part
+that survives every spelling: `.npmrc`, `.wrangler`, `HOME/.`, `/Users/*/.`.
+
+`patternIsInert` in `packages/repo-policy/src/bash-rules.ts` models the behavior, `decide`
+ignores an inert pattern the way the engine does, and a test fails if any committed rule
+carries one.
+
+### Consequences
+
+`grep -rn API_KEY packages/` is no longer available from Bash. The Grep tool is unaffected,
+because file-tool rules and Bash rules are separate surfaces.
+
+### Revisit if
+
+A vendor release fixes the escaping. The inert-pattern test would then be over-strict, and the
+right change is to delete it and the model together, not to weaken one of them.
+
+---
+
+## ADR-012: CI is split by toolchain need, with one aggregate gate
+
+Date: 2026-08-12. Status: accepted. Phase: pre-seam hardening.
+
+### Context
+
+The Phase 0 `javascript` job ran `pnpm typecheck` and `pnpm build` while installing no Foundry
+toolchain and checking out no submodules. Both commands are cross-stack: turbo fans `typecheck`
+out to `contracts#typecheck` (`forge build --sizes`), `build` to `contracts#build`, `test` to
+`contracts#test` and `lint` to `contracts#lint`. The job could not have passed on a clean
+runner. Nobody had seen it fail because this repository has no git remote and no CI run has
+ever happened. The job also worked around its own gap by running `pnpm exec biome check .`
+instead of `pnpm lint`, which is the same command minus the contracts half.
+
+### Decision
+
+`pnpm typecheck`, `pnpm test`, `pnpm lint` and `pnpm build` stay cross-stack. They are the
+commands `CLAUDE.md` declares required and the ones a developer runs, and splitting them so CI
+can avoid a toolchain would make CI test something other than the gate.
+
+So the job that runs them installs the whole toolchain, and the workflow is organized by what
+each job needs:
+
+| Job | Installs | Runs |
+|---|---|---|
+| `workspace` | pnpm, Node, Foundry, submodules | `format:check`, `lint`, `typecheck`, `test`, `test:integration`, `test:e2e`, `build` |
+| `contracts` | Foundry, submodules | `forge fmt --check`, `forge build --sizes`, `forge test`, the invariant run |
+| `policy` | pnpm, Node, full git history | `@resurv/repo-policy` |
+| `gate` | nothing | fails unless the other three succeeded |
+
+`gate` is the job to require on a branch protection rule, and it runs `if: always()` so a
+failed dependency is reported rather than skipped.
+
+`packages/repo-policy/test/ci-workflow.test.ts` derives "needs Foundry" from the same script
+graph the permission policy walks, so adding `forge` to a script CI runs fails the suite until
+the job installs the toolchain. It also asserts that `policy` installs no Foundry, which keeps
+the split from decaying into "install everything everywhere".
+
+### Consequences
+
+`forge build` runs in two jobs. That costs a minute of runner time and buys attribution: a
+Solidity failure surfaces in `contracts` rather than inside a turbo task in `workspace`.
+
+### Revisit if
+
+A remote is added and the duplicated compile becomes the slowest part of the pipeline, or a
+job gains a command whose toolchain the script graph cannot see.

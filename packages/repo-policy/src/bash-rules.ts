@@ -20,6 +20,21 @@
  *     handled as rules of their own.
  *   - An allow rule does not match past an assignment of an unknown environment variable; a
  *     deny or ask rule does.
+ *   - A built-in set of read-only commands (`ls`, `cat`, `echo`, `pwd`, `head`, `tail`,
+ *     `grep`, `find`, `wc`, `which`, `diff`, `stat`, `du`, `cd`, and read-only forms of
+ *     `git`) runs with no prompt in every mode. The set is not configurable and the only way
+ *     to make one of them prompt is an ask or a deny rule. `BUILTIN_READ_ONLY_HEADS` below
+ *     models it, because "no rule matched" and "the user is asked" are not the same outcome
+ *     for those commands, and a test that only asserts `not.toBe('allow')` cannot tell.
+ *
+ * One behavior below is measured rather than documented, and it is recorded here because it
+ * silently voids a rule: a Bash pattern containing `$` never matches anything. Measured
+ * 2026-08-12 against a live session, `docs/phase-logs/PRE_SEAM_HARDENING.md` section 1.
+ * `Bash(*~/.*)` denied `ls -d ~/.zshrc`; the sibling rule `Bash(*$HOME/.*)` did not deny
+ * `ls -d $HOME/.zshrc`, and `Bash(*echo $*)` did not deny `echo $HOME`. The shape of the
+ * failure is consistent with the pattern being compiled to a regular expression without
+ * escaping `$`, which then anchors at end-of-input. `patternIsInert` models it and
+ * `credential-surfaces.test.ts` fails if any committed rule is inert.
  *
  * This model is deliberately conservative where the documentation is silent: when it is
  * unsure it reports the stricter outcome for allow (no match) and the looser outcome for
@@ -135,7 +150,105 @@ function matchesAny(command: string, patterns: readonly string[], allowRule: boo
 }
 
 function bashPatterns(rules: readonly string[]): string[] {
-  return rules.map(bashPatternOf).filter((pattern): pattern is string => pattern !== undefined);
+  return rules
+    .map(bashPatternOf)
+    .filter((pattern): pattern is string => pattern !== undefined && !patternIsInert(pattern));
+}
+
+/**
+ * A pattern that cannot match any command, so the rule reads as a control and is not one.
+ * Measured, not documented. See the header note.
+ */
+export function patternIsInert(pattern: string): boolean {
+  return pattern.includes('$');
+}
+
+/**
+ * Commands Claude Code runs with no prompt in every mode, whatever the rule set says, unless
+ * an ask or a deny rule names them.
+ */
+export const BUILTIN_READ_ONLY_HEADS: ReadonlySet<string> = new Set([
+  'ls',
+  'cat',
+  'echo',
+  'pwd',
+  'head',
+  'tail',
+  'grep',
+  'find',
+  'wc',
+  'which',
+  'diff',
+  'stat',
+  'du',
+  'cd',
+]);
+
+/**
+ * `git` is in the built-in set for its read-only forms. Modeled generously on purpose: an
+ * over-long list makes `runsWithoutPrompt` report more commands as unprompted, which is the
+ * pessimistic direction for a security check.
+ */
+export const BUILTIN_READ_ONLY_GIT_SUBCOMMANDS: ReadonlySet<string> = new Set([
+  'blame',
+  'branch',
+  'cat-file',
+  'check-ignore',
+  'config',
+  'count-objects',
+  'describe',
+  'diff',
+  'grep',
+  'help',
+  'log',
+  'ls-files',
+  'ls-remote',
+  'ls-tree',
+  'name-rev',
+  'rev-list',
+  'rev-parse',
+  'shortlog',
+  'show',
+  'status',
+  'stash',
+  'submodule',
+  'tag',
+  'var',
+  'version',
+  'whatchanged',
+]);
+
+function partIsBuiltinReadOnly(part: string): boolean {
+  const normalized = stripWrappers(stripAssignments(part, false));
+  const [head, ...rest] = normalized.split(/\s+/);
+  if (head === undefined) return false;
+  if (head === 'git') {
+    const subcommand = rest.find((token) => !token.startsWith('-'));
+    return subcommand !== undefined && BUILTIN_READ_ONLY_GIT_SUBCOMMANDS.has(subcommand);
+  }
+  // `find -exec` and `find -delete` are documented to prompt despite `find` being in the set.
+  if (head === 'find' && rest.some((token) => token === '-exec' || token === '-delete')) {
+    return false;
+  }
+  return BUILTIN_READ_ONLY_HEADS.has(head);
+}
+
+export function isBuiltinReadOnly(command: string): boolean {
+  const parts = splitCompound(command);
+  return parts.length > 0 && parts.every(partIsBuiltinReadOnly);
+}
+
+/**
+ * Whether Claude Code executes this command with no human in the loop. `decide` returning
+ * `prompt` is not the same answer: for the built-in read-only set, `prompt` means "runs
+ * immediately". Every assertion about a credential surface has to be written against this,
+ * not against `decide`.
+ */
+export function runsWithoutPrompt(command: string, rules: PermissionRules): boolean {
+  const decision = decide(command, rules);
+  if (decision === 'deny' || decision === 'ask') return false;
+  if (decision === 'allow') return true;
+  return isBuiltinReadOnly(command);
 }
 
 /**

@@ -14,12 +14,25 @@ env:
   FOUNDRY_PROFILE: ci
 
 jobs:
-  javascript:
+  workspace:
     name: format, lint, typecheck, test, build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
+      # This job was named `javascript` and installed no Foundry toolchain and no submodules,
+      # which made it impossible on a clean runner: `pnpm typecheck` fans out to
+      # contracts#typecheck (forge build --sizes), `pnpm test` to contracts#test (forge test),
+      # `pnpm build` to contracts#build, and `pnpm lint` to contracts#lint (forge fmt --check).
+      # Those four commands are cross-stack by design, so the job that runs them installs the
+      # whole toolchain. Which commands need Foundry is derived from the script graph in
+      # packages/repo-policy/test/ci-workflow.test.ts, not from a list kept by hand here.
       - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
 
       - uses: pnpm/action-setup@v4
         with:
@@ -35,7 +48,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm format:check
-      - run: pnpm exec biome check .
+      - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm test:integration
@@ -60,13 +73,16 @@ jobs:
         with:
           version: stable
 
+      # These four are the bodies of contracts#lint, contracts#typecheck, contracts#test and
+      # contracts#test:invariant. Run directly so a Solidity failure is attributed to this job
+      # rather than to a turbo task inside the workspace job.
       - run: forge fmt --check
       - run: forge build --sizes
       - run: forge test -vv
       - run: forge test --match-path 'test/invariant/*' -vv
 
   policy:
-    name: no secrets in the tree, no permission bypass
+    name: no secrets in the tree, no permission bypass, no script drift
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -88,7 +104,21 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # @resurv/repo-policy owns both checks: the tracked-secret detector (with fixtures for
-      # every category .gitignore protects) and the Claude Code permission boundary
-      # regression tests. See docs/THREAT_MODEL.md T6, T10 and T11.
+      # @resurv/repo-policy owns four checks: the tracked-secret detector (with fixtures for
+      # every category .gitignore protects), the Claude Code permission boundary regression
+      # tests, the credential-surface tests, and the auto-approved script graph. It installs no
+      # Foundry toolchain because none of its commands reach one, which the CI policy test
+      # asserts rather than assumes. See docs/THREAT_MODEL.md T6, T10, T11, T13 and T14.
       - run: pnpm --filter @resurv/repo-policy test
+
+  gate:
+    name: repository gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [workspace, contracts, policy]
+    # Runs even when a dependency failed, so the aggregate result is always reported rather
+    # than skipped. This is the single job to require on a branch protection rule.
+    if: always()
+    steps:
+      - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: exit 1

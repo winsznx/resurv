@@ -23,6 +23,7 @@
 export const REDACTED = '[redacted]';
 const CIRCULAR = '[circular]';
 const TRUNCATED = '[max-depth]';
+const UNREADABLE = '[unreadable]';
 
 const DEFAULT_MAX_DEPTH = 12;
 
@@ -151,10 +152,15 @@ function redactContainer(
     return value.map((entry) => redactValue(entry, options, seen, depth + 1));
   }
   if (value instanceof Error) {
+    const name = readProperty(value, 'name');
+    const message = readProperty(value, 'message');
+    const stack = readProperty(value, 'stack');
     return {
-      name: value.name,
-      message: redactString(value.message, options),
-      ...(value.stack === undefined ? {} : { stack: redactString(value.stack, options) }),
+      name: typeof name === 'string' ? name : UNREADABLE,
+      message: typeof message === 'string' ? redactString(message, options) : UNREADABLE,
+      ...(stack === undefined
+        ? {}
+        : { stack: typeof stack === 'string' ? redactString(stack, options) : UNREADABLE }),
     };
   }
   if (value instanceof Date) {
@@ -166,7 +172,44 @@ function redactContainer(
   if (value instanceof Set) {
     return [...value].map((entry) => redactValue(entry, options, seen, depth + 1));
   }
-  return redactEntries(Object.entries(value), options, seen, depth);
+  return redactEntries(safeEntries(value), options, seen, depth);
+}
+
+/**
+ * `Object.entries` invokes getters, and a Worker binding or a hostile error object can throw
+ * on property access. `knownSecretValues` in `@resurv/config` has guarded against that since
+ * Phase 0 with the stated reason that diagnostics must not be the thing that takes the Worker
+ * down; this walker did not, so the redacting error handler could itself throw. Reported as
+ * N6 by the Phase 0 remediation review. An unreadable property becomes a marker, never the
+ * raw value and never an exception.
+ */
+function readProperty(value: object, key: string): unknown {
+  try {
+    return (value as Record<string, unknown>)[key];
+  } catch {
+    return UNREADABLE;
+  }
+}
+
+function safeEntries(value: object): [unknown, unknown][] {
+  const entries: [unknown, unknown][] = [];
+  for (const key of Reflect.ownKeys(value)) {
+    if (typeof key === 'symbol') continue;
+    let descriptor: PropertyDescriptor | undefined;
+    try {
+      descriptor = Object.getOwnPropertyDescriptor(value, key);
+    } catch {
+      entries.push([key, UNREADABLE]);
+      continue;
+    }
+    if (descriptor === undefined || descriptor.enumerable !== true) continue;
+    try {
+      entries.push([key, (value as Record<string, unknown>)[key]]);
+    } catch {
+      entries.push([key, UNREADABLE]);
+    }
+  }
+  return entries;
 }
 
 function redactEntries(

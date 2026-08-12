@@ -72,6 +72,12 @@ export function App() {
   const context = decodeVerifierContext();
   const success = RECEIPT.successTransaction;
 
+  // Derived, never typed in. A replay that produced a transaction would raise this number, and
+  // the page would say so rather than continuing to assert a zero nobody re-checked.
+  const duplicateEffects = RECEIPT.steps.filter(
+    (step) => step.label.startsWith('replay-') && step.transactionHash !== undefined,
+  ).length;
+
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-10 border-cloud/70 border-b bg-paper/85 backdrop-blur">
@@ -142,7 +148,7 @@ export function App() {
             <Card>
               <Stat
                 label="Duplicate attempts"
-                value="0 effects"
+                value={`${duplicateEffects} effects`}
                 hint="trigger and attempt both replayed"
               />
             </Card>

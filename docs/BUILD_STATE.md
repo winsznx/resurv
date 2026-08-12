@@ -1,260 +1,156 @@
 # Build state
 
-Canonical handoff document. Read this first in a new session. Updated at the end of every
-phase.
+Canonical handoff document. Read this first in a new session.
 
-Last updated: 2026-08-12, end of Phase 0.5.
+Last updated: 2026-08-12, end of the autonomous build.
 
 ## Where we are
 
+**`BUILD COMPLETE — AWAITING INDEPENDENT FINAL REVIEW`**
+
 | | |
 |---|---|
-| Current phase | Phase 0.5 **complete**. Phase 1 not started. |
-| Completed phases | 0, the Phase 0 remediation, the pre-seam hardening pass, Phase 0.5 |
-| Active gate | Phase 0.5: **`SEAM REVISE`**. KeeperHub is usable; the planned attempt lifecycle was falsified and is replaced. See `docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md` sections 8 and 9, and ADR-013 |
+| Completed | Phases 0, 0.5, 1, 2, 3, 5, 6 (review), 7, 8, 9 |
+| Deliberately not built | Phase 4, the model-assisted planner. See below |
 | Submission deadline | 2026-08-13 12:00 UTC+2 |
+| Blocking for submission | a git remote, a recorded video, and a Cloudflare deploy. All three are human steps |
 
-Read the phase logs in order, because the earlier ones contain figures the later ones
-disproved:
+## What exists, in one paragraph
 
-1. `PHASE_00.md` — self-graded PASS. Contains numbers the review refuted.
-2. `PHASE_00_INDEPENDENT_REVIEW.md` — FAIL, four blocking findings.
-3. `PHASE_00_REMEDIATION.md` — the answer to those four.
-4. `PHASE_00_REMEDIATION_INDEPENDENT_REVIEW.md` — PASS, eight new non-blocking findings, and
-   clearance for live credential entry.
-5. `PRE_SEAM_HARDENING.md` — closes those eight before a credential arrives. PASS.
-6. `PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md` — the source lock, the fixture, the probe, and
-   the live measurement. `SEAM REVISE`. **Read sections 2, 8 and 9 before writing any contract
-   or orchestrator code**: they are the measured facts, the lifecycle, and the advancement rule.
+A covenant is deployed on Base Sepolia and one has run end to end. Its primary recovery action
+was refused by KeeperHub's simulation because the adapter's vault role had been revoked, so no
+transaction was sent. The approved fallback executed, and one transaction carries the
+evacuation, the verifier result, the covenant's state transition and the success fee. The same
+trigger and the same attempt were replayed and both were rejected. Every contract was deployed
+by a gas-sponsored KeeperHub contract call to a public CREATE2 factory, with a zero-balance
+wallet and no faucet.
 
-## Session order
-
-Fixed by the operator. Each step runs in a fresh session, and the prompt for each is
-committed under `docs/prompts/` so no step depends on conversational memory.
-
-1. Phase 0 independent validation. `docs/prompts/PHASE_00_VALIDATION.md` — **done, FAIL**
-2. Phase 0 remediation — **done**
-3. Phase 0 remediation independent re-validation — **done, PASS**
-4. Pre-seam hardening — **done, PASS**
-5. Phase 0.5 seam probe. `docs/prompts/PHASE_00_5_SEAM_PROBE.md` — **done, `SEAM REVISE`**.
-   16 scenarios measured live, evidence committed
-6. Phase 1, against the corrected lifecycle. `docs/prompts/PHASE_01_TO_10_AUTONOMOUS.md`
-7. After the build completes, a fresh session for adversarial review and submission prep.
-
-### The credential
-
-`KEEPERHUB_API_KEY` in `.env` at the repository root, an organization key beginning `kh_`. It
-exists on this machine now and is git-ignored. Creating and rotating it stays a human step: the
-permission boundary denies every path an agent session could take to it.
-
-Re-running the probe needs nothing else. No contract deployment, no deployer key, no faucet.
-
-## Next exact task
-
-Phase 1, and it starts from a specification rather than from a guess.
-
-Read `docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md` sections 8 and 9 and ADR-013,
-then build the attempt state machine in `packages/domain` alongside the covenant one, with the
-same reference-model treatment ADR-009 requires. The covenant contract follows.
-
-Three measured facts that change what gets written, all of which falsified the previous plan:
-
-1. **HTTP 202 does not mean broadcast.** A refused attempt and a successful one both answer 202
-   with an `executionId`. Read the body's `status`, and confirm on chain.
-2. **A new idempotency key repeats the economic action.** KeeperHub bounds effects per key, not
-   per action, so the covenant must reject a replayed semantic attempt id permanently.
-3. **Access control keys on `0xfd35ae935de7be93ffd585d6627268d833ed834c`**, the organization
-   wallet, which appears only in the decoded event. `receipt.from` is a relayer.
-
-The one thing Phase 0.5 could not settle: how a reverted broadcast presents, because a reverting
-call never becomes a broadcast with an unfunded wallet. `REVERTED` is in the lifecycle anyway.
-
-`docs/keeperhub/SEAM_CHECKLIST.md` records what each of the twelve attempt states measured to
-and what is still open.
-
-## Architecture as built
-
-One Cloudflare Worker (`fetch` today; `scheduled` and `queue` reserved) serving `/api/*` and
-the built SPA as static assets. Seven workspace packages. Foundry for contracts. Full detail in
-`docs/ARCHITECTURE.md`, deviations from the PRD in `docs/DECISIONS.md`.
-
-`packages/seam-probe` is the newest and is not a product package. It exists to measure the
-KeeperHub attempt seam and to keep that measurement reproducible. Its offline half runs in the
-gate; its live half spends a credential and lands transactions and is reachable from no
-auto-approved command.
-
-## Deployed resources
-
-None. No contract is deployed, no Worker is deployed, no database is connected.
-
-| Resource | Status |
+| | |
 |---|---|
-| Covenant contract | does not exist |
-| Demo vault, action, verifier | do not exist |
-| Worker | builds, not deployed |
-| Supabase project | not provisioned |
+| Success transaction | `0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab` |
+| Covenant | `0xd7250d1fd4c0f996475b78a00489ce0668bad187b342ca61d88983bf0ec7e14f` |
+| Manager | `0xfcafbc81f253e62a3818ecda7a7a71e557c65b21` |
+| Receipt | `docs/proof/canonical-covenant.json` |
+| Manifest | `deployments/base-sepolia.json` |
 
-## KeeperHub
+## Read these, in this order
 
-**Rung 5 of the proof ladder is reached.** Sixteen scenarios ran live on 2026-08-12, four times
-over. The committed run holds 30 HTTP exchanges and 5 Base Sepolia transactions, every one
-reconciled against two independent RPC origins, under
-`docs/phase-logs/evidence/phase-00-5/`. No KeeperHub row in `docs/CLAIMS.md` carries
-`MEASURED_EXTERNAL` any more; each was re-measured from here.
-
-Carry these five in your head:
-
-1. **HTTP 202 is not acceptance.** A call that never reached the chain answered 202 with an
-   `executionId` and `status: "failed"`. The body decides, not the status code.
-2. **Transport idempotency is not semantic idempotency.** A new key for the same action executed
-   it a second time. The onchain attempt id is the only permanent guard.
-3. **`msg.sender` at the target is the organization wallet**, `0xfd35ae935de7be93ffd585d6627268d833ed834c`,
-   while `receipt.from` is a relayer and `receipt.to` a router. Authorize on the former, verify
-   by decoding the log.
-4. **A lost response is genuinely ambiguous and genuinely resolvable.** The identical abort
-   committed in some runs and not others, decided by about nine milliseconds. Replaying the key
-   resolves it, a 409 conflict sometimes names the original execution, and the chain always
-   answers. Every recovery ended with **at most one** effect, never two.
-5. **A reverting call is refused before broadcast** on this configuration, three of three, and
-   the error blames a balance shortfall rather than the revert. So the reverted-broadcast state
-   was never observed, and a funded wallet may behave differently.
-
-`safe_inner_failure` remains a documented hazard that was never observed. What Phase 0.5 added
-is where to look for it: `result.executedCall.reverted` and `receipts[].receiptStatus`, never
-the outer receipt status. `docs/THREAT_MODEL.md` T15.
-
-The organization API key lives in a git-ignored file created by a human. No session may copy one
-from a sibling repository, and the value must never be echoed.
+1. `README.md` — the product, the proof, and how to check it
+2. `docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md` sections 2, 8, 9 — the measured
+   seam behaviour, which is authoritative over the PRD and over KeeperHub's documentation
+3. `docs/DECISIONS.md` ADR-013, ADR-014, ADR-015 — the three decisions that shaped the build
+4. `docs/phase-logs/PHASE_01.md` — contracts, and the mutation campaign
+5. `docs/phase-logs/PHASE_02_TO_05.md` — the live build
+6. **`docs/phase-logs/PHASE_06_REVIEW.md`** — three reviews, all FAIL, what was fixed and what
+   was accepted. Read this before believing anything else in this repository
+7. `docs/FINAL_BUILD_REPORT.md` — what an independent reviewer should attack first
 
 ## Tests
 
-Counted so the number cannot flatter itself. Substantive tests are tests that assert
-something; the two empty harnesses are listed separately and never folded into a total.
+Counted so the number cannot flatter itself.
 
 | Suite | Count |
 |---|---|
-| `@resurv/domain` | 34 |
-| `@resurv/keeperhub-client` | 36 |
+| `@resurv/repo-policy` | 412 |
+| `@resurv/seam-probe` (offline half) | 71 |
+| `@resurv/domain` | 63 |
 | `@resurv/config` | 38 |
-| `@resurv/db` | 7 |
-| `@resurv/chain` | 7 |
-| `@resurv/worker` | 7 |
-| `@resurv/repo-policy` | 391 |
-| `@resurv/seam-probe` | 71 |
-| `@resurv/web` | 0 |
-| **TypeScript substantive total** | **591** |
-| `contracts` unit and fuzz | 21 |
-| `contracts` invariant | 5 |
-| **Foundry total** | **26** |
+| `@resurv/keeperhub-client` | 36 |
+| `@resurv/orchestrator` | 22 |
+| `@resurv/proof` | 13 |
+| `apps/worker` (7 unit + 6 integration) | 13 |
+| `apps/web` (e2e) | 8 |
+| `@resurv/cli` | 8 |
+| `@resurv/chain`, `@resurv/db`, `@resurv/node-runtime` | 21 |
+| **TypeScript total** | **705** |
+| Foundry unit and fuzz | 101 |
+| Foundry invariants | 13 |
+| **Foundry total** | **114** |
 
-| Harness | Specs |
-|---|---|
-| `pnpm test:integration` (`apps/worker/test/integration`) | **0** |
-| `pnpm test:e2e` (`apps/web/test/e2e`) | **0** |
+Fuzz: 512 runs per test. Invariants: 256 runs at depth 128. The `afterInvariant` block reports
+the **last run only**, not the campaign, and now says so in its first line.
 
-Both harnesses exit 0 with `--passWithNoTests`. Their commands existing is what the Phase 0
-gate required. It is not coverage and it is not counted. Phase 0 reported "85 tests total"
-across 73 TypeScript and 12 Foundry; the figures were right and the framing invited a reader
-to include the empty suites, so the split above is now explicit.
+`pnpm gate` exits 0. A clean-room clone with `pnpm install --frozen-lockfile` and
+`TURBO_FORCE=true pnpm gate` also exits 0 with `Cached: 0`.
 
-`@resurv/repo-policy` is large because it is mostly parameterized fixtures: one case per
-blocked command, per permitted command, per secret path, per auto-approved script. That is the
-shape the work needs, and 391 assertions there is not equivalent to 391 assertions about the
-product. It grew from 157 during the pre-seam hardening pass, which added the credential
-surfaces, the auto-approved script graph and the CI workflow policy, and by 10 in Phase 0.5,
-which added the live-seam-probe boundary.
+`pnpm test:integration` and `pnpm test:e2e` are no longer empty. They were listed here as a known
+defect for two phases; they now carry 14 specs between them.
 
-`@resurv/seam-probe`'s 71 are the offline half only. Twenty-nine cover the evidence sanitizer,
-the fail-closed writer and semantic attempt identity; forty-two read the committed evidence
-and assert the Phase 0.5 report's own findings, so a claim cannot drift away from its artifact
-without failing the gate. The sixteen live scenarios are not in the gate and are not counted.
+## What the reviews found
 
-Fuzz: 512 runs per test. Invariants: 256 runs at depth 64. Every one of the 16,384 handler
-calls per invariant is a real transition attempt, roughly 8 to 15 of which mutate state per
-run, across 3 to 5 covenant lifecycles, covering 20 to 33 distinct ordered pairs per run. The
-handler prints those figures in `afterInvariant`. The Phase 0 framing of "16,384 calls" as
-strength of evidence was misleading: most of those calls were guaranteed early returns.
+Three in-repo specialist reviewers ran against the finished build. **All three returned FAIL.**
+Six findings were fixed, five accepted with reasons, three deferred. Two of the fixed ones were
+permanent-escrow-loss defects on an immutable contract, both reachable through ordinary
+operation, both found with working proofs. The contracts were redeployed and the covenant re-run
+against the fixed code.
 
-## Commands, all verified working
+The full list is `docs/phase-logs/PHASE_06_REVIEW.md`. The three worth attacking next are named
+at the end of it.
 
-`pnpm gate` runs every command `CLAUDE.md` declares required and exits 0. It did not before
-the remediation: `test:integration` and `test:e2e` were missing from it while two documents
-called it the full sequence. See `docs/RUNBOOKS.md`.
+These reviewers are agents in this repository with no write access. **RESURV has had no external
+audit** and says so everywhere it says anything.
 
-Turbo caching means a green `pnpm gate` can be a replay of an earlier log. For evidence, use
-`TURBO_FORCE=true pnpm gate` and check that `Cached: 0`.
+## Deliberately not built
 
-## Unresolved blockers
+**Phase 4, the model-assisted planner.** PRD 13 specifies a model that ranks eligible actions
+with a deterministic fallback. The deterministic half shipped: action order is the covenant's
+committed order. The model half was cut against the deadline. Cutting it removed a component
+from the demo and nothing from the safety argument, because PRD 13.4 already requires the demo
+to complete with the model disabled and no model was ever in the safety path. `docs/CLAIMS.md`
+carries no claim about an agent.
 
-None. The credential exists, the seam is measured, and Phase 1 has a specification to build
-against rather than a hypothesis.
+**Most of Phase 6's tooling.** Slither, container and dependency scanning, OpenTelemetry, alerts,
+a database restore rehearsal. All need infrastructure this build does not have. The chaos cases
+PRD 21.8 names are covered as unit tests against scripted transports.
 
-F6-A, the permission bypass that used to block the probe, is fixed and regression-tested. The
-eight findings the independent re-validation raised are closed or explicitly deferred in
-`docs/phase-logs/PRE_SEAM_HARDENING.md`.
-
-One smaller thing Phase 0.5 could not do: adding an `ask` entry for the live seam command to
-`.claude/settings.json` was refused by the permission classifier, so that file is untouched. It
-costs nothing, because ADR-010 already records that `ask` does not prompt in this project's
-sessions. The controls that carry weight are the absence of an allow rule and the
-external-effect classification in `packages/repo-policy`.
+**The signed receipt and the verification CLI** from PRD 18.2. The receipt exists and is
+committed; it is not signed, and there is no standalone CLI. `docs/PROOF_LADDER.md` states that
+qualifier on rung 9 rather than claiming the rung whole.
 
 ## Unresolved assumptions
 
-Tracked in `docs/CLAIMS.md`. Phase 0.5 closed most of the KeeperHub ones. What is left, in the
-order it will bite:
+1. **A reverted broadcast.** Never observed. Two routes tried in Phase 0.5 and both failed
+   because KeeperHub refuses to broadcast a call whose gas estimation reverts. `REVERTED` is
+   implemented and tested. Nothing may be said about how it presents.
+2. **`safe_inner_failure`.** Documented, never observed, handled conservatively. The demo runs on
+   the direct-wallet path where the hazard does not arise, so this build could not have observed
+   it even in principle.
+3. **The 24-hour idempotency boundary and the exact scope of a key.** Neither documented nor
+   derivable from one organization. The onchain attempt id covers both.
+4. **Whether a concurrent-writer store behaves.** `InMemoryAttemptStore.reserve` is synchronous,
+   so the concurrency test cannot interleave. The design is right and the race is not exercised.
+   That test belongs with the Supabase store, which does not exist.
 
-1. **How a reverted broadcast presents.** The experiment ran and could not reach the state: a
-   reverting call is refused before broadcast with an unfunded wallet, and `gasLimitMultiplier`
-   is ignored. The residual is that a funded wallet may reach the chain and revert. Fund the org
-   wallet and repeat `P09` to settle it.
-2. **`safe_inner_failure` in practice.** Never observed. A receipt with status `0x1` still does
-   not prove an attempt succeeded, and the surface to watch is `result.executedCall.reverted`.
-   T15.
-3. **`msg.sender` at a RESURV contract.** Measured against the canary, not against a covenant.
-   All access control depends on it and getting it wrong means every attempt reverts.
-4. **The 24-hour idempotency boundary**, and whether an idempotency key is scoped per key, per
-   organization or per endpoint. Neither is documented. The onchain attempt id is what covers
-   both.
-5. **Every remaining rung of the proof ladder above 5.** No covenant contract exists, so nothing
-   is yet known about escrow, fees or atomicity beyond a pure library.
+## Known limitations
 
-## Known defects and limitations
+- Testnet only. No mainnet, no external audit, not production-ready by this project's own gate.
+- The requester, the admin, the pauser and the executor are one address on the live deployment.
+- Supabase is designed, migrated and unwired. The live runner uses an `fsync`'d journal.
+- A covenant already satisfied at trigger time can still pay a full fee if an executor runs an
+  action against it. Faithful to the PRD's own illustrative `executeAttempt`; the PRD is what is
+  wrong. Accepted for v1 and recorded.
+- `TestUSD.mint` is permissionless on the live deployment. It is a test token and the open mint
+  is what let a zero-balance wallet fund the demo.
+- No CI run has ever happened: this repository has no git remote.
+- The Claude Code permission boundary is configuration checked by our own tests, not a sandbox.
 
-- `test:integration` and `test:e2e` run with `--passWithNoTests` and contain zero specs. The
-  commands exist and exit 0, which satisfies the Phase 0 gate but must not be mistaken for
-  coverage. First real specs land with the orchestrator and the proof page.
-- `@resurv/web` has no tests and no product UI. Deliberate: Phase 0 forbids UI work.
-- Supabase is designed but unwired. Repository interfaces exist; no driver implementation.
-- No hooks configured in `.claude/settings.json` despite PRD 29.4 mentioning them. Deferred as
-  low value against the deadline.
-- The Claude Code permission boundary is configuration checked by our own tests, not a
-  sandbox. A command that reads a secret without naming a protected path is not stopped. See
-  `docs/THREAT_MODEL.md` T10, T11, T13 and T14 for what it does and does not cover.
-- An `ask` rule was measured not to prompt in the permission mode this project's sessions run
-  in. Only `deny` blocked. Everything load-bearing is a deny rule; `ask` records intent. See
-  ADR-010. Nothing in this repository can assert which mode a session starts in.
-- A Bash permission pattern containing `$` matches nothing, so such a rule reads as a control
-  and is not one. Undocumented by the vendor, measured here, guarded by a test. See ADR-011.
-- No CI job has ever run, because this repository has no git remote. The jobs are now capable
-  of passing on a clean runner, which the Phase 0 form of the JavaScript job was not.
-- The auto-approved script manifest is a drift guard, not an integrity control. A contributor
-  who edits `package.json`, the manifest and the test in one change defeats it. T14.
-- The state machine evidence is about a pure library. No covenant contract exists, so every
-  `VERIFIED (model only)` row in the ledger says nothing about escrow, fees or atomicity.
-- The reference models are hand transcriptions of PRD 9.1. A misreading would be mirrored in
-  both languages and no test would object.
-- `packages/keeperhub-client/src/errors.ts` parses one of the three error envelope shapes the
-  vendor documents. Not fixed in Phase 0.5, because choosing which shape the live endpoint
-  actually emits without measuring it would be guessing. `P02` decides it.
-- Twelve live seam scenarios are built and assert nothing, because nothing has been measured.
-  A green `pnpm gate` says nothing about them; they are not in it.
-- Every reproduction so far has resolved dependencies from a warm local store. A genuinely
-  cold-network install is unproven.
+## The credential
 
-## Scope deliberately cut against the deadline
+`KEEPERHUB_API_KEY` in `.env` at the repository root, an organization key beginning `kh_`. It
+exists on this machine and is git-ignored. Creating and rotating it stays a human step.
 
-Recorded so nobody assumes these were forgotten: `packages/agent`, `packages/observability`,
-`packages/sdk`, `packages/ui`, operator auth tables (`users`, `organizations`,
-`organization_members`), OpenTelemetry wiring, and Docker Compose. Each belongs to a later
-phase or to a stack the deployment constraint removed.
+Nothing in `pnpm gate` needs it. The two live commands do:
+
+```bash
+pnpm --filter @resurv/cli live:contracts   # deploys
+pnpm --filter @resurv/cli live:demo        # runs a new covenant
+```
+
+Both are classified as external effects in `packages/repo-policy` and reachable from no
+auto-approved Claude Code command. `--dry-run` neutralizes both.
+
+## Next exact task
+
+An adversarial independent review in a fresh session, against
+`docs/FINAL_BUILD_REPORT.md`. Then, if it passes: a git remote, `wrangler deploy`, the video, and
+submission. None of those four is an agent's to do.

@@ -9,7 +9,7 @@ state is true, and the responder is paid inside the transaction that made it tru
 | **Public proof page** | `apps/web`, deployed to Cloudflare. Needs no login, no credential, no RESURV server in the trust path |
 | **Covenant** | `0xd7250d1fd4c0f996475b78a00489ce0668bad187b342ca61d88983bf0ec7e14f` on Base Sepolia |
 | **Covenant manager** | [`0xfcafbc81f253e62a3818ecda7a7a71e557c65b21`](https://sepolia.basescan.org/address/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21) |
-| **Tests** | 703 TypeScript, 102 Foundry, all green. `pnpm gate` exits 0 |
+| **Tests** | 705 TypeScript, 114 Foundry, all green. `pnpm gate` exits 0 |
 
 Check the headline for yourself in one command:
 
@@ -192,19 +192,28 @@ pnpm --filter contracts test        # Foundry unit, fuzz and invariant
 
 | Suite | Count | What it holds up |
 |---|---|---|
-| Foundry unit and fuzz | 97 | Every covenant path, both adapters, the verifier, adversarial fixtures |
-| Foundry invariants | 8 at 256 runs × depth 128 | Fee moves once, terminal blocks attempts, escrow conserved, admin cannot rewrite an armed covenant |
+| Foundry unit and fuzz | 101 | Every covenant path, both adapters, the verifier, adversarial fixtures, and the regressions from the review below |
+| Foundry invariants | 13 at 256 runs × depth 128 | Fee moves once, terminal blocks attempts, escrow conserved, admin cannot rewrite an armed covenant |
 | `@resurv/domain` | 63 | Both state machines against independent reference models, exhaustively |
-| `@resurv/orchestrator` | 20 | Crash resume, concurrent workers, lost response, RPC disagreement, inner failure |
+| `@resurv/orchestrator` | 22 | Crash resume, concurrent workers, lost response, RPC disagreement, inner failure |
 | `@resurv/repo-policy` | 412 | The permission boundary, tracked secrets, the auto-approved script graph |
 | `@resurv/seam-probe` | 71 | The Phase 0.5 measurements, asserted against their committed evidence |
-| everything else | 137 | Config redaction, chain constants, the proof artifacts, the Worker, the page |
+| everything else | 139 | Config redaction, chain constants, the proof artifacts, the Worker, the page |
 
 Property tests are judged against reference models transcribed from the PRD that never call the
-implementation. The suite was checked by mutation rather than by pass count: eight deliberate
-defects, seven caught, one — admitting an armed but never-triggered covenant into
-`executeAttempt` — that **survived the entire suite** and is now caught three ways.
-[`docs/phase-logs/PHASE_01.md`](docs/phase-logs/PHASE_01.md) has the table.
+implementation. The suite was checked by mutation rather than by pass count, twice: eight
+deliberate defects during Phase 1 and three more found by an independent audit. Four survived
+and every one is now caught, including a mutation permitting an `ARMED -> EXPIRED` transition
+that the reference state machine forbids and that nothing noticed, because `canTransition` was
+exhaustively tested and never actually called from production code.
+
+Three independent reviews ran against this build — contracts, KeeperHub integration, and test
+coverage. They are in-repo reviewers with no write access, not a third-party security audit, and
+all three returned FAIL with specific findings. Two were fund-loss defects in
+the covenant, both fixed and both now pinned by regression tests in
+[`packages/contracts/test/AuditRegressions.t.sol`](packages/contracts/test/AuditRegressions.t.sol).
+The full list, including what was deferred and why, is in
+[`docs/phase-logs/PHASE_06_REVIEW.md`](docs/phase-logs/PHASE_06_REVIEW.md).
 
 ## Deployment
 
@@ -238,7 +247,7 @@ Addresses, bytecode hashes, constructor arguments and compiler settings:
 - **Page**: the deployed Worker, or `pnpm --filter @resurv/web dev`
 - **JSON**: `GET /api/proof`, `GET /api/proof/summary`, `GET /api/deployment`
 
-`/api/proof/summary` is the endpoint an independent verifier is meant to disagree with: eight
+`/api/proof/summary` is the endpoint an independent verifier is meant to disagree with: nine
 booleans, each reproducible with `cast`.
 
 ## Claim discipline

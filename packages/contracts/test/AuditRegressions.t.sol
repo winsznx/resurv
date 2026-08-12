@@ -34,8 +34,11 @@ contract ExpensiveTrueVerifier is IOutcomeVerifier {
     }
 }
 
-/// @notice Regressions for every finding an independent contract audit raised, and for the three
-///         mutations that survived the suite as it stood.
+/// @notice Regressions for every finding this project's own `contracts-auditor` review raised, and
+///         for the three mutations that survived the suite as it stood.
+///
+///         That review is an in-repo reviewer with no write access, not a third-party security
+///         audit. RESURV has had no external audit and says so everywhere it says anything.
 ///
 /// @dev Each test names the finding it pins. They are in one file rather than scattered because
 ///      a reader asking "was that audit actually acted on" should be able to answer it in one

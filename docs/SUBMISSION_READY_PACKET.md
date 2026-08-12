@@ -93,7 +93,7 @@ shipped.
 ## Technical implementation
 
 - **Contracts** (Solidity 0.8.36, Foundry, no proxy): `ResurvCovenantManager` plus two capability
-  adapters, a verifier, and a demo protocol. 102 tests including 8 stateful invariants at 256
+  adapters, a verifier, and a demo protocol. 114 tests including 8 stateful invariants at 256
   runs × depth 128.
 - **Domain** (`@resurv/domain`): two state machines, each judged against an independent reference
   model transcribed from the specification that never calls the implementation.
@@ -104,7 +104,7 @@ shipped.
 - **Proof surface**: a public page that reads committed artifacts for the past and two public RPC
   origins in the visitor's own browser for the present, so no RESURV server is in the trust path.
 - **Deployment**: Cloudflare Workers, one deployable serving `/api/*` and the SPA.
-- 703 TypeScript tests, 102 Foundry tests, one aggregate gate that exits 0.
+- 705 TypeScript tests, 114 Foundry tests, one aggregate gate that exits 0.
 
 ## Real KeeperHub transaction
 

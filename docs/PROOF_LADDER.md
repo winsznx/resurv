@@ -9,8 +9,8 @@ The hackathon submission must reach at least rung 9.
 | # | Rung | Status | Evidence |
 |---|---|---|---|
 | 1 | Plain reference model | **REACHED** | `packages/domain`: the covenant state machine and the measured attempt lifecycle, each with an independent reference model, 63 tests |
-| 2 | Contract unit tests | **REACHED** | 97 Foundry unit and fuzz tests across `CovenantLifecycle`, `Adversarial`, `CovenantFuzz` and the state-machine suites |
-| 3 | Fuzz and invariant tests | **REACHED** | 9 fuzz tests at 512 runs; 8 covenant invariants plus 5 state-machine invariants at 256 runs × depth 128, judged against reference models. Confirmed by mutation: 8 defects, 7 caught, 1 survivor found and closed |
+| 2 | Contract unit tests | **REACHED** | 101 Foundry unit and fuzz tests across `CovenantLifecycle`, `Adversarial`, `CovenantFuzz`, `AuditRegressions` and the state-machine suites |
+| 3 | Fuzz and invariant tests | **REACHED** | 9 fuzz tests at 512 runs; 8 covenant invariants plus 5 state-machine invariants at 256 runs × depth 128, judged against reference models. Confirmed by mutation across two campaigns: 11 defects, 7 caught first time, 4 survivors found and closed |
 | 4 | Local full lifecycle | **REACHED** | `test_primaryRefused_fallbackSucceeds_andPaysInTheSameTransaction` runs the whole demo against a local EVM, including the refused primary and both replays |
 | 5 | KeeperHub seam tests | **REACHED** | `packages/seam-probe`, 16 scenarios run live 2026-08-12, evidence committed, 42 offline tests asserting the findings against it |
 | 6 | Base fork integration | **not reached** | No `--fork-url` suite exists. Superseded in practice by rung 7: the contracts are deployed on the real chain and the demo ran against them, which is a stronger statement than a fork test, and is not the same statement |
@@ -24,7 +24,7 @@ The hackathon submission must reach at least rung 9.
 
 PRD 18.2 specifies a signed receipt and a `pnpm resurv verify --receipt` CLI that recomputes a
 hash, checks a signature, and reports each check separately. What exists is the receipt, the page
-that renders it, and a JSON endpoint whose `checks` object is eight booleans each reproducible
+that renders it, and a JSON endpoint whose `checks` object is nine booleans each reproducible
 with one `cast` command.
 
 What does not exist: the receipt is not signed, and there is no standalone verification CLI. The

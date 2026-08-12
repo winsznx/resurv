@@ -34,8 +34,14 @@ organization wallet can in principle transact without RESURV's involvement at al
 
 The whole product rests on this. Control: the verifier result is read inside the same
 transaction as the action, and a false result reverts the entire attempt.
-Status: `PLANNED`. The state machine that forbids leaving a terminal state is `IN PLACE` and
-invariant-tested; the atomic attempt itself does not exist yet.
+Status: **`IN PLACE`**, upgraded from `PLANNED` in Phase 1 and confirmed live in Phase 7. The
+atomic attempt exists, is deployed, and settled a covenant on Base Sepolia:
+`test_falseOutcomeRevertsTheActionTheCountersTheStatusAndTheFee` shows the adapter's transfer,
+the attempt counters, the status change and the escrow unwinding together, a mutation removing
+the postcondition revert fails eight tests, and transaction
+`0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab` carries the six logs the
+claim rests on. The verifier is reached by STATICCALL, so one that tries to write reverts rather
+than satisfying itself.
 
 ### T2. The success fee is released more than once
 
@@ -92,9 +98,11 @@ does reproduce is the client's side of the ambiguity, which is the side the cont
 
 Control: adapters are capabilities. The adapter address and its config hash are committed
 before arming, so the set of possible actions is fixed before any trigger exists, and the
-planner selects among them rather than composing calls. Status: `IN PLACE` at the interface
-level (`IResurvAction` forbids unbounded external calls and requires revert on partial
-failure). Enforcement is `PLANNED` with the covenant contract.
+planner selects among them rather than composing calls. Status: **`IN PLACE`**, upgraded from interface-level in Phase 1. `_consumeAttempt` rejects any
+config whose hash differs from the committed one before an adapter is reached, and each adapter
+refuses every caller but the manager. `test_uncommittedActionConfigIsRejected` and
+`testFuzz_anyConfigDriftIsRejected` cover it, and a mutation removing the config check fails
+both. The recipient is the field this protects and it is the one the fuzz test moves.
 
 ### T5. Prompt injection through chain data or protocol metadata
 
@@ -197,17 +205,25 @@ Under sponsorship the org wallet neither sends nor pays, so its explorer transac
 shows nothing. Control: verification goes transaction hash → receipt → decoded log, fetched
 from a public node, never by inspecting an EOA's transaction list.
 
-Status: `PARTIAL`, downgraded from `IN PLACE` by the Phase 0 remediation. The rule is written
-down and two RPC origins are pinned in `@resurv/chain`, but no code in this repository fetches
-a receipt from either one, and the test that supposedly establishes "hosts we do not control"
-checks that each URL starts with `https://` and does not contain the string `resurv`. T9
-depends on the same two constants and was correctly rated `PARTIAL`; rating T8 higher on the
-same evidence was inconsistent.
+Status: **`IN PLACE`**, upgraded in Phase 2. `packages/chain/src/rpc.ts` fetches every receipt
+from both pinned origins, and verification runs hash to receipt to decoded log rather than by
+inspecting an EOA's transaction list. The proof page does the same reads from the visitor's own
+browser. Residual: the two origins are still two public endpoints chosen by us, and the test
+that they are "hosts we do not control" remains weak.
 
 ### T9. A single RPC node decides a proof
 
-Control: quorum across at least two independent origins. Status: `PARTIAL`. The endpoints are
-pinned and tested for distinctness; the quorum client is `PLANNED`.
+Control: quorum across at least two independent origins, judged on a projection of the receipt
+rather than on raw JSON, because OP-stack nodes differ on optional fields that decide nothing.
+
+Status: **`IN PLACE`**, upgraded in Phase 2. `rpcQuorum` requires more than one origin to have
+answered and all answers to agree on the projection; a disagreement is itself
+`RECONCILIATION_REQUIRED` and the covenant does not advance.
+`never confirms while two RPC origins disagree about the receipt` covers it.
+
+Observed live rather than only tested: during two of the deployment runs one origin had not yet
+seen the block, the reconciler reported a disagreement, refused to advance, and confirmed on the
+next round. The control fired on its first outing without anybody arranging it.
 
 ### T10. Tool permission indirection
 

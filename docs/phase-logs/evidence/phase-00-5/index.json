@@ -1,0 +1,70 @@
+{
+  "runLabel": "2026-08-12T16-18-19-787Z",
+  "entries": [
+    {
+      "id": "P00-preflight",
+      "question": "is the credential live, is Base Sepolia enabled, and what is the org identity",
+      "observation": "GET /api/keys HTTP 200 in 1297ms; GET /api/chains HTTP 200 in 444ms; base sepolia entry {\"id\":\"tqwfqleepzicpldtpomcf\",\"chainId\":84532,\"name\":\"Base Sepolia\",\"symbol\":\"BASE\",\"chainType\":\"evm\",\"explorerUrl\":\"https://sepolia.basescan.org\",\"explorerAddressPath\":\"/address/{address}\",\"explorerApiUrl\":\"https://api.etherscan.io/v2/api\",\"explorerApiType\":\"etherscan\",\"isTestnet\":true,\"isEnabled\":true,\"usePrivateMempoolRpc\":false}; GET /api/user HTTP 200 in 274ms"
+    },
+    {
+      "id": "P01-local-rejection",
+      "question": "which requests are refused locally, with zero network exposure",
+      "observation": "client-side rejections, 0 HTTP requests: webhook key false, unprefixed false, prefix-only false, separator guard \"idempotency field functionArgs must not contain the \"|\" separator\""
+    },
+    {
+      "id": "P02-auth-failure",
+      "question": "what does an authentication failure look like, and does it carry a request id",
+      "observation": "wrong key HTTP 401 in 293ms; missing key HTTP 401 in 284ms"
+    },
+    {
+      "id": "P03-simulation-accepted",
+      "question": "does a simulation answer, what is `from`, and does it touch chain",
+      "observation": "HTTP 200 in 719ms; wouldRevert=false; from=0xfd35ae935de7be93ffd585d6627268d833ed834c; gasEstimate=23917; onchain effects for this challenge=0"
+    },
+    {
+      "id": "P04-simulation-rejected",
+      "question": "is a would-revert simulation an answer or an error, and is anything broadcast",
+      "observation": "HTTP 400 in 351ms; wouldRevert=true; revertReason=Simulation reverted: missing revert data (action=\"call\", data=null, reason=null, transaction={ \"data\": \"0xaabd1a516c41eb5e65cfbf56b8c5a924f6c6aa8c6a3f496d7d718803214761da9ede5d96\", \"from\": \"0xfd35ae935dE7Be93ffd585D6627268D833ed834c\", \"to\": \"0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A\" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.16.0); executionId=undefined"
+    },
+    {
+      "id": "P05-broadcast-confirmed",
+      "question": "what does an accepted broadcast return, and does chain agree with KeeperHub",
+      "observation": "HTTP 202 in 6561ms; 202 body fields=executionId,status; final KeeperHub status=completed; receiptStatus=success; hash=0xb7159cbb942caadc2e19d973938bcb2e32757375a2a4b9c7841f50f5a780ba17; chain receipt=success at block 45391613; origins agreed=true; effects=1"
+    },
+    {
+      "id": "P06-transport-retry",
+      "question": "does replaying the same idempotency key create a second economic effect",
+      "observation": "HTTP 202 in 283ms; idempotentReplay=true; executionId eu71kzol9c0f33xk5xpo6 vs original eu71kzol9c0f33xk5xpo6 (SAME); onchain effects for this challenge=1"
+    },
+    {
+      "id": "P07-idempotency-conflict",
+      "question": "what happens when a key is reused with a different body",
+      "observation": "HTTP 409 in 443ms; error=Idempotency-Key was reused with a different request payload. Use a new key for a different request.; retryable=false"
+    },
+    {
+      "id": "P08-semantic-replay",
+      "question": "does a new idempotency key permit a second execution of the same action",
+      "observation": "HTTP 202 in 6352ms; executionId ak603ntw327row7u40xkl vs P05 eu71kzol9c0f33xk5xpo6; final status=completed; chain=success; total onchain effects for this challenge=2"
+    },
+    {
+      "id": "P09-broadcast-absent-selector",
+      "question": "does KeeperHub broadcast a transaction it can predict will revert",
+      "observation": "HTTP 202 in 5156ms; executionId=qw3wxpyo0ovbl9jf5aq5u; hash=undefined; KeeperHub status=failed; receiptStatus=undefined; chain=absent"
+    },
+    {
+      "id": "P10-broadcast-reverted",
+      "question": "when a broadcast transaction reverts onchain, is that distinguishable from a transport failure",
+      "observation": "intrinsic=21576 rpcEstimate=23929 khEstimate=23917 target=22752 multiplier=0.951; HTTP 202 in 8023ms; executionId=t1h98c77rnk8ug4olcku1; KeeperHub status=completed; receiptStatus=success; hash=0x7bfcf2d0724195f6b4c56fadc8e273e9e18b7abd35ee8f1b189713ab7e170246; chain=success gasUsed=0xb311 gasLimit=0x1691e; effects=1; revertReplay=undefined"
+    },
+    {
+      "id": "P11-transport-abort",
+      "question": "the client did not receive a usable response: can RESURV find out whether the action happened",
+      "observation": "abort: no HTTP response (Error: probe-abort) after 252ms; GET /api/execute HTTP 404 in 427ms; GET /api/executions HTTP 404 in 425ms; key replay HTTP 409 in 409ms code=idempotency_in_progress idempotentReplay=undefined executionId=undefined; chain effects for this challenge=1 (hashes 0x157d1e41f31231420e2ba933654666e1cd8e2ff2291970ea3b7d2d3095f30326); chain-first reconciliation=success sender=0x000000000000000000000000fd35ae935de7be93ffd585d6627268d833ed834c block=45391629 origins agreed=true"
+    },
+    {
+      "id": "P12-unknown-execution",
+      "question": "what does KeeperHub say about an execution id it has never seen",
+      "observation": "unknown id HTTP 404 in 308ms body={\"error\":\"Execution not found\"}; malformed id HTTP 404 in 420ms"
+    }
+  ]
+}

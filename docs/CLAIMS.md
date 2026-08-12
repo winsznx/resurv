@@ -9,7 +9,7 @@ Nothing here may be stated publicly at a higher confidence than its status.
 | Status | Meaning |
 |---|---|
 | `DOCUMENTED` | Stated in official documentation. Not reproduced by us. |
-| `MEASURED_EXTERNAL` | Reproduced live against the real system, but from a different repository (`keeperhub-flightcheck`), not by a RESURV seam test. Strong evidence, not yet ours. |
+| `MEASURED_EXTERNAL` | Reproduced live against the real system, but from a different repository (`keeperhub-flightcheck`), not by a RESURV seam test. Strong evidence, not yet ours. **No KeeperHub row carries this level any more:** Phase 0.5 re-measured every one of them from here, and each either promoted to `VERIFIED` or gained a scope limit it did not have. |
 | `VERIFIED` | Reproduced by a RESURV test in this repository, with the evidence committed. |
 | `ASSUMED` | Believed, untested. May not appear in any public statement. |
 | `REFUTED` | Measured false. Must be actively kept out of public wording. |
@@ -24,37 +24,48 @@ re-measure from here before anything is said publicly.
 
 ## KeeperHub protocol
 
-Every `DOCUMENTED` row below now points at a page recorded in
-`docs/keeperhub/SOURCE_SNAPSHOT.md`, retrieved 2026-08-12, rather than at an unnamed reading.
-Nine rows moved during Phase 0.5 on the strength of that retrieval. **Not one row about
-broadcast, revert, transport failure or reconciliation moved,** because documentation cannot
-settle those and no KeeperHub call has yet been made from this repository.
+Two things happened to this table in Phase 0.5. First a source lock gave every `DOCUMENTED` row
+a page in `docs/keeperhub/SOURCE_SNAPSHOT.md`, retrieved 2026-08-12. Then the seam probe ran
+live against KeeperHub and Base Sepolia, and the rows below moved on measurement.
+
+A `VERIFIED` row here now means a RESURV test in this repository produced it and the evidence is
+committed under `docs/phase-logs/evidence/phase-00-5/`. Every one of them is additionally
+asserted by `packages/seam-probe/test/offline/measured-semantics.test.ts`, which reads that JSON
+in `pnpm gate`, so a claim cannot drift away from its own evidence without failing a test.
 
 | Claim | Status | Evidence | Last checked | Owner |
 |---|---|---|---|---|
 | Direct Execution supports simulation and idempotency | DOCUMENTED | Snapshot S2 | 2026-08-12 | Engineering |
 | Idempotency replay window is 24 hours | DOCUMENTED | Snapshot S2, quoted | 2026-08-12 | Engineering |
-| A replayed response carries `idempotentReplay: true` | DOCUMENTED | Snapshot S2, quoted. New to this repository; `P06` looks for it | 2026-08-12 | Engineering |
+| A replayed response carries `idempotentReplay: true` | VERIFIED | `P06` and `P11`. See the tri-state row below: the field's **absence** is equally informative | 2026-08-12 | Engineering |
 | Failed marketplace workflow calls are not charged | DOCUMENTED | Official Marketplace docs. Not re-retrieved in Phase 0.5; marketplace is off the critical path | 2026-08-04 | Tim |
-| There is no list-executions endpoint **for direct execution** | DOCUMENTED | Snapshot S2 lists only `GET /api/execute/{id}/status`. Workflows do have one (S4), so ADR-004's premise needs the qualifier. Unverified against a live 404; `P11` asks | 2026-08-12 | Engineering |
-| Base Sepolia is enabled for our organization | MEASURED_EXTERNAL | Live `GET /api/chains`: chainId 84532, `isEnabled: true`. No artifact committed here | 2026-08-10 | Engineering |
-| Base Sepolia does **not** use a private mempool | REFUTED (as a benefit) | Live `GET /api/chains`: `usePrivateMempoolRpc: false` on 84532. Snapshot S5 adds that the field "describes a chain capability, not the route used by a specific transaction", so even a true value would not establish private routing | 2026-08-12 | Engineering |
-| Gas is sponsored on Base Sepolia for this org | MEASURED_EXTERNAL | Org wallet held 0 ETH, transaction landed, `sponsored: true`. No artifact committed here | 2026-08-11 | Engineering |
+| There is no list-executions endpoint **for direct execution** | VERIFIED | `P11`: `GET /api/execute` and `GET /api/executions` both 404 `not_found`. Workflows do have one (Snapshot S4), so ADR-004's premise needs that qualifier | 2026-08-12 | Engineering |
+| Base Sepolia is enabled for our organization | VERIFIED | `P00`: live `GET /api/chains`, chainId 84532, `isEnabled: true`, committed | 2026-08-12 | Engineering |
+| Base Sepolia does **not** use a private mempool | REFUTED (as a benefit) | `P00`: `usePrivateMempoolRpc: false` on 84532, committed. Snapshot S5 adds that the field "describes a chain capability, not the route used by a specific transaction", so even a true value would not establish private routing | 2026-08-12 | Engineering |
+| Gas is sponsored on Base Sepolia for this org | VERIFIED | `sponsored: true` on every execution that reached the chain, with a 0-ETH org wallet. Observed, never promised: `P09` and `P14` show the same organization getting `sponsored: false` when estimation reverts | 2026-08-12 | Engineering |
 | Gas sponsorship requires a direct wallet sender, not a Safe, and a public mempool | DOCUMENTED | Snapshot S8, quoted | 2026-08-12 | Engineering |
 | Testnet gas sponsorship does not consume the monthly credit allowance | DOCUMENTED | Snapshot S8: "Mainnet usage counts; testnet usage is free" | 2026-08-12 | Engineering |
-| `msg.sender` at the target equals the org wallet under `sponsored: true` | MEASURED_EXTERNAL | Decoded event sender `0xfd35…834c` while `receipt.from` was a relayer and `receipt.to` a router. No artifact committed here. Snapshot S8 documents the mechanism; it has still not been measured against a RESURV contract | 2026-08-12 | Engineering |
-| `/contract-call` 202 carries no `transactionHash` | MEASURED_EXTERNAL | Live 202 body was `{executionId, status:"completed"}` only. Snapshot S2's contract-call write example agrees; its transfer example on the same page shows a hash, so the docs do not state it as a rule | 2026-08-12 | Engineering |
-| `unconfirmed` is a real, non-terminal status | ASSUMED | **Downgraded from DOCUMENTED (conflicting).** The cited first-verified-transaction guide could not be located on 2026-08-12; the word is absent from S2, S4, S7 and S10. `status.ts` needs no change: an unrecognized status already normalizes to UNKNOWN and non-terminal | 2026-08-12 | Engineering |
+| `msg.sender` at the target equals the org wallet under `sponsored: true` | VERIFIED | Every execution that reached the chain: decoded event sender `0xfd35ae935de7be93ffd585d6627268d833ed834c` while `receipt.from` was the relayer `0xDcF4…9613` and `receipt.to` the router `0x5aF5…f07D`. Access control must key on the org wallet and verification must decode the log, never read `receipt.from`. Still not measured against a **RESURV** contract, which is Phase 1 | 2026-08-12 | Engineering |
+| `/contract-call` 202 carries no `transactionHash` | VERIFIED | `P05`: the 202 body keys are exactly `executionId` and `status`. The hash appears only on the status endpoint | 2026-08-12 | Engineering |
+| **HTTP 202 does not mean the attempt was broadcast** | VERIFIED | `P09` and `P14` twice: HTTP 202 carrying `status: "failed"`, `transactionHash: null`, `receipts: []`, and zero onchain effect. The body's `status` is the outcome; the status code is not. This falsified the previous lifecycle's `ACCEPTED` entry condition. ADR-013 | 2026-08-12 | Engineering |
+| **A call whose gas estimation reverts is never broadcast** | VERIFIED (this configuration) | `P09`, `P14` twice: three refusals, zero chain effects, `sponsored: false`, and an error naming a balance shortfall rather than the revert. Controlled comparison in the same run: the same wallet at the same zero balance executes the valid call `sponsored: true`. Scope: one organization, one chain, an unfunded wallet | 2026-08-12 | Engineering |
+| `gasLimitMultiplier` below 1.0 is accepted and does not reduce the gas limit | VERIFIED | `P10` sent `"0.951"` and landed with a gas limit 0.08% below the same call with no multiplier, where the multiplier predicts 4.9%. Compared as a ratio, not an equality: two runs of the identical call differ by a few dozen gas | 2026-08-12 | Engineering |
+| The sponsored route costs about 22,000 gas above a direct call | VERIFIED | About 45,850 gas used per execution against a 23,929 direct estimate for the same call. Approximate because it varies by a few dozen gas between otherwise identical calls | 2026-08-12 | Engineering |
+| `unconfirmed` is a real, non-terminal status | ASSUMED | **Downgraded from DOCUMENTED (conflicting).** The cited first-verified-transaction guide could not be located on 2026-08-12; the word is absent from S2, S4, S7 and S10, and the live probe never saw it either. `status.ts` needs no change: an unrecognized status already normalizes to UNKNOWN and non-terminal | 2026-08-12 | Engineering |
 | A would-revert simulation answers HTTP 400 with `wouldRevert` in the body | DOCUMENTED | Snapshot S2, with the full example body | 2026-08-12 | Engineering |
-| Simulation broadcasts nothing and creates no execution row | DOCUMENTED | Snapshot S2: "No funds reserved, no transactions signed or broadcast" | 2026-08-12 | Engineering |
-| Simulation can pass while the payer holds zero balance | MEASURED_EXTERNAL | `simulate: true` returned `wouldRevert: false` with a 0-ETH sender. No artifact committed here | 2026-08-11 | Engineering |
-| An execution settles `completed` only when all its receipts verify | DOCUMENTED | Snapshot S2, quoted. Load-bearing for reconciliation and unmeasured | 2026-08-12 | Engineering |
-| `gasUsedWei` carries gas units, not wei | MEASURED_EXTERNAL | Byte-identical to `receipts[0].gasUsed`. No artifact committed here | 2026-08-11 | Engineering |
-| An organization daily spending cap answers HTTP 403 `Daily spending cap exceeded` | DOCUMENTED | Snapshot S2. New failure branch; `docs/THREAT_MODEL.md` T16 | 2026-08-12 | Engineering |
-| **A reverted broadcast is distinguishable from a transport failure** | ASSUMED | **Still unmeasured.** Phase 0.5 built the experiment that settles it (`P09`, `P10`, `P11` in `packages/seam-probe`) and could not run it: no credential exists in this repository. See `docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md` section 2 | 2026-08-12 | Engineering |
-| Whether KeeperHub pre-simulates a `simulate: false` request and refuses a would-revert broadcast | ASSUMED | Not stated on any page retrieved; confirmed silent on 2026-08-12. `P09` and `P10` settle it, and the answer decides the Phase 0.5 gate | 2026-08-12 | Engineering |
-| Whether replaying a key after a lost response returns the original execution | ASSUMED | The documented replay window says a response is replayed; it says nothing about a request whose response was never received. `P11` | 2026-08-12 | Engineering |
-| Whether `gasLimitMultiplier` below 1.0 is honored or clamped | ASSUMED | Undocumented. `P10` depends on it and records the answer either way | 2026-08-12 | Engineering |
+| Simulation can pass while the payer holds zero balance | VERIFIED | `P03`: `simulate: true` returned `wouldRevert: false`, `from` the 0-ETH org wallet, `gasEstimate: 23917`, zero chain effects | 2026-08-12 | Engineering |
+| Simulation broadcasts nothing and returns no `executionId` | VERIFIED | `P03` and `P04`: zero chain effects for both challenges, and no `executionId` in either body | 2026-08-12 | Engineering |
+| An execution settles `completed` only when all its receipts verify | VERIFIED (six of six) | Every `completed` execution carried `receipts[0].verified: true` with `receiptStatus: "success"`, and every one was confirmed at status `0x1` by two independent origins. Six observations is not a proof of the rule; it is six agreements with it | 2026-08-12 | Engineering |
+| `gasUsedWei` carries gas units, not wei | VERIFIED | Byte-identical to `receipts[0].gasUsed` within every status response, and five orders of magnitude too small to be wei | 2026-08-12 | Engineering |
+| An organization daily spending cap answers HTTP 403 `Daily spending cap exceeded` | DOCUMENTED | Snapshot S2. Never hit in the probe. `docs/THREAT_MODEL.md` T16 | 2026-08-12 | Engineering |
+| **A reverted broadcast is distinguishable from a transport failure** | UNRESOLVED, for a measured reason | **The experiment ran and could not reach the state.** On this configuration a reverting call never becomes a broadcast: KeeperHub refuses it (`P09`, `P14`) and `gasLimitMultiplier` is ignored (`P10`). The residual is real, because the refusal came with `sponsored: false` and a balance error, so a **funded** org wallet may reach the chain and revert. RESURV implements `REVERTED` anyway. Nothing may be claimed about how a reverted broadcast presents | 2026-08-12 | Engineering |
+| KeeperHub pre-simulates a `simulate: false` request and refuses a would-revert broadcast | VERIFIED (this configuration) | Three of three. See the row above for the scope limit | 2026-08-12 | Engineering |
+| Replaying a key after a lost response resolves the attempt | VERIFIED | `P11`, `P13`, `P15`. 202 with the `executionId`, or 409 `idempotency_in_progress` with `retryable: true` while it runs. Every case ended with exactly one onchain effect | 2026-08-12 | Engineering |
+| `idempotentReplay: true` marks a key that a previous request already committed, and its absence marks the committing request | VERIFIED | Four responses across two runs, both branches: `P06` and `P11` carry the flag, `P05` and `P13` do not, and the execution timestamps agree with that reading in each case. `readIdempotentReplay` returns a tri-state because absence is evidence | 2026-08-12 | Engineering |
+| A 409 `idempotency_conflict` names the execution the first request created, in `originalExecutionId`, **when one exists** | VERIFIED, with the qualifier | `P07` and `P15`, documented nowhere. In one run `P15` recovered a lost attempt through it; in another the field was absent because the aborted request had registered the key without creating an execution. **Key registration and execution creation are separate events**, so this is a bonus route and never the one to depend on. The conflicting body executed nothing in either case | 2026-08-12 | Engineering |
+| Transport idempotency does **not** bound economic effects per action | VERIFIED | `P08`: a new key for the same economic action executed it a second time, two effects for one challenge. This is why the onchain attempt id exists | 2026-08-12 | Engineering |
+| A lost response is genuinely ambiguous from the client's side | VERIFIED | The identical abort at ~253 ms committed in some runs and not in others. In the one case with both timestamps, the execution was created at +264 ms and the client gave up at +255 ms: nine milliseconds decided whether an economic action happened | 2026-08-12 | Engineering |
+| `pending` or `running` is observable on a direct execution | REFUTED for the happy path | The POST is synchronous and the first status poll already returns terminal with `X-Poll-Interval-Hint: 0`. The only in-flight signal observed is 409 `idempotency_in_progress` on a replay | 2026-08-12 | Engineering |
 
 ### Seam behavior encoded in `@resurv/keeperhub-client`
 
@@ -65,16 +76,16 @@ vendor's own documentation, and none has been reproduced live from this reposito
 
 | Claim | Status | Evidence | Last checked | Owner |
 |---|---|---|---|---|
-| A 401 envelope is `{error}` alone, with no detail and no `request_id` | ASSUMED, **contradicted by official documentation** | Snapshot S1 and S3 both state that every error carries `request_id`. `errors.ts` encodes the opposite from the Phase 0 author's reading. `P02` settles which is true on the wire | 2026-08-12 | Engineering |
-| The documented error envelope is `{error, detail, request_id}` with optional `hint` and `docs` | DOCUMENTED | Snapshot S3, quoted | 2026-08-12 | Engineering |
-| Three different error envelope shapes appear in official examples | DOCUMENTED (conflicting) | Snapshot section 2: `{error, detail, request_id}`, `{error, field, details}`, `{error, message, required_scope, granted_scope}`. `errors.ts` parses the first only, which is a known gap | 2026-08-12 | Engineering |
-| `request_id` is present on responses and worth surfacing to support | DOCUMENTED | Snapshot S1, S3 | 2026-08-12 | Engineering |
-| The receipt status set is `success`, `reverted`, `safe_inner_failure`, `not_found`, `timeout` | DOCUMENTED | Snapshot S2. The Phase 0 remediation recorded that `safe_inner_failure` "appears nowhere outside our own source"; that was wrong, it is on the current Direct Execution page | 2026-08-12 | Engineering |
-| `reverted` and `safe_inner_failure` mean the attempt failed onchain | ASSUMED | The mapping the probe exists to test. `safe_inner_failure` additionally implies an outer transaction that *succeeded*, which is `docs/THREAT_MODEL.md` T15 | 2026-08-12 | Engineering |
-| `X-Poll-Interval-Hint` carries seconds, and `0` means terminal | DOCUMENTED | Snapshot S2, quoted: "A value of `0` means the execution has reached a terminal state (`completed` or `failed`) and you can stop polling" | 2026-08-12 | Engineering |
-| The rate limit is 60 requests per minute per key | DOCUMENTED (conflicting) | Snapshot S2 says 60 per key for Direct Execution; S1 says 100 per minute for authenticated users. `constants.ts` encodes 60 and stays there, because the lower of two documented numbers is the safe one | 2026-08-12 | Engineering |
-| `X-RateLimit-*` on every response and `Retry-After` on 429 only | DOCUMENTED | Snapshot S3. Also: anti-abuse endpoints omit `X-RateLimit-Remaining`, so a client must not require it | 2026-08-12 | Engineering |
-| A 409 carries `idempotency_conflict` for a differing body and `idempotency_in_progress` for a running attempt | DOCUMENTED | Snapshot S3, with `retryable: false` and `retryable: true` respectively | 2026-08-12 | Engineering |
+| A 401 envelope is `{error}` alone, with no detail and no `request_id` | VERIFIED | `P02`, both the wrong-key and no-key branches: `{"error":"Unauthorized"}` and nothing else. `P12` shows the same bare shape on a 404 for an unknown execution id. **The official documentation is wrong**: `/api` and `/api/errors` both state that every error carries `request_id` | 2026-08-12 | Engineering |
+| Three error envelope shapes exist, and `error` means different things in two of them | VERIFIED | `{error}` alone; `{error: code, detail: sentence, request_id}` on an unrouted 404; `{error: sentence, code, retryable, originalExecutionId?}` on both 409s. `errors.ts` now handles all three: `code ?? error` picks the machine value everywhere, `detail ?? error` the human one | 2026-08-12 | Engineering |
+| `request_id` is present on **some** responses and worth surfacing to support | VERIFIED | Present on the unrouted 404, absent on the 401 and on the unknown-execution 404. A client must treat it as optional | 2026-08-12 | Engineering |
+| The receipt status set is `success`, `reverted`, `safe_inner_failure`, `not_found`, `timeout` | DOCUMENTED | Snapshot S2. Only `success` was ever observed. The Phase 0 remediation recorded that `safe_inner_failure` "appears nowhere outside our own source"; that was wrong | 2026-08-12 | Engineering |
+| `reverted` and `safe_inner_failure` mean the attempt failed onchain | ASSUMED | Never observed. What Phase 0.5 did establish is where to look: `result.executedCall.reverted` and `receipts[].receiptStatus`, not the outer receipt status. `docs/THREAT_MODEL.md` T15 | 2026-08-12 | Engineering |
+| `X-Poll-Interval-Hint` carries seconds, and `0` means terminal | VERIFIED | Observed as `0` on the first status poll of every terminal execution, which is consistent with the documented meaning. A non-zero value was never seen, so the seconds half stays `DOCUMENTED` | 2026-08-12 | Engineering |
+| The rate limit is 60 requests per minute per key | VERIFIED | `x-ratelimit-limit: 60` on every Direct Execution response, with `x-ratelimit-remaining` counting down. Settles the conflict: S2 said 60, S1 said 100 | 2026-08-12 | Engineering |
+| `X-RateLimit-*` on every response and `Retry-After` on 429 only | DOCUMENTED | Snapshot S3. The rate limit was never hit, so `Retry-After` was never seen | 2026-08-12 | Engineering |
+| A 409 carries `idempotency_conflict` for a differing body and `idempotency_in_progress` for a running attempt | VERIFIED | `P07` and `P11`, with `retryable: false` and `retryable: true` respectively, and `code` carrying the machine value | 2026-08-12 | Engineering |
+| There is no list-executions endpoint for direct execution | VERIFIED | `P11`: `GET /api/execute` and `GET /api/executions` both 404 `not_found`. ADR-004's load-bearing premise, previously an absence in documentation, is now a live 404 | 2026-08-12 | Engineering |
 
 ## RESURV mechanism
 
@@ -88,7 +99,8 @@ vendor's own documentation, and none has been reproduced live from this reposito
 | An atomic attempt reverts the action when the outcome is false | ASSUMED | Requires the covenant contract, a Foundry invariant, and a Base Sepolia proof | Pending | Contracts |
 | Successful action, verifier and fee release share one transaction | ASSUMED | Requires a linked transaction and its events | Pending | Contracts |
 | A duplicate trigger cannot produce a second payment | ASSUMED | Requires contract and live replay tests | Pending | Contracts |
-| A crash between send and response cannot double-submit | ASSUMED | Idempotency key derivation and canonical body hashing exist and are unit-tested; the kill-the-network replay has not been run | Pending | Engineering |
+| A crash between send and response cannot double-submit | VERIFIED (per idempotency key) | Three lost-response scenarios, `P11`, `P13` and `P15`, run four times, each ending with **at most one** onchain effect: one where the lost request had committed, none where it had not, never two. Scope, and it matters: this is one key within the 24-hour window. It says nothing about a second *action* under a second key, which `P08` shows executes again | 2026-08-12 | Engineering |
+| The canonical attempt lifecycle is derived from measurement | VERIFIED (as a derivation) | `docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md` sections 8 and 9, ADR-013. Every state's entry condition cites a scenario. No contract or orchestrator implements it yet, so this is a specification claim, not a behavior claim | 2026-08-12 | Engineering |
 
 ## Repository and tooling
 
@@ -131,9 +143,16 @@ review found three of them stated above their evidence.
   happened. The jobs are now capable of passing, which is a different statement.
 - Any claim that the covenant state machine is proven at the contract level. Every
   `VERIFIED (model only)` row above is about a pure library, not about a deployed covenant.
-- Any claim about what KeeperHub does when a broadcast transaction reverts, when a response is
-  lost, or when a key is replayed after a crash. Phase 0.5 built the experiment and could not
-  run it. Until it runs, the only honest statement is that the behavior is unmeasured.
+- Any claim about how a **reverted broadcast** presents. Phase 0.5 ran the experiment and could
+  not reach the state, because a reverting call never becomes a broadcast on this configuration.
+  What may be said: KeeperHub refused to broadcast it, three times out of three, with an
+  unfunded wallet.
+- Any claim that KeeperHub gives exactly-once execution. It bounds economic effects per
+  idempotency key within 24 hours. A new key for the same action executed it again, measured.
+- Any claim that gas sponsorship is reliable. The same organization got `sponsored: true` on six
+  executions and `sponsored: false` on three in the same run, and the deciding factor was
+  whether the call estimated cleanly.
+- Any claim that an HTTP 202 means an attempt was broadcast. Measured false.
 - Any claim that a transaction receipt with status `0x1` proves a RESURV attempt succeeded.
   `safe_inner_failure` is a documented receipt status, so an outer transaction can succeed while
   the inner call failed. Confirmation requires the expected event, not the receipt alone.

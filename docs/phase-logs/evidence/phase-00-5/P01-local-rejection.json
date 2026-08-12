@@ -1,0 +1,29 @@
+{
+  "semanticAttemptId": null,
+  "challenge": null,
+  "idempotencyKey": null,
+  "requestBodyHash": null,
+  "requestBody": {
+    "webhookKey": {
+      "valid": false,
+      "reason": "This is a webhook (user) key. The execution endpoints need an organization key starting with kh_."
+    },
+    "unprefixed": {
+      "valid": false,
+      "reason": "Organization API keys start with kh_."
+    },
+    "prefixOnly": {
+      "valid": false,
+      "reason": "Key is only a prefix."
+    },
+    "separatorRejected": "idempotency field functionArgs must not contain the \"|\" separator"
+  },
+  "executionId": null,
+  "statusTransitions": [],
+  "chain": null,
+  "onchainEffectCount": null,
+  "id": "P01-local-rejection",
+  "question": "which requests are refused locally, with zero network exposure",
+  "transport": [],
+  "observation": "client-side rejections, 0 HTTP requests: webhook key false, unprefixed false, prefix-only false, separator guard \"idempotency field functionArgs must not contain the \"|\" separator\""
+}

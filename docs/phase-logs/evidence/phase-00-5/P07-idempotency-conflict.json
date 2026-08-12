@@ -1,0 +1,62 @@
+{
+  "semanticAttemptId": "3b811414642a837d9de65b20974bbdf7307fbaf5b54e9be440fe9866fbafde34",
+  "challenge": "0x776177ec28edbf0ab3de823a103a525fc35454be6df69ac5e14064695522402e",
+  "idempotencyKey": "cd4a472da6d8f8d2fe0e6b40f3adb65f15770574f69e5a5e6c2bff91916d39c9",
+  "requestBodyHash": "sha256:07040f5ea17f82a4652bc456e8ef071944d1df6cb5afcc6c0d578612a4a46ef5",
+  "requestBody": {
+    "abi": "[{\"type\":\"function\",\"name\":\"ping\",\"inputs\":[{\"name\":\"challenge\",\"type\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"}]",
+    "chainId": 84532,
+    "contractAddress": "0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A",
+    "functionArgs": "[\"0x776177ec28edbf0ab3de823a103a525fc35454be6df69ac5e14064695522402e\"]",
+    "functionName": "ping"
+  },
+  "executionId": null,
+  "statusTransitions": [],
+  "chain": null,
+  "onchainEffectCount": 0,
+  "id": "P07-idempotency-conflict",
+  "question": "what happens when a key is reused with a different body",
+  "transport": [
+    {
+      "method": "POST",
+      "path": "/api/execute/contract-call",
+      "sentAt": "2026-08-12T16:18:37.132Z",
+      "elapsedMs": 443,
+      "requestBodyHash": "sha256:07040f5ea17f82a4652bc456e8ef071944d1df6cb5afcc6c0d578612a4a46ef5",
+      "idempotencyKey": "cd4a472da6d8f8d2fe0e6b40f3adb65f15770574f69e5a5e6c2bff91916d39c9",
+      "httpStatus": 409,
+      "responseHeaders": {
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a2a0cc073ec12fc1-AMS",
+        "connection": "keep-alive",
+        "content-type": "application/json",
+        "date": "Wed, 12 Aug 2026 16:18:37 GMT",
+        "expect-ct": "max-age=86400, enforce",
+        "kh-minimum-cli-version": "0.11.1",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "permissions-policy": "geolocation=(), microphone=(), camera=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=HhsBBUJpWWxM0qSUn8TMxMXQsBcsjPiOGmekVCSPH0OEJxAqEsIF4VHpmlNnyN%2BbbqCL%2FVfF6inYv8enRZL53wIoHwJE2qf5cxYxFWNjus3CDLof6D48uI0orJy9xOcuzTfp\"}]}",
+        "server": "cloudflare",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-ratelimit-limit": "60",
+        "x-ratelimit-remaining": "52",
+        "x-ratelimit-reset": "1786551564",
+        "x-xss-protection": "1; mode=block"
+      },
+      "responseBody": {
+        "error": "Idempotency-Key was reused with a different request payload. Use a new key for a different request.",
+        "code": "idempotency_conflict",
+        "originalExecutionId": "eu71kzol9c0f33xk5xpo6",
+        "retryable": false
+      },
+      "responseText": "{\"error\":\"Idempotency-Key was reused with a different request payload. Use a new key for a different request.\",\"code\":\"idempotency_conflict\",\"originalExecutionId\":\"eu71kzol9c0f33xk5xpo6\",\"retryable\":false}",
+      "transportError": null
+    }
+  ],
+  "observation": "HTTP 409 in 443ms; error=Idempotency-Key was reused with a different request payload. Use a new key for a different request.; retryable=false"
+}

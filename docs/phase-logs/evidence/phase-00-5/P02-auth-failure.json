@@ -1,0 +1,91 @@
+{
+  "semanticAttemptId": null,
+  "challenge": null,
+  "idempotencyKey": null,
+  "requestBodyHash": "sha256:396051748847f9f27d703bb6b1c38de3f882a76026ffd79ef7be23132892048f",
+  "requestBody": {
+    "abi": "[{\"type\":\"function\",\"name\":\"ping\",\"inputs\":[{\"name\":\"challenge\",\"type\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"}]",
+    "chainId": 84532,
+    "contractAddress": "0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A",
+    "functionArgs": "[\"0xcd58e75f31cff17053c6066638eddfe9c756bcf8e57289ed388c800680dabe60\"]",
+    "functionName": "ping",
+    "simulate": true
+  },
+  "executionId": null,
+  "statusTransitions": [],
+  "chain": null,
+  "onchainEffectCount": null,
+  "id": "P02-auth-failure",
+  "question": "what does an authentication failure look like, and does it carry a request id",
+  "transport": [
+    {
+      "method": "POST",
+      "path": "/api/execute/contract-call",
+      "sentAt": "2026-08-12T16:18:24.605Z",
+      "elapsedMs": 293,
+      "requestBodyHash": "sha256:396051748847f9f27d703bb6b1c38de3f882a76026ffd79ef7be23132892048f",
+      "idempotencyKey": null,
+      "httpStatus": 401,
+      "responseHeaders": {
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a2a0cbb8fef72fc1-AMS",
+        "connection": "keep-alive",
+        "content-type": "application/json",
+        "date": "Wed, 12 Aug 2026 16:18:24 GMT",
+        "expect-ct": "max-age=86400, enforce",
+        "kh-minimum-cli-version": "0.11.1",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "permissions-policy": "geolocation=(), microphone=(), camera=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=cu1VhAGrconLUltxs4o6LnnLxhpb4Z0eQ1Tc0j2ySOJh5a1c%2FLcD2x9kTCzY%2FXsr%2BZ9A4hXv4I2dPAUfPKStkzSojgyn52ouwWyxm6RVWKcLzaWzZA2nG%2BQHyfDzIl7TGAjA\"}]}",
+        "server": "cloudflare",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-xss-protection": "1; mode=block"
+      },
+      "responseBody": {
+        "error": "Unauthorized"
+      },
+      "responseText": "{\"error\":\"Unauthorized\"}",
+      "transportError": null
+    },
+    {
+      "method": "POST",
+      "path": "/api/execute/contract-call",
+      "sentAt": "2026-08-12T16:18:25.901Z",
+      "elapsedMs": 284,
+      "requestBodyHash": "sha256:396051748847f9f27d703bb6b1c38de3f882a76026ffd79ef7be23132892048f",
+      "idempotencyKey": null,
+      "httpStatus": 401,
+      "responseHeaders": {
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a2a0cbc108662fc1-AMS",
+        "connection": "keep-alive",
+        "content-type": "application/json",
+        "date": "Wed, 12 Aug 2026 16:18:26 GMT",
+        "expect-ct": "max-age=86400, enforce",
+        "kh-minimum-cli-version": "0.11.1",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "permissions-policy": "geolocation=(), microphone=(), camera=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=28rwPqz1s9FBfKRN1gGR6AbdLof66iXrPURyowxfyDebrdH4D%2BUH82%2BRCY%2FY1XoYpFni%2B1Tgh4JeQvYpBQusqixl20UgrT2tsSIPqmPRIjBWCi6oxgKM5J5za0TBtWvwxLfG\"}]}",
+        "server": "cloudflare",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-xss-protection": "1; mode=block"
+      },
+      "responseBody": {
+        "error": "Unauthorized"
+      },
+      "responseText": "{\"error\":\"Unauthorized\"}",
+      "transportError": null
+    }
+  ],
+  "observation": "wrong key HTTP 401 in 293ms; missing key HTTP 401 in 284ms"
+}

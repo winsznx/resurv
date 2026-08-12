@@ -1,0 +1,69 @@
+{
+  "semanticAttemptId": "c4f433894b6a764cdfac44769342b2759cb861a2095751336eeaa9ac73d7cf9b",
+  "challenge": "0x6c41eb5e65cfbf56b8c5a924f6c6aa8c6a3f496d7d718803214761da9ede5d96",
+  "idempotencyKey": null,
+  "requestBodyHash": "sha256:b102f604a8780d22fdd0d38f8dde1e0c196600719d7c84401ae09d742ba456dd",
+  "requestBody": {
+    "abi": "[{\"type\":\"function\",\"name\":\"resurvSeamAbsentFunction\",\"inputs\":[{\"name\":\"challenge\",\"type\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"}]",
+    "chainId": 84532,
+    "contractAddress": "0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A",
+    "functionArgs": "[\"0x6c41eb5e65cfbf56b8c5a924f6c6aa8c6a3f496d7d718803214761da9ede5d96\"]",
+    "functionName": "resurvSeamAbsentFunction",
+    "simulate": true
+  },
+  "executionId": null,
+  "statusTransitions": [],
+  "chain": null,
+  "onchainEffectCount": null,
+  "id": "P04-simulation-rejected",
+  "question": "is a would-revert simulation an answer or an error, and is anything broadcast",
+  "transport": [
+    {
+      "method": "POST",
+      "path": "/api/execute/contract-call",
+      "sentAt": "2026-08-12T16:18:28.106Z",
+      "elapsedMs": 351,
+      "requestBodyHash": "sha256:b102f604a8780d22fdd0d38f8dde1e0c196600719d7c84401ae09d742ba456dd",
+      "idempotencyKey": null,
+      "httpStatus": 400,
+      "responseHeaders": {
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a2a0cbcea9592fc1-AMS",
+        "connection": "keep-alive",
+        "content-type": "application/json",
+        "date": "Wed, 12 Aug 2026 16:18:28 GMT",
+        "expect-ct": "max-age=86400, enforce",
+        "kh-minimum-cli-version": "0.11.1",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "permissions-policy": "geolocation=(), microphone=(), camera=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=pyJlelA9QkYefb%2FIjYLYdRNvrvTGqr7gkavMu6dLoS7yPE03Vah2mMNYAksYN2LwVYMK7ExjOI88wK8r0QgyZb8ygwT8zpCCSesgR92smcwbscKc8k%2FrJcMx6CRgENxVthgx\"}]}",
+        "server": "cloudflare",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-ratelimit-limit": "60",
+        "x-ratelimit-remaining": "59",
+        "x-ratelimit-reset": "1786551569",
+        "x-xss-protection": "1; mode=block"
+      },
+      "responseBody": {
+        "success": false,
+        "status": "simulated",
+        "from": "0xfd35ae935de7be93ffd585d6627268d833ed834c",
+        "to": "0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A",
+        "value": "0",
+        "failureKind": "revert",
+        "wouldRevert": true,
+        "revertReason": "Simulation reverted: missing revert data (action=\"call\", data=null, reason=null, transaction={ \"data\": \"0xaabd1a516c41eb5e65cfbf56b8c5a924f6c6aa8c6a3f496d7d718803214761da9ede5d96\", \"from\": \"0xfd35ae935dE7Be93ffd585D6627268D833ed834c\", \"to\": \"0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A\" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.16.0)",
+        "error": "Simulation reverted: missing revert data (action=\"call\", data=null, reason=null, transaction={ \"data\": \"0xaabd1a516c41eb5e65cfbf56b8c5a924f6c6aa8c6a3f496d7d718803214761da9ede5d96\", \"from\": \"0xfd35ae935dE7Be93ffd585D6627268D833ed834c\", \"to\": \"0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A\" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.16.0)",
+        "originalError": "missing revert data (action=\"call\", data=null, reason=null, transaction={ \"data\": \"0xaabd1a516c41eb5e65cfbf56b8c5a924f6c6aa8c6a3f496d7d718803214761da9ede5d96\", \"from\": \"0xfd35ae935dE7Be93ffd585D6627268D833ed834c\", \"to\": \"0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A\" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.16.0)"
+      },
+      "responseText": "{\"success\":false,\"status\":\"simulated\",\"from\":\"0xfd35ae935de7be93ffd585d6627268d833ed834c\",\"to\":\"0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A\",\"value\":\"0\",\"failureKind\":\"revert\",\"wouldRevert\":true,\"revertReason\":\"Simulation reverted: missing revert data (action=\\\"call\\\", data=null, reason=null, transaction={ \\\"data\\\": \\\"0xaabd1a516c41eb5e65cfbf56b8c5a924f6c6aa8c6a3f496d7d718803214761da9ede5d96\\\", \\\"from\\\": \\\"0xfd35ae935dE7Be93ffd585D6627268D833ed834c\\\", \\\"to\\\": \\\"0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A\\\" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.16.0)\",\"error\":\"Simulation reverted: missing revert data (action=\\\"call\\\", data=null, reason=null, transaction={ \\\"data\\\": \\\"0xaabd1a516c41eb5e65cfbf56b8c5a924f6c6aa8c6a3f496d7d718803214761da9ede5d96\\\", \\\"from\\\": \\\"0xfd35ae935dE7Be93ffd585D6627268D833ed834c\\\", \\\"to\\\": \\\"0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A\\\" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.16.0)\",\"originalError\":\"missing revert data (action=\\\"call\\\", data=null, reason=null, transaction={ \\\"data\\\": \\\"0xaabd1a516c41eb5e65cfbf56b8c5a924f6c6aa8c6a3f496d7d718803214761da9ede5d96\\\", \\\"from\\\": \\\"0xfd35ae935dE7Be93ffd585D6627268D833ed834c\\\", \\\"to\\\": \\\"0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A\\\" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.16.0)\"}",
+      "transportError": null
+    }
+  ],
+  "observation": "HTTP 400 in 351ms; wouldRevert=true; revertReason=Simulation reverted: missing revert data (action=\"call\", data=null, reason=null, transaction={ \"data\": \"0xaabd1a516c41eb5e65cfbf56b8c5a924f6c6aa8c6a3f496d7d718803214761da9ede5d96\", \"from\": \"0xfd35ae935dE7Be93ffd585D6627268D833ed834c\", \"to\": \"0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A\" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.16.0); executionId=undefined"
+}

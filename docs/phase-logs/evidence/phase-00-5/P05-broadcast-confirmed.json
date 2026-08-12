@@ -1,0 +1,146 @@
+{
+  "semanticAttemptId": "a4ae4fdf4d809ba6a79491346bc8a3b8a103b60a9eaf1a43a52f4a5e6418741e",
+  "challenge": "0xc8c29a59f303f68d52768f7a2426c83e526f1a883ad83a4380a3640eeac1b809",
+  "idempotencyKey": "cd4a472da6d8f8d2fe0e6b40f3adb65f15770574f69e5a5e6c2bff91916d39c9",
+  "requestBodyHash": "sha256:84d8e50b9d4aab19c57d8c08356a15afa1aa30f1d39f9869146c771db2f1a2a9",
+  "requestBody": {
+    "abi": "[{\"type\":\"function\",\"name\":\"ping\",\"inputs\":[{\"name\":\"challenge\",\"type\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"}]",
+    "chainId": 84532,
+    "contractAddress": "0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A",
+    "functionArgs": "[\"0xc8c29a59f303f68d52768f7a2426c83e526f1a883ad83a4380a3640eeac1b809\"]",
+    "functionName": "ping"
+  },
+  "executionId": "eu71kzol9c0f33xk5xpo6",
+  "statusTransitions": [
+    {
+      "atMs": 617,
+      "httpStatus": 200,
+      "status": "completed",
+      "transactionHash": "0xb7159cbb942caadc2e19d973938bcb2e32757375a2a4b9c7841f50f5a780ba17",
+      "receiptStatus": "success",
+      "pollIntervalHint": "0",
+      "body": {
+        "executionId": "eu71kzol9c0f33xk5xpo6",
+        "status": "completed",
+        "type": "contract-call",
+        "transactionHash": "0xb7159cbb942caadc2e19d973938bcb2e32757375a2a4b9c7841f50f5a780ba17",
+        "transactionLink": "https://sepolia.basescan.org/tx/0xb7159cbb942caadc2e19d973938bcb2e32757375a2a4b9c7841f50f5a780ba17",
+        "sponsored": true,
+        "receipts": [
+          {
+            "hash": "0xb7159cbb942caadc2e19d973938bcb2e32757375a2a4b9c7841f50f5a780ba17",
+            "chainId": 84532,
+            "gasUsed": "45877",
+            "verified": true,
+            "verifiedAt": "2026-08-12T16:18:34.755Z",
+            "blockNumber": 45391613,
+            "receiptStatus": "success"
+          }
+        ],
+        "result": {
+          "chainId": 84532,
+          "gasUsed": "45877",
+          "success": true,
+          "sponsored": true,
+          "executedCall": {
+            "args": {
+              "challenge": "0xc8c29a59f303f68d52768f7a2426c83e526f1a883ad83a4380a3640eeac1b809"
+            },
+            "reverted": false,
+            "sponsored": true,
+            "topLevelTo": "0x5af5194b4b0909eb978e3cf1e25333852277f07d",
+            "functionName": "ping",
+            "contractAddress": "0x2a6fc8182bf9928ef7517da980dc79e8107c555a",
+            "functionSignature": "ping(bytes32)"
+          },
+          "gasUsedUnits": "45877",
+          "transactionHash": "0xb7159cbb942caadc2e19d973938bcb2e32757375a2a4b9c7841f50f5a780ba17",
+          "transactionLink": "https://sepolia.basescan.org/tx/0xb7159cbb942caadc2e19d973938bcb2e32757375a2a4b9c7841f50f5a780ba17",
+          "effectiveGasPrice": "6000000"
+        },
+        "error": null,
+        "gasUsedWei": "45877",
+        "gasPriceWei": "6000000",
+        "estimatedCostUsd": null,
+        "retryCount": 0,
+        "network": "84532",
+        "createdAt": "2026-08-12T16:18:28.716Z",
+        "completedAt": "2026-08-12T16:18:34.823Z"
+      }
+    }
+  ],
+  "chain": {
+    "transactionHash": "0xb7159cbb942caadc2e19d973938bcb2e32757375a2a4b9c7841f50f5a780ba17",
+    "receiptStatusHex": "0x1",
+    "receiptVerdict": "success",
+    "blockNumber": 45391613,
+    "from": "0xdcf4bac4bd805948168ff63483bc493894a29613",
+    "to": "0x5af5194b4b0909eb978e3cf1e25333852277f07d",
+    "gasUsed": "0xb335",
+    "gasLimit": "0x16966",
+    "decodedSenderTopic": "0x000000000000000000000000fd35ae935de7be93ffd585d6627268d833ed834c",
+    "decodedChallengeTopic": "0xc8c29a59f303f68d52768f7a2426c83e526f1a883ad83a4380a3640eeac1b809",
+    "originsAgreed": true,
+    "originAnswers": [
+      {
+        "origin": "https://sepolia.base.org",
+        "ok": true,
+        "status": "0x1",
+        "blockNumber": "0x2b49efd",
+        "error": null
+      },
+      {
+        "origin": "https://base-sepolia-rpc.publicnode.com",
+        "ok": true,
+        "status": "0x1",
+        "blockNumber": "0x2b49efd",
+        "error": null
+      }
+    ],
+    "revertData": null
+  },
+  "onchainEffectCount": 1,
+  "id": "P05-broadcast-confirmed",
+  "question": "what does an accepted broadcast return, and does chain agree with KeeperHub",
+  "transport": [
+    {
+      "method": "POST",
+      "path": "/api/execute/contract-call",
+      "sentAt": "2026-08-12T16:18:28.459Z",
+      "elapsedMs": 6561,
+      "requestBodyHash": "sha256:84d8e50b9d4aab19c57d8c08356a15afa1aa30f1d39f9869146c771db2f1a2a9",
+      "idempotencyKey": "cd4a472da6d8f8d2fe0e6b40f3adb65f15770574f69e5a5e6c2bff91916d39c9",
+      "httpStatus": 202,
+      "responseHeaders": {
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a2a0cbd109532fc1-AMS",
+        "connection": "keep-alive",
+        "content-type": "application/json",
+        "date": "Wed, 12 Aug 2026 16:18:34 GMT",
+        "expect-ct": "max-age=86400, enforce",
+        "kh-minimum-cli-version": "0.11.1",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "permissions-policy": "geolocation=(), microphone=(), camera=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=oj4W6gx7GLrh5LOq83yzGVEg3fha2p0j9OcJZ0tQzd3euLX6Yk5cfCSCYRnvAMjKiQdbww4qWNv6H1yJV7mWxfPoo3fd4CYPLf%2Fo8IwC1vyBIBCBfRDvoii2hy2PJsAyA999\"}]}",
+        "server": "cloudflare",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-ratelimit-limit": "60",
+        "x-ratelimit-remaining": "58",
+        "x-ratelimit-reset": "1786551569",
+        "x-xss-protection": "1; mode=block"
+      },
+      "responseBody": {
+        "executionId": "eu71kzol9c0f33xk5xpo6",
+        "status": "completed"
+      },
+      "responseText": "{\"executionId\":\"eu71kzol9c0f33xk5xpo6\",\"status\":\"completed\"}",
+      "transportError": null
+    }
+  ],
+  "observation": "HTTP 202 in 6561ms; 202 body fields=executionId,status; final KeeperHub status=completed; receiptStatus=success; hash=0xb7159cbb942caadc2e19d973938bcb2e32757375a2a4b9c7841f50f5a780ba17; chain receipt=success at block 45391613; origins agreed=true; effects=1"
+}

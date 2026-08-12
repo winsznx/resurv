@@ -1,0 +1,89 @@
+{
+  "semanticAttemptId": "3a79514796a5ff294a422c8c95ae48546ebbfa5cafcca2e20237df3bd9c0a371",
+  "challenge": "0xa78c172ad4e73d3d9e61bb6a4dbb80e9b91322cf4c766ebb3b4814b6be750dd2",
+  "idempotencyKey": "7f1f67c87e10dfc36a853461c2e7e047a2637a7829155a200aebf1a3ba43a3a8",
+  "requestBodyHash": "sha256:9429d97945da2b892ae4f580a5dc8104b170fabeb52be186a4a6d18f8d6910fa",
+  "requestBody": {
+    "abi": "[{\"type\":\"function\",\"name\":\"ping\",\"inputs\":[{\"name\":\"challenge\",\"type\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"}]",
+    "chainId": 84532,
+    "contractAddress": "0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A",
+    "functionArgs": "[\"0xa78c172ad4e73d3d9e61bb6a4dbb80e9b91322cf4c766ebb3b4814b6be750dd2\"]",
+    "functionName": "ping"
+  },
+  "executionId": null,
+  "statusTransitions": [],
+  "chain": {
+    "transactionHash": null,
+    "receiptStatusHex": null,
+    "receiptVerdict": "absent",
+    "blockNumber": null,
+    "from": null,
+    "to": null,
+    "gasUsed": null,
+    "gasLimit": null,
+    "decodedSenderTopic": null,
+    "decodedChallengeTopic": null,
+    "originsAgreed": false,
+    "originAnswers": null,
+    "revertData": null
+  },
+  "onchainEffectCount": 0,
+  "id": "P15-conflict-recovery-channel",
+  "question": "does a 409 idempotency_conflict name the execution the lost request created, and does the conflicting body execute",
+  "transport": [
+    {
+      "method": "POST",
+      "path": "/api/execute/contract-call",
+      "sentAt": "2026-08-12T16:18:42.521Z",
+      "elapsedMs": 253,
+      "requestBodyHash": "sha256:9429d97945da2b892ae4f580a5dc8104b170fabeb52be186a4a6d18f8d6910fa",
+      "idempotencyKey": "7f1f67c87e10dfc36a853461c2e7e047a2637a7829155a200aebf1a3ba43a3a8",
+      "httpStatus": null,
+      "responseHeaders": {},
+      "responseBody": null,
+      "responseText": null,
+      "transportError": "Error: probe-abort"
+    },
+    {
+      "method": "POST",
+      "path": "/api/execute/contract-call",
+      "sentAt": "2026-08-12T16:18:54.776Z",
+      "elapsedMs": 640,
+      "requestBodyHash": "sha256:2e9e3f8fb7af97b06eac9dd9e6f200a7ee5c31a1a483bddf4d163360bedcba31",
+      "idempotencyKey": "7f1f67c87e10dfc36a853461c2e7e047a2637a7829155a200aebf1a3ba43a3a8",
+      "httpStatus": 409,
+      "responseHeaders": {
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a2a0cc777be82fc1-AMS",
+        "connection": "keep-alive",
+        "content-type": "application/json",
+        "date": "Wed, 12 Aug 2026 16:18:55 GMT",
+        "expect-ct": "max-age=86400, enforce",
+        "kh-minimum-cli-version": "0.11.1",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "permissions-policy": "geolocation=(), microphone=(), camera=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=I5HnfCE0XJeBtFqa2KzlzXQLQvbNpEOBkf1WnOroSvVXSNjn8eKJ2FmVHKemk8vRhYlW32tWD0yMiG%2BhGLdML%2BmEKcAvBEzV5u9I9%2B8ltMWwCs%2FpiF0LqGOaRht5y8svaxc8\"}]}",
+        "server": "cloudflare",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-ratelimit-limit": "60",
+        "x-ratelimit-remaining": "57",
+        "x-ratelimit-reset": "1786551569",
+        "x-xss-protection": "1; mode=block"
+      },
+      "responseBody": {
+        "error": "Idempotency-Key was reused with a different request payload. Use a new key for a different request.",
+        "code": "idempotency_conflict",
+        "originalExecutionId": null,
+        "retryable": false
+      },
+      "responseText": "{\"error\":\"Idempotency-Key was reused with a different request payload. Use a new key for a different request.\",\"code\":\"idempotency_conflict\",\"originalExecutionId\":null,\"retryable\":false}",
+      "transportError": null
+    }
+  ],
+  "observation": "abort no HTTP response (Error: probe-abort) after 253ms; conflict HTTP 409 in 640ms code=idempotency_conflict retryable=false originalExecutionId=undefined; recovered status=undefined hash=undefined; chain=absent; effects for the lost attempt=0; effects for the conflicting body=0"
+}

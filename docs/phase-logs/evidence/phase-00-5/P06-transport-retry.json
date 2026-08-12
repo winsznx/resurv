@@ -1,0 +1,61 @@
+{
+  "semanticAttemptId": "a4ae4fdf4d809ba6a79491346bc8a3b8a103b60a9eaf1a43a52f4a5e6418741e",
+  "challenge": "0xc8c29a59f303f68d52768f7a2426c83e526f1a883ad83a4380a3640eeac1b809",
+  "idempotencyKey": "cd4a472da6d8f8d2fe0e6b40f3adb65f15770574f69e5a5e6c2bff91916d39c9",
+  "requestBodyHash": "sha256:84d8e50b9d4aab19c57d8c08356a15afa1aa30f1d39f9869146c771db2f1a2a9",
+  "requestBody": {
+    "abi": "[{\"type\":\"function\",\"name\":\"ping\",\"inputs\":[{\"name\":\"challenge\",\"type\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"}]",
+    "chainId": 84532,
+    "contractAddress": "0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A",
+    "functionArgs": "[\"0xc8c29a59f303f68d52768f7a2426c83e526f1a883ad83a4380a3640eeac1b809\"]",
+    "functionName": "ping"
+  },
+  "executionId": "eu71kzol9c0f33xk5xpo6",
+  "statusTransitions": [],
+  "chain": null,
+  "onchainEffectCount": 1,
+  "id": "P06-transport-retry",
+  "question": "does replaying the same idempotency key create a second economic effect",
+  "transport": [
+    {
+      "method": "POST",
+      "path": "/api/execute/contract-call",
+      "sentAt": "2026-08-12T16:18:36.540Z",
+      "elapsedMs": 283,
+      "requestBodyHash": "sha256:84d8e50b9d4aab19c57d8c08356a15afa1aa30f1d39f9869146c771db2f1a2a9",
+      "idempotencyKey": "cd4a472da6d8f8d2fe0e6b40f3adb65f15770574f69e5a5e6c2bff91916d39c9",
+      "httpStatus": 202,
+      "responseHeaders": {
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a2a0cc036ad02fc1-AMS",
+        "connection": "keep-alive",
+        "content-type": "application/json",
+        "date": "Wed, 12 Aug 2026 16:18:36 GMT",
+        "expect-ct": "max-age=86400, enforce",
+        "kh-minimum-cli-version": "0.11.1",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "permissions-policy": "geolocation=(), microphone=(), camera=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=1eAcyIQ4OyM0GCrykpjPe1Ok5rVHzbo4xha8qLgl8tLYqkvnWvrn4riCAbQodm1Dk5mNY9H6OiamgzorJtd0wSwz70JL3pZMzkEycqeGfMm8qTVqcfWNrpkRwAUOvWsAlitA\"}]}",
+        "server": "cloudflare",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-ratelimit-limit": "60",
+        "x-ratelimit-remaining": "53",
+        "x-ratelimit-reset": "1786551564",
+        "x-xss-protection": "1; mode=block"
+      },
+      "responseBody": {
+        "status": "completed",
+        "executionId": "eu71kzol9c0f33xk5xpo6",
+        "idempotentReplay": true
+      },
+      "responseText": "{\"status\":\"completed\",\"executionId\":\"eu71kzol9c0f33xk5xpo6\",\"idempotentReplay\":true}",
+      "transportError": null
+    }
+  ],
+  "observation": "HTTP 202 in 283ms; idempotentReplay=true; executionId eu71kzol9c0f33xk5xpo6 vs original eu71kzol9c0f33xk5xpo6 (SAME); onchain effects for this challenge=1"
+}

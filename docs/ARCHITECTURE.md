@@ -79,11 +79,18 @@ by mutation rather than by inspection. Five source mutations, each detected. See
 ## What the KeeperHub client encodes
 
 Provenance first, because the Phase 0 version of this section claimed every rule came from a
-live probe contradicting the docs. It did not. No KeeperHub call has ever been made from this
-repository. The rules below come from official documentation, from two official documents
-disagreeing, or from the sibling `keeperhub-flightcheck` spike. Phase 0.5 gave each one a named
-page and a retrieval date in `docs/keeperhub/SOURCE_SNAPSHOT.md`; read `docs/CLAIMS.md` for the
-level of each before relying on any of it.
+live probe contradicting the docs, and at the time none had. Phase 0.5 ran that probe: 16
+scenarios, live, on 2026-08-12, evidence committed. Most rules below are now measured from this
+repository, and `docs/CLAIMS.md` carries the level of each.
+
+The three that changed the architecture rather than the client:
+
+- **HTTP 202 is not acceptance.** A refused attempt and a successful one both answer 202 with an
+  `executionId`. The body's `status` decides, and only a chain read confirms. ADR-013.
+- **Transport idempotency bounds effects per key, not per action.** A new key for the same
+  economic action executed it a second time, so semantic idempotency has to be onchain.
+- **Ambiguity is a state.** A lost response is genuinely undecidable client-side and genuinely
+  resolvable, by replaying the key and then asking the chain.
 
 - The documented status set is a lower bound. Anything unrecognized normalizes to `UNKNOWN`
   and non-terminal, so a `switch` with `default: fail` cannot report a false failure for a
@@ -94,15 +101,35 @@ level of each before relying on any of it.
 - `not_found` and `timeout` receipt statuses are `UNKNOWN`, never success and never failure.
 - A would-revert simulation is an *answer*, delivered as HTTP 400. Callers branch on the
   `wouldRevert` field, never on the status code.
-- Error envelopes are not uniform, and the vendor documents three shapes:
-  `{error, detail, request_id}`, `{error, field, details}`, and
-  `{error, message, required_scope, granted_scope}`. `errors.ts` parses the first and normalizes
-  it, preserving `request_id`. The other two are a known gap, left open in Phase 0.5 rather than
-  closed on a guess, and `P02` decides which the live endpoint emits.
+- Error envelopes are not uniform. Three shapes were measured live: `{error}` alone on a 401 and
+  on an unknown execution id; `{error: code, detail: sentence, request_id}` on an unrouted 404;
+  and `{error: sentence, code, retryable, originalExecutionId?}` on both 409s, where `error` and
+  `code` swap roles. `errors.ts` normalizes all three, and parses `retryable` and
+  `originalExecutionId` because both are load-bearing and neither is documented.
 - Idempotency keys are namespaced `resurv/v1`, because another project shares this
   organization's API key and idempotency scope is per organization and per endpoint.
 - Request bodies serialize through a key-sorting canonicalizer, because a replay must be
   byte-identical or KeeperHub answers 409.
+
+## The attempt lifecycle
+
+Measured in Phase 0.5, specified in ADR-013, and not yet implemented anywhere.
+
+```
+PLANNED ─► REJECTED_LOCALLY | SIMULATION_REJECTED | SIMULATED_OK
+SIMULATED_OK ─► KEY_COMMITTED
+KEY_COMMITTED ─► EXECUTED_NO_EFFECT | RECONCILIATION_REQUIRED
+RECONCILIATION_REQUIRED ─► CONFIRMED | REVERTED | PROVEN_NOT_BROADCAST | itself
+```
+
+There is no `ACCEPTED` and no `PENDING`. Both were in the design this project started with, and
+the measurements removed them: a 2xx with an `executionId` is not acceptance, and the POST is
+synchronous so there is no pending phase to poll.
+
+`CONFIRMED` requires a chain receipt from two agreeing origins **and** the expected event
+**and** no inner-failure signal. RESURV may start another semantic recovery action only from a
+terminal state that was entered on chain evidence. Full table, reconciliation algorithm and
+advancement rule: `docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md` sections 8 and 9.
 
 ## Data layer
 

@@ -1,0 +1,102 @@
+{
+  "semanticAttemptId": "3974c4a51741c10193820ac5626e57389636018121ab7f96789aff7b6f0d1769",
+  "challenge": "0x3d10d928d93384ccb50a24ee0abfe3239928ef1077d582e86a4ccf0759d3f396",
+  "idempotencyKey": "be013d02a16e561bcf47fa1801cc3718dc26a024b7915c4d0626c5fce01fb4ef",
+  "requestBodyHash": "sha256:c9b7e8d2803c499851e7f562cfbc28b9737ae2f9e1ed9ab3bb6db71d6638f726",
+  "requestBody": {
+    "abi": "[{\"type\":\"function\",\"name\":\"resurvSeamAbsentFunction\",\"inputs\":[{\"name\":\"challenge\",\"type\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"}]",
+    "chainId": 84532,
+    "contractAddress": "0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A",
+    "functionArgs": "[\"0x3d10d928d93384ccb50a24ee0abfe3239928ef1077d582e86a4ccf0759d3f396\"]",
+    "functionName": "resurvSeamAbsentFunction"
+  },
+  "executionId": "qw3wxpyo0ovbl9jf5aq5u",
+  "statusTransitions": [
+    {
+      "atMs": 596,
+      "httpStatus": 200,
+      "status": "failed",
+      "transactionHash": null,
+      "receiptStatus": null,
+      "pollIntervalHint": "0",
+      "body": {
+        "executionId": "qw3wxpyo0ovbl9jf5aq5u",
+        "status": "failed",
+        "type": "contract-call",
+        "transactionHash": null,
+        "transactionLink": null,
+        "sponsored": false,
+        "receipts": [],
+        "result": null,
+        "error": "Insufficient BASE balance. Have: 0.0, Need: 0.000000231. Fund 0xfd35ae935de7be93ffd585d6627268d833ed834c with at least 0.000000231 BASE on this chain and retry.",
+        "gasUsedWei": null,
+        "gasPriceWei": null,
+        "estimatedCostUsd": null,
+        "retryCount": 0,
+        "network": "84532",
+        "createdAt": "2026-08-12T16:18:46.874Z",
+        "completedAt": "2026-08-12T16:18:51.665Z"
+      }
+    }
+  ],
+  "chain": {
+    "transactionHash": null,
+    "receiptStatusHex": null,
+    "receiptVerdict": "absent",
+    "blockNumber": null,
+    "from": null,
+    "to": null,
+    "gasUsed": null,
+    "gasLimit": null,
+    "decodedSenderTopic": null,
+    "decodedChallengeTopic": null,
+    "originsAgreed": false,
+    "originAnswers": null,
+    "revertData": null
+  },
+  "onchainEffectCount": 0,
+  "id": "P09-broadcast-absent-selector",
+  "question": "does KeeperHub broadcast a transaction it can predict will revert",
+  "transport": [
+    {
+      "method": "POST",
+      "path": "/api/execute/contract-call",
+      "sentAt": "2026-08-12T16:18:46.626Z",
+      "elapsedMs": 5156,
+      "requestBodyHash": "sha256:c9b7e8d2803c499851e7f562cfbc28b9737ae2f9e1ed9ab3bb6db71d6638f726",
+      "idempotencyKey": "be013d02a16e561bcf47fa1801cc3718dc26a024b7915c4d0626c5fce01fb4ef",
+      "httpStatus": 202,
+      "responseHeaders": {
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a2a0cc428be52fc1-AMS",
+        "connection": "keep-alive",
+        "content-type": "application/json",
+        "date": "Wed, 12 Aug 2026 16:18:51 GMT",
+        "expect-ct": "max-age=86400, enforce",
+        "kh-minimum-cli-version": "0.11.1",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "permissions-policy": "geolocation=(), microphone=(), camera=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=duv%2BOMwJtrmMD5Xao7hnNEyJGmPfw%2B20bCeZBJAX6rr9Uo40rNtM5fb1cX3GEgAQQrFiQC3K6Opza%2FPGg7DlUgrgtI2sXGga8EmslpIYS1qCyuKvNhY19ooW%2F4belqFCrIpZ\"}]}",
+        "server": "cloudflare",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-ratelimit-limit": "60",
+        "x-ratelimit-remaining": "46",
+        "x-ratelimit-reset": "1786551564",
+        "x-xss-protection": "1; mode=block"
+      },
+      "responseBody": {
+        "executionId": "qw3wxpyo0ovbl9jf5aq5u",
+        "status": "failed",
+        "error": "Insufficient BASE balance. Have: 0.0, Need: 0.000000231. Fund 0xfd35ae935de7be93ffd585d6627268d833ed834c with at least 0.000000231 BASE on this chain and retry."
+      },
+      "responseText": "{\"executionId\":\"qw3wxpyo0ovbl9jf5aq5u\",\"status\":\"failed\",\"error\":\"Insufficient BASE balance. Have: 0.0, Need: 0.000000231. Fund 0xfd35ae935de7be93ffd585d6627268d833ed834c with at least 0.000000231 BASE on this chain and retry.\"}",
+      "transportError": null
+    }
+  ],
+  "observation": "HTTP 202 in 5156ms; executionId=qw3wxpyo0ovbl9jf5aq5u; hash=undefined; KeeperHub status=failed; receiptStatus=undefined; chain=absent"
+}

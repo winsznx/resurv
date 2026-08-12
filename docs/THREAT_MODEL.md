@@ -58,22 +58,35 @@ attempt id rejects a replay permanently, beyond KeeperHub's 24-hour transport wi
 Status: `PARTIAL`. Key derivation, canonical serialization and the schema columns are
 `IN PLACE` and unit-tested.
 
-The kill-the-network replay is now **built and not yet run**. `packages/seam-probe` scenario
-`P11` sends a real, complete request and stops listening 250 ms later, leaving the client in
-exactly this state, then tries all three recovery routes and records which work: list the
-executions, replay the stored key, or ask chain. It is blocked on the credential, not on the
-code. See `docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md`.
+The kill-the-network replay **has now been run**, three times, and the threat is measured rather
+than modeled. `packages/seam-probe` scenarios `P11`, `P13` and `P15` send a real, complete
+request and stop listening 250 ms later.
 
-The honest limit of that experiment, stated so nobody reads more into it: a client-side abort
-cannot reproduce a partition that drops the response *after* KeeperHub commits, at a moment of
-KeeperHub's choosing. Inducing that needs infrastructure manipulation this project will not
-perform. What it does reproduce is the client's side of the ambiguity, which is the side the
-control has to work from.
+What was measured:
 
-The second control the middle route depends on is undocumented: no page states whether replaying
-a key whose response was never received returns the original execution or starts a new one. If
-it starts a new one, the transport key is not a recovery mechanism and the chain read carries the
-whole burden.
+- **The ambiguity is real on both sides.** In `P11` the execution was created 264 ms after the
+  request was sent, so the aborted request had committed. In `P13` the identical abort committed
+  nothing and the later replay created the execution. One client-side observation, opposite
+  economic outcomes.
+- **Replaying the key resolves it.** 202 with the `executionId`, and `idempotentReplay` tells
+  you which side you were on; or 409 `idempotency_in_progress` with `retryable: true` while it
+  is still running, in which case repeat the same key and never rotate it.
+- **A 409 `idempotency_conflict` names the original execution** in `originalExecutionId`, which
+  is documented nowhere and is a second recovery route.
+- **The chain answers when KeeperHub does not.** `P11` recovered its transaction from
+  `eth_getLogs` alone.
+- **Every one of the three ended with exactly one onchain effect.** For one idempotency key,
+  within the window, a lost response cannot double-submit.
+
+Status upgraded to `IN PLACE` for the transport half, at the scope measured: one key, one
+organization, inside the 24-hour window. The permanent half is still `PLANNED`, because a new
+key for the same action executed it a second time (`P08`), and only an onchain attempt id stops
+that.
+
+The honest limit, stated so nobody reads more into it: a client-side abort cannot reproduce a
+partition that drops the response *after* KeeperHub commits, at a moment of KeeperHub's
+choosing. Inducing that needs infrastructure manipulation this project will not perform. What it
+does reproduce is the client's side of the ambiguity, which is the side the control works from.
 
 ### T4. A model produces raw calldata
 
@@ -152,6 +165,31 @@ Relevant measurement: under `sponsored: true`, `msg.sender` at the target was th
 even though `receipt.from` was a relayer and `receipt.to` a router. Access control keys on the
 org wallet address, not on anything visible in the receipt. The `sponsored: false` path is
 unmeasured and nothing is asserted about it.
+
+### T17. Acting on a KeeperHub error message that names the wrong cause
+
+Measured, not modeled. A contract call whose gas estimation reverts is refused with:
+
+```
+Insufficient BASE balance. Have: 0.0, Need: 0.000000231.
+Fund 0xfd35…834c with at least 0.000000231 BASE on this chain and retry.
+```
+
+The call was refused because it would revert. The balance is a consequence: estimation failed,
+so sponsorship was declined, so the empty wallet became relevant. The controlled comparison is
+in the same run with one variable changed, and it is the reason this is stated as fact rather
+than as a theory: the same wallet, at the same zero balance, executes a *valid* call with
+`sponsored: true`.
+
+An operator or an agent that follows the instruction would fund the wallet, retry, and either
+loop or, worse, succeed in broadcasting a transaction that reverts onchain and costs real gas.
+
+Control: the orchestrator classifies a refusal by `status`, `transactionHash` and `receipts`,
+never by the error text, and a refusal with a null hash and empty receipts is
+`EXECUTED_NO_EFFECT` regardless of what the message blames. The error text is recorded in the
+receipt for a human and is never an input to a decision.
+Status: `PLANNED`. No orchestrator exists. The measurement is `P09` and `P14` in
+`docs/phase-logs/evidence/phase-00-5/`.
 
 ### T8. Verifying a run by looking at the wrong address
 
@@ -362,7 +400,14 @@ Controls:
 
 Status: `PLANNED`. This is a documented platform behavior and an inference about its
 consequence, not a measurement, and the covenant contract that would be affected does not exist
-yet. Nothing in this repository currently reads a receipt at all.
+yet.
+
+What the Phase 0.5 probe added is where to look. Every successful execution carried
+`result.executedCall.reverted: false` alongside `receipts[].receiptStatus: "success"`, so the
+inner outcome is exposed on the status body and does not have to be inferred from the receipt.
+`safe_inner_failure` itself was never observed, on six successful executions and three refusals,
+so the hazard stays open rather than being confirmed or dismissed. A reconciler must read
+`executedCall.reverted` and the receipt status, and must not treat an outer `0x1` as sufficient.
 
 ### T16. A daily spending cap refuses execution mid-incident
 

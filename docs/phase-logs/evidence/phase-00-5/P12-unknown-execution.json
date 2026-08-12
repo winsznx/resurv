@@ -1,0 +1,92 @@
+{
+  "semanticAttemptId": null,
+  "challenge": null,
+  "idempotencyKey": null,
+  "requestBodyHash": null,
+  "requestBody": null,
+  "executionId": null,
+  "statusTransitions": [],
+  "chain": null,
+  "onchainEffectCount": null,
+  "id": "P12-unknown-execution",
+  "question": "what does KeeperHub say about an execution id it has never seen",
+  "transport": [
+    {
+      "method": "GET",
+      "path": "/api/execute/direct_resurv_does_not_exist/status",
+      "sentAt": "2026-08-12T16:19:09.186Z",
+      "elapsedMs": 308,
+      "requestBodyHash": null,
+      "idempotencyKey": null,
+      "httpStatus": 404,
+      "responseHeaders": {
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a2a0cccf9ffd2fc1-AMS",
+        "connection": "keep-alive",
+        "content-encoding": "br",
+        "content-type": "application/json",
+        "date": "Wed, 12 Aug 2026 16:19:09 GMT",
+        "expect-ct": "max-age=86400, enforce",
+        "kh-minimum-cli-version": "0.11.1",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "permissions-policy": "geolocation=(), microphone=(), camera=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=QDYsNSvQB7pn1u4EW1bQFCBhAu4JfROAbb0B7ihNAePHYVYvN1vUVXoG%2Fu6CpXUSVn%2FBFV1UDrBWRppAbe1FgqJAGDxGMbuEbl8qIEyT1vRViwiysZhU4qxV%2FbuWrcSB3oNn\"}]}",
+        "server": "cloudflare",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-ratelimit-limit": "60",
+        "x-ratelimit-remaining": "55",
+        "x-ratelimit-reset": "1786551569",
+        "x-xss-protection": "1; mode=block"
+      },
+      "responseBody": {
+        "error": "Execution not found"
+      },
+      "responseText": "{\"error\":\"Execution not found\"}",
+      "transportError": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/execute/not-an-id/status",
+      "sentAt": "2026-08-12T16:19:10.495Z",
+      "elapsedMs": 420,
+      "requestBodyHash": null,
+      "idempotencyKey": null,
+      "httpStatus": 404,
+      "responseHeaders": {
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a2a0ccd7987f2fc1-AMS",
+        "connection": "keep-alive",
+        "content-encoding": "br",
+        "content-type": "application/json",
+        "date": "Wed, 12 Aug 2026 16:19:10 GMT",
+        "expect-ct": "max-age=86400, enforce",
+        "kh-minimum-cli-version": "0.11.1",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "permissions-policy": "geolocation=(), microphone=(), camera=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=BccP5hQ30tLzPHyKKC4JXYe8Vii%2FF3JfULeTSCmLd024VYYQ90P9Hqo50f%2BqbnLjcZ%2BU%2FmKjybRXHl5F0pigd5KsM1iNZgFLOs7rstWmL7VafUN3J5X%2Fb%2FKiUOQz7Aj1Bb9%2F\"}]}",
+        "server": "cloudflare",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-ratelimit-limit": "60",
+        "x-ratelimit-remaining": "41",
+        "x-ratelimit-reset": "1786551564",
+        "x-xss-protection": "1; mode=block"
+      },
+      "responseBody": {
+        "error": "Execution not found"
+      },
+      "responseText": "{\"error\":\"Execution not found\"}",
+      "transportError": null
+    }
+  ],
+  "observation": "unknown id HTTP 404 in 308ms body={\"error\":\"Execution not found\"}; malformed id HTTP 404 in 420ms"
+}

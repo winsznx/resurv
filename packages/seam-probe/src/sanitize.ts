@@ -27,6 +27,10 @@ const CREDENTIAL_VALUE_PATTERNS: readonly RegExp[] = [
   /\beyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}/g,
   /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
   /\b[a-z][a-z0-9+.-]*:\/\/[^\s/@]+:[^\s/@]+@[^\s]+/g,
+  // Not a credential, but `GET /api/keys` and `GET /api/user` return the operator's address
+  // and this evidence is committed. The organization wallet address stays, because it is
+  // public onchain data and is the thing `msg.sender` has to match.
+  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
 ];
 
 /** Header names whose value is a credential regardless of its shape. */

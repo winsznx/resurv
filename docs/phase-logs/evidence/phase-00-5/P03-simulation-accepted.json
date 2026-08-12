@@ -1,0 +1,68 @@
+{
+  "semanticAttemptId": "a13aa5977d86c93ff2edb59c18311ea71f2cc41dd6d68a8a889154a294484974",
+  "challenge": "0x6f0294693b767c8c4298ca94a7c51b2da0b2ce1fcef5cc1bf3165cb9a9008214",
+  "idempotencyKey": null,
+  "requestBodyHash": "sha256:64bb2e746e0d0f15e91b59775e165d6512ca6430d000218ee49d9cab3d9d1a90",
+  "requestBody": {
+    "abi": "[{\"type\":\"function\",\"name\":\"ping\",\"inputs\":[{\"name\":\"challenge\",\"type\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"}]",
+    "chainId": 84532,
+    "contractAddress": "0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A",
+    "functionArgs": "[\"0x6f0294693b767c8c4298ca94a7c51b2da0b2ce1fcef5cc1bf3165cb9a9008214\"]",
+    "functionName": "ping",
+    "simulate": true
+  },
+  "executionId": null,
+  "statusTransitions": [],
+  "chain": null,
+  "onchainEffectCount": 0,
+  "id": "P03-simulation-accepted",
+  "question": "does a simulation answer, what is `from`, and does it touch chain",
+  "transport": [
+    {
+      "method": "POST",
+      "path": "/api/execute/contract-call",
+      "sentAt": "2026-08-12T16:18:26.189Z",
+      "elapsedMs": 719,
+      "requestBodyHash": "sha256:64bb2e746e0d0f15e91b59775e165d6512ca6430d000218ee49d9cab3d9d1a90",
+      "idempotencyKey": null,
+      "httpStatus": 200,
+      "responseHeaders": {
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a2a0cbc30d942fc1-AMS",
+        "connection": "keep-alive",
+        "content-encoding": "br",
+        "content-type": "application/json",
+        "date": "Wed, 12 Aug 2026 16:18:26 GMT",
+        "expect-ct": "max-age=86400, enforce",
+        "kh-minimum-cli-version": "0.11.1",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "permissions-policy": "geolocation=(), microphone=(), camera=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=c4GJhqmitq4hxbdSsFd9X2WNdxFxKgqI%2BcblIU2hBLA3kmI2lLw4U3zma6CyL0EtQujDGCFunsUeJ9K0iNd0sE8qqE4Ik1NWc6wzhZCGGXsRUqfMBqBeIxAE7Kk2e7dMyF0C\"}]}",
+        "server": "cloudflare",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-ratelimit-limit": "60",
+        "x-ratelimit-remaining": "58",
+        "x-ratelimit-reset": "1786551564",
+        "x-xss-protection": "1; mode=block"
+      },
+      "responseBody": {
+        "success": true,
+        "status": "simulated",
+        "from": "0xfd35ae935de7be93ffd585d6627268d833ed834c",
+        "to": "0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A",
+        "value": "0",
+        "gasEstimate": "23917",
+        "simulatedReturnValue": null,
+        "wouldRevert": false
+      },
+      "responseText": "{\"success\":true,\"status\":\"simulated\",\"from\":\"0xfd35ae935de7be93ffd585d6627268d833ed834c\",\"to\":\"0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A\",\"value\":\"0\",\"gasEstimate\":\"23917\",\"simulatedReturnValue\":null,\"wouldRevert\":false}",
+      "transportError": null
+    }
+  ],
+  "observation": "HTTP 200 in 719ms; wouldRevert=false; from=0xfd35ae935de7be93ffd585d6627268d833ed834c; gasEstimate=23917; onchain effects for this challenge=0"
+}

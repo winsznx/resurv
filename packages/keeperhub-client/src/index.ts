@@ -11,11 +11,14 @@ export {
 } from './constants.ts';
 
 export {
+  IDEMPOTENCY_CONFLICT,
+  IDEMPOTENCY_IN_PROGRESS,
   isApiKeyShapeValid,
   isSimulationAnswer,
   keeperhubErrorBodySchema,
   type NormalizedKeeperhubError,
   normalizeErrorBody,
+  readIdempotentReplay,
 } from './errors.ts';
 
 export {

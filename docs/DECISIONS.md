@@ -397,3 +397,77 @@ Solidity failure surfaces in `contracts` rather than inside a turbo task in `wor
 
 A remote is added and the duplicated compile becomes the slowest part of the pipeline, or a
 job gains a command whose toolchain the script graph cannot see.
+
+---
+
+## ADR-013: A covenant advances on chain evidence, never on an HTTP status
+
+Date: 2026-08-12. Status: accepted. Phase: 0.5.
+
+### Context
+
+The attempt lifecycle this project was going to implement had `ACCEPTED` entered by "a 2xx
+carrying an `executionId`", a `PENDING` state polled through, and `REVERTED` reached from
+`ACCEPTED`. The Phase 0.5 seam probe measured KeeperHub live and falsified three of those.
+
+`POST /api/execute/contract-call` is synchronous, and HTTP 202 is not acceptance. The successful
+call and the refused call both answered 202 with an `executionId`; the refused one carried
+`status: "failed"`, a null transaction hash, an empty `receipts` array, and produced no onchain
+effect at all. So the entry condition for `ACCEPTED` was satisfied by an attempt that never
+reached the chain. There is no `PENDING` phase to poll, because the POST does not return until
+the execution is terminal. And `ACCEPTED -> REVERTED` was unreachable in this environment:
+KeeperHub refuses to broadcast a call whose gas estimation reverts, deterministically, three
+times out of three.
+
+Separately, a new idempotency key for the same economic action executed it a second time.
+KeeperHub bounds economic effects per *key*, not per action.
+
+Full measurements and evidence: `docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md`.
+
+### Decision
+
+Three rules, in order of how much they carry.
+
+1. **A covenant advances on chain evidence, never on an HTTP status.** `CONFIRMED` requires a
+   receipt with status `0x1` from two independent origins *and* the expected event in its logs
+   *and* no inner-failure signal. A receipt alone is not enough, because `safe_inner_failure` is
+   a documented status in which the outer transaction succeeds and the inner call does not.
+2. **Ambiguity is a state, not an error.** `RECONCILIATION_REQUIRED` is entered by anything that
+   is not a chain-confirmed terminal outcome, including every HTTP 202, and it is left only by a
+   chain read or by proof that no effect exists. Nothing promotes an attempt out of it on
+   elapsed time, because a timeout is not evidence.
+3. **Semantic idempotency is onchain and permanent.** The transport key is a 24-hour convenience
+   that bounds effects per key. The covenant rejects a replayed semantic attempt id forever.
+
+The full state table, transitions and reconciliation algorithm are section 8 of the phase log,
+and the advancement rule is section 9. They are the specification Phase 1 implements.
+
+### Alternatives rejected
+
+Treating HTTP 202 as acceptance and reconciling afterwards. Rejected on the measurement: the
+common outcome for a refused action is a 202, so this would classify most refusals as executed
+attempts and stall every covenant behind a reconciliation that had nothing to reconcile.
+
+Polling `GET /api/execute/{id}/status` as the primary path. Rejected: the POST is synchronous, so
+the first poll already returns a terminal status with `X-Poll-Interval-Hint: 0`. Polling stays in
+the reconciliation loop, where it is genuinely needed, and is not on the happy path.
+
+Relying on KeeperHub's idempotency for exactly-once. Rejected on the measurement, and
+`docs/CLAIMS.md` already forbids the wording.
+
+### Consequences
+
+`packages/domain` gains a second state machine, for attempts, alongside the covenant one, and it
+needs the same reference-model treatment ADR-009 requires. `packages/db`'s
+`keeperhub_executions` schema already supports it: the idempotency key hash is `NOT NULL` and
+unique while the execution id and transaction hash are nullable, which is exactly the shape
+`KEY_COMMITTED` needs.
+
+The orchestrator's happy path gets shorter and its recovery path gets longer, which is the right
+trade for a system whose failure mode is paying twice.
+
+### Revisit if
+
+The organization wallet is funded and a would-revert call reaches the chain, which would make
+`REVERTED` reachable from a broadcast rather than only in principle. The lifecycle already
+carries that state; what would change is how often it is entered.

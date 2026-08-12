@@ -567,10 +567,13 @@ describe('phase 0.5 seam probe', () => {
     });
     const executionId = readStringField(replay.responseBody, 'executionId');
     const poll = executionId === undefined ? undefined : await pollExecution(client, executionId);
-    const chain = await reconcileChain(poll?.transactionHash, challenge);
 
-    // Recovery path 3: ask chain directly.
+    // Recovery path 3: ask chain directly, and reconcile from whatever chain names. When
+    // KeeperHub hands back no hash, the challenge word is the only handle RESURV has, and a
+    // reconciler that can only start from a KeeperHub-supplied hash is useless in exactly the
+    // case it exists for.
     const effects = await countEffects(challenge, startBlock);
+    const chain = await reconcileChain(poll?.transactionHash ?? effects.hashes[0], challenge);
 
     record({
       ...blank(),
@@ -587,7 +590,7 @@ describe('phase 0.5 seam probe', () => {
       statusTransitions: poll?.transitions ?? [],
       chain,
       onchainEffectCount: effects.count,
-      observation: `abort: ${summarize(aborted)}; GET /api/execute ${summarize(listA)}; GET /api/executions ${summarize(listB)}; key replay ${summarize(replay)} idempotentReplay=${String(readField(replay.responseBody, 'idempotentReplay'))} executionId=${String(executionId)}; chain effects for this challenge=${effects.count} (hashes ${effects.hashes.join(',') || 'none'})`,
+      observation: `abort: ${summarize(aborted)}; GET /api/execute ${summarize(listA)}; GET /api/executions ${summarize(listB)}; key replay ${summarize(replay)} code=${String(readField(replay.responseBody, 'code'))} idempotentReplay=${String(readField(replay.responseBody, 'idempotentReplay'))} executionId=${String(executionId)}; chain effects for this challenge=${effects.count} (hashes ${effects.hashes.join(',') || 'none'}); chain-first reconciliation=${chain.receiptVerdict} sender=${String(chain.decodedSenderTopic)} block=${String(chain.blockNumber)} origins agreed=${chain.originsAgreed}`,
     });
     expect(aborted.httpStatus).toBeUndefined();
     expect(aborted.transportError).toBeDefined();

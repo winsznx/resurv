@@ -98,30 +98,50 @@ schema change that produced it, never separately.
 
 ## Diagnosing a KeeperHub call
 
-Read `docs/CLAIMS.md` first, and read it as a ledger rather than as a manual. Nothing below is
-`VERIFIED`: no KeeperHub call has ever been made from this repository. The Phase 0 review found
-this table presented as settled diagnosis, which it is not. Phase 0.5 gave most rows a real
-source pointer, in `docs/keeperhub/SOURCE_SNAPSHOT.md`, which is still not the same as having
-seen one.
+Read `docs/CLAIMS.md` first. Most of this table is now `VERIFIED`, meaning the seam probe
+produced it live on 2026-08-12 and the response is committed under
+`docs/phase-logs/evidence/phase-00-5/`. The rows that are not say so.
 
-| Symptom | Expected cause | Ledger status |
+| Symptom | What it actually is | Status |
 |---|---|---|
-| `transactionHash` is `undefined` after a successful broadcast | `/contract-call` omits it from the 202. Poll `GET /api/execute/{id}/status` | `MEASURED_EXTERNAL` |
-| HTTP 400 on a simulation | That is an answer. Read `wouldRevert` before classifying it | `DOCUMENTED` |
-| 401 with fields you did not expect | The vendor documents three different error envelope shapes and `errors.ts` parses one. Log the raw body before trusting a parsed field | `DOCUMENTED (conflicting)` |
-| Bare 401 with no detail or request id | Our code expects this; the docs say every error carries `request_id`. Whichever it is, check the key starts with `kh_`, not `wfb_` | `ASSUMED`, contradicted by the docs |
-| 409 `idempotency_conflict` | Same key, different body. Use the canonical serializer. `retryable: false` | `DOCUMENTED` |
-| 409 `idempotency_in_progress` | A previous attempt with this key is still running. Retry the same key; never rotate to a new one | `DOCUMENTED` |
-| 403 `Daily spending cap exceeded` | An organization cap, not an auth problem. Do not retry on a new key, and do not advance to the next recovery action | `DOCUMENTED` |
-| A response carrying `idempotentReplay: true` | This is a replay of an earlier response, not a new execution | `DOCUMENTED` |
-| Status is not one of the four documented values | The documented set is a lower bound. Treat unknown as non-terminal and keep polling | `DOCUMENTED` for the four; the fifth (`unconfirmed`) has no locatable source |
-| `receiptStatus: safe_inner_failure` | The outer transaction succeeded and the inner call failed. Treat the attempt as failed regardless of the receipt status | `DOCUMENTED` value, `ASSUMED` meaning. T15 |
-| Explorer shows nothing at the org wallet | Under sponsorship it neither sends nor pays. Verify by hash → receipt → log | `MEASURED_EXTERNAL` |
+| **HTTP 202** | Not acceptance. Read the body's `status`: a refused attempt that never reached the chain answers 202 with an `executionId` and `status: "failed"` | `VERIFIED` |
+| `status: "failed"`, `transactionHash: null`, `receipts: []` | Nothing was broadcast. Confirm with a chain read, then treat the attempt as having had no effect | `VERIFIED` |
+| `Insufficient BASE balance` on a call you believe is funded | **The message names the wrong cause.** The call would revert, so estimation failed, so sponsorship was declined, so the empty wallet became relevant. Do not fund and retry; fix the call. T17 | `VERIFIED` |
+| `transactionHash` is `undefined` after a successful broadcast | The 202 body carries only `executionId` and `status`. The hash is on `GET /api/execute/{id}/status` | `VERIFIED` |
+| HTTP 400 on a simulation | That is an answer. Read `wouldRevert` and `failureKind` before classifying it | `VERIFIED` |
+| Bare 401 with no `detail` and no `request_id` | Correct, and the official docs are wrong about this. Check the key starts with `kh_`, not `wfb_` | `VERIFIED` |
+| 401 or 404 with fields you did not expect | Three envelope shapes exist and `error` means the machine code in one and the sentence in another. Use `normalizeErrorBody`, never a raw field | `VERIFIED` |
+| 409 `idempotency_conflict` | Same key, different body. `retryable: false`. **Read `originalExecutionId`**: it names what the key already did | `VERIFIED` |
+| 409 `idempotency_in_progress` | A previous attempt with this key is still running. `retryable: true`. Repeat the same key; never rotate it | `VERIFIED` |
+| A 202 carrying `idempotentReplay: true` | An earlier request under this key was accepted; this is its response replayed. Its **absence** means this request is the one that committed the key | `VERIFIED` |
+| A second effect after a retry | You rotated the idempotency key. KeeperHub bounds effects per key, not per action | `VERIFIED` |
+| Status is not one of the four documented values | The documented set is a lower bound. Treat unknown as non-terminal and keep polling | `DOCUMENTED`; `unconfirmed` has no locatable source and was never observed |
+| `receiptStatus: safe_inner_failure`, or `executedCall.reverted: true` | The outer transaction succeeded and the inner call did not. Treat the attempt as failed regardless of the receipt status. T15 | `DOCUMENTED` value, never observed |
+| 403 `Daily spending cap exceeded` | An organization cap, not an auth problem. Do not retry on a new key and do not advance. T16 | `DOCUMENTED`, never hit |
+| Explorer shows nothing at the org wallet | Under sponsorship it neither sends nor pays. `receipt.from` is a relayer and `receipt.to` a router. Verify by hash → receipt → decoded log | `VERIFIED` |
 
-The rate limit is documented twice and differently: 60 per minute per key on the Direct
-Execution page, 100 per minute for authenticated users on the API overview. We encode 60.
-`Retry-After` appears on 429 only, and `X-Poll-Interval-Hint` carries seconds with `0` meaning
-terminal, both now `DOCUMENTED` rather than `ASSUMED`.
+The rate limit is 60 per minute per key: `x-ratelimit-limit: 60` on every Direct Execution
+response, which settles a conflict between two official pages. `X-Poll-Interval-Hint` was `0` on
+every terminal execution. `Retry-After` and the 429 branch were never triggered.
+
+## Recovering an attempt whose response you never received
+
+This is the procedure, and every step is measured behavior rather than a guess. The full
+derivation is `docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md` section 8.
+
+1. **Replay the idempotency key with a byte-identical body.** Never rotate the key.
+   - 409 `idempotency_in_progress` → wait, repeat this step.
+   - 409 `idempotency_conflict` → the stored body is not what was sent, which is a bug. Read
+     `originalExecutionId` and go to step 3.
+   - 202 with `idempotentReplay: true` → an earlier request committed. Take the `executionId`.
+   - 202 without the flag → this replay is the first commit. Take the `executionId`.
+2. **If no execution id can be had**, search the chain for the attempt's onchain marker. Found
+   means it happened; not found, after the settlement window, means it did not.
+3. **Read the status endpoint** for the transaction hash.
+4. **Fetch the receipt from two independent origins** and classify on chain evidence. Origins
+   disagreeing is an unresolved attempt, not a tie to break.
+
+Do not advance to another recovery action at any point before step 4 resolves.
 
 ## Running the KeeperHub seam probe
 

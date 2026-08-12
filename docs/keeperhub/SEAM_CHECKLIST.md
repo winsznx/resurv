@@ -4,11 +4,12 @@ The second half of the PRD 28 Phase 0 deliverable. `docs/keeperhub/SOURCE_SNAPSH
 what the documentation says; this file records what has to be measured, what measures it, and
 what state each item is in.
 
-Last updated: 2026-08-12, during Phase 0.5.
+Last updated: 2026-08-12, at the end of Phase 0.5. Verdict `SEAM REVISE`; the measurements are
+in `docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md`.
 
 Status vocabulary: `BUILT` means the probe scenario exists, typechecks and runs; `MEASURED`
-means it has been run against the live API with committed evidence; `BLOCKED` names what is
-missing.
+means it has been run against the live API with committed evidence; `UNREACHABLE` means the
+experiment ran and the state could not be produced, which is a result rather than a gap.
 
 ## Run it
 
@@ -28,15 +29,15 @@ index, with credentials removed and chain data intact.
 
 | # | PRD item | Scenario | State |
 |---|---|---|---|
-| 1 | `GET /api/chains` and save current chain configuration | `P00` | `BUILT`, `BLOCKED` on credential |
-| 2 | Simulate a known successful test call | `P03` | `BUILT`, `BLOCKED` on credential |
-| 3 | Simulate a known role failure | `P04` | `BUILT` as a selector failure, `BLOCKED`. A *role* failure needs the covenant contract, so this is Phase 1 |
-| 4 | Broadcast an atomic RESURV attempt | `P05` | `BUILT` against the canary. The atomic RESURV attempt itself is Phase 1 |
-| 5 | Repeat exact request with same idempotency key | `P06` | `BUILT`, `BLOCKED` |
-| 6 | Reuse key with changed body and confirm conflict | `P07` | `BUILT`, `BLOCKED` |
-| 7 | Confirm status and explorer link | `P05` | `BUILT`, `BLOCKED` |
-| 8 | Confirm contract event and fee transfer share the same transaction | — | Phase 1. No covenant contract exists |
-| 9 | Confirm gas sponsorship and private routing cannot be claimed together | `P00` | `BUILT`. Already `DOCUMENTED` in the snapshot section 10 |
+| 1 | `GET /api/chains` and save current chain configuration | `P00` | `MEASURED`. 84532 enabled, `usePrivateMempoolRpc: false` |
+| 2 | Simulate a known successful test call | `P03` | `MEASURED`. 200, `wouldRevert: false`, `from` the org wallet |
+| 3 | Simulate a known role failure | `P04` | `MEASURED` as a selector failure. A *role* failure needs the covenant contract, so that half is Phase 1 |
+| 4 | Broadcast an atomic RESURV attempt | `P05` | `MEASURED` against the canary. The atomic RESURV attempt itself is Phase 1 |
+| 5 | Repeat exact request with same idempotency key | `P06` | `MEASURED`. Same `executionId`, `idempotentReplay: true`, no second effect |
+| 6 | Reuse key with changed body and confirm conflict | `P07` | `MEASURED`. 409 `idempotency_conflict`, `retryable: false`, and it names `originalExecutionId` |
+| 7 | Confirm status and explorer link | `P05` | `MEASURED`. Hash and `transactionLink` on the status endpoint, never in the 202 |
+| 8 | Confirm contract event and fee transfer share the same transaction | — | **Phase 1.** No covenant contract exists. This is the first thing Phase 1 proves |
+| 9 | Confirm gas sponsorship and private routing cannot be claimed together | `P00`, `P05` | `MEASURED`. `sponsored: true` with `usePrivateMempoolRpc: false` on the same chain, which is consistent with the documented rule |
 | 10 | Confirm failed marketplace workflow billing before using marketplace claims | — | Out of scope for v1. Marketplace is not on the critical path |
 
 ## The twelve states Phase 0.5 has to distinguish
@@ -45,59 +46,68 @@ The dominant question: can RESURV distinguish the state of one semantic attempt 
 that it never advances to another recovery action while the previous one could still produce an
 onchain effect?
 
-| # | State | Scenario | Authority | State |
-|---|---|---|---|---|
-| 1 | local request rejection | `P01` | RESURV, offline | `MEASURED` — no network involved, see below |
-| 2 | authentication or configuration failure | `P02` | KeeperHub HTTP | `BUILT`, `BLOCKED` |
-| 3 | simulation rejection with no broadcast | `P04` | KeeperHub body, then chain | `BUILT`, `BLOCKED` |
-| 4 | execution accepted | `P05` | KeeperHub 202 | `BUILT`, `BLOCKED` |
-| 5 | execution pending | `P05` transitions | KeeperHub status | `BUILT`, `BLOCKED` |
-| 6 | execution confirmed successfully | `P05` | chain receipt, cross-checked | `BUILT`, `BLOCKED` |
-| 7 | execution broadcast but reverted onchain | `P09`, `P10` | chain receipt | `BUILT`, `BLOCKED` |
-| 8 | transport failure after possible acceptance | `P11` | nothing; that is the problem | `BUILT`, `BLOCKED` |
-| 9 | temporarily unknown execution state | `P12` | KeeperHub 404 vs pending | `BUILT`, `BLOCKED` |
-| 10 | repeated transport request, same key | `P06` | KeeperHub `idempotentReplay` + chain effect count | `BUILT`, `BLOCKED` |
-| 11 | repeated semantic action, new key | `P08` | chain effect count | `BUILT`, `BLOCKED` |
-| 12 | chain disagreeing with or clarifying KeeperHub | every scenario | chain, always | `BUILT`, `BLOCKED` |
+| # | State | Scenario | Result |
+|---|---|---|---|
+| 1 | local request rejection | `P01` | `MEASURED`. Three key shapes and the separator guard, zero HTTP requests |
+| 2 | authentication or configuration failure | `P02` | `MEASURED`. 401 `{error}` alone, wrong key and no key alike |
+| 3 | simulation rejection with no broadcast | `P04` | `MEASURED`. 400, `wouldRevert: true`, `failureKind: "revert"`, no `executionId`, zero effects |
+| 4 | execution accepted | `P05`, `P09` | `MEASURED`, **and the state does not exist as designed.** HTTP 202 covers both a completed attempt and one that never reached the chain. Read the body's `status` |
+| 5 | execution pending | `P05`, `P11` | `MEASURED as absent` on the happy path: the POST is synchronous and the first status poll is already terminal. The only in-flight signal is 409 `idempotency_in_progress` on a replay |
+| 6 | execution confirmed successfully | `P05` | `MEASURED`. Chain receipt `0x1` from two agreeing origins, plus the expected event |
+| 7 | execution broadcast but reverted onchain | `P09`, `P10`, `P14` | **`UNREACHABLE`.** A reverting call is refused before broadcast, three of three, and `gasLimitMultiplier` below 1.0 is ignored. See below |
+| 8 | transport failure after possible acceptance | `P11`, `P13`, `P15` | `MEASURED`, on both sides: the same abort committed in one case and not in another |
+| 9 | temporarily unknown execution state | `P12` | `MEASURED`. 404 `{"error":"Execution not found"}`, no `detail`, no `request_id` |
+| 10 | repeated transport request, same key | `P06` | `MEASURED`. Same `executionId`, `idempotentReplay: true`, still one effect |
+| 11 | repeated semantic action, new key | `P08` | `MEASURED`. **Two effects.** Transport idempotency is not semantic idempotency |
+| 12 | chain disagreeing with or clarifying KeeperHub | every scenario | `MEASURED`. Chain clarified in `P09` (nothing broadcast) and answered alone in `P11` |
 
-State 1 is the only one measurable without a credential, and it is measured: `P01` exercises
-`isApiKeyShapeValid` and the idempotency separator guard with zero HTTP requests. The rest are
-blocked on the credential.
+## The revert path, and why neither route reached it
 
-## Two revert paths, because one may not be reachable
+`P09` submits a call whose selector the target does not implement, with `simulate: false`.
+KeeperHub answered HTTP 202 with `status: "failed"`, `transactionHash: null`, `receipts: []`,
+`sponsored: false`, and an error naming a balance shortfall. Nothing landed. `P14` repeated it
+twice with the same result, so the refusal is deterministic.
 
-`P09` submits a call whose selector the target does not implement, with `simulate: false`. If
-KeeperHub pre-simulates before broadcasting, it will refuse and nothing lands, which is a
-finding rather than a failure: it would mean "accepted, then reverted" is unreachable through
-an obviously-invalid call.
+`P10` therefore submitted a **valid** call starved of gas, with the limit computed at run time
+to fall between the transaction's intrinsic cost and its execution cost. `gasLimitMultiplier`
+was accepted and ignored: the transaction landed with a gas limit byte-identical to the call
+that sent no multiplier.
 
-`P10` therefore submits a **valid** call starved of gas. The gas limit is computed at run time
-to fall between the intrinsic cost of the transaction and its execution cost, so estimation
-succeeds and the call runs out of gas inside the contract. That produces a broadcast that
-reverts onchain without needing a purpose-built contract, a deployer key or a faucet.
+So "accepted, then reverted onchain" was not produced. The honest reading is that on this
+configuration a reverting call never becomes a broadcast, and the honest residual is that the
+refusal arrived with `sponsored: false` and a balance error, so a **funded** organization wallet
+might reach the chain and revert. The lifecycle carries `REVERTED` regardless.
 
-If both paths fail to produce a reverted broadcast, the claim "a reverted broadcast is
-distinguishable from a transport failure" cannot be settled from this repository and the
-architecture has to treat every accepted execution as potentially reverting.
-
-## The transport-failure experiment, and its honest limit
+## The transport-failure experiment, and what it actually showed
 
 `P11` sends a real, complete request and stops listening 250 ms later. Nothing is mocked: the
-request reaches KeeperHub and KeeperHub does whatever it does. The client is left in exactly
-the state the threat model cares about, holding an idempotency key and a body hash and no
-response.
+request reaches KeeperHub and KeeperHub does whatever it does.
 
-What it cannot reproduce: a network partition that drops the response *after* KeeperHub has
-committed, at a moment of KeeperHub's choosing rather than the client's. Inducing that would
-need infrastructure manipulation this project will not perform. A client-side abort is the
-nearest reproducible ambiguity case, and it is genuinely ambiguous from the client's side,
-which is the property under test.
+It reproduced the ambiguity on both sides, which is more than was hoped for. In `P11` the
+execution was created 264 ms after the request was sent, so the aborted request had committed.
+In `P13` the identical abort committed nothing and the later replay created the execution. Same
+client-side observation, opposite economic outcome.
 
-`P11` then tries all three recovery routes in order and records which ones work:
+What it cannot reproduce: a partition that drops the response *after* KeeperHub commits, at a
+moment of KeeperHub's choosing rather than the client's. Inducing that would need infrastructure
+manipulation this project will not perform.
 
-1. list the executions — `GET /api/execute`, `GET /api/executions`;
-2. replay the stored idempotency key with a byte-identical body;
-3. ask chain whether the effect happened, by searching for the attempt's own challenge word.
+The three recovery routes, measured:
+
+1. **List the executions.** `GET /api/execute` and `GET /api/executions` both 404 `not_found`.
+   No such endpoint, now confirmed live rather than inferred from silence.
+2. **Replay the stored key with a byte-identical body.** Works. 202 with the `executionId`, and
+   `idempotentReplay` tells you whether the lost request had committed; or 409
+   `idempotency_in_progress` (`retryable: true`) while it is still running, in which case repeat
+   the same key and never rotate it.
+3. **Ask the chain.** Works, and is the only route that survives an API change. `P11` recovered
+   its transaction from `eth_getLogs` alone.
+
+A fourth route turned up that nobody planned: a 409 `idempotency_conflict` carries
+`originalExecutionId`, naming the execution the first request created. `P15` used it to recover
+a lost attempt, and the conflicting body executed nothing.
+
+Across `P11`, `P13` and `P15`: exactly one onchain effect each. Recovery never doubled anything.
 
 ## What the fixture is, and why it needs no deployment
 
@@ -128,6 +138,17 @@ published anywhere this repository can reach, so the probe treats topic0 as opaq
 positionally. That is what makes "did a second onchain effect happen" answerable: each scenario
 derives its own challenge word from its semantic attempt id, and `eth_getLogs` counts the
 transactions carrying it.
+
+## What is still open after Phase 0.5
+
+| Item | Why |
+|---|---|
+| A broadcast transaction reverting onchain | Unreachable with an unfunded wallet. Fund the org wallet and repeat `P09` to settle it |
+| `safe_inner_failure` in practice | Never observed. The surface to watch is `result.executedCall.reverted` and `receipts[].receiptStatus`, not the outer receipt |
+| The 24-hour idempotency boundary | Needs a 24-hour experiment. The onchain attempt id covers it regardless |
+| Idempotency scope: per key, per organization, per endpoint | Not documented and not derivable from one organization |
+| `Retry-After` and the 429 branch | The rate limit was never hit |
+| A non-zero `X-Poll-Interval-Hint` | Every execution was already terminal at the first poll |
 
 ## Items this checklist deliberately does not cover
 

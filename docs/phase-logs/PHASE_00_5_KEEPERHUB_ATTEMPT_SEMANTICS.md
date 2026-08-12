@@ -1,472 +1,424 @@
 # Phase 0.5, KeeperHub attempt semantics
 
-Date: 2026-08-12. Base commit: `f0958af`. Session: one.
+Date: 2026-08-12. Base commit: `7c6281d`. Sessions: two, the second resuming after a credential
+was created by a human.
 
-Verdict: **`USER ACTION REQUIRED`**. No `SEAM PASS`, `SEAM REVISE` or `SEAM FAIL` is issued,
-because the measurement the gate grades has not happened. Section 2 says exactly why and what
-unblocks it.
+Verdict: **`SEAM REVISE`**. KeeperHub is usable and a deterministic, safe RESURV attempt
+lifecycle is supportable. The lifecycle this project was going to implement is not that
+lifecycle, and three of its entry conditions are falsified by measurement. Section 8 states the
+correction Phase 1 must implement and section 9 the exact advancement rule.
 
-Everything in this phase that does not need a credential was completed: the source-lock
-deliverable Phase 0 marked PASS and never produced, independent verification of the seam
-fixture from this repository, and the full probe harness with all twelve scenarios built,
-typechecked and covered by offline tests. One command runs the measurement the moment a
-credential exists.
-
-No KeeperHub call was made from this repository. No transaction was broadcast. No credential
-was read, printed, copied or inferred, and none was copied from any sibling repository.
+Live evidence: 16 scenarios, run four times over the session. The committed set is run label
+`2026-08-12T16-18-19-787Z`; earlier runs are cited by label where they showed a branch the
+committed run did not, because the transport-loss scenarios turn on a race and land differently
+each time. Files in `docs/phase-logs/evidence/phase-00-5/`.
 
 ---
 
-## 1. What this phase was asked to settle
+## 1. The question
 
 > Can RESURV distinguish the state of one semantic recovery attempt strongly enough that it
 > never advances to another recovery action while the previous action could still produce an
 > onchain effect?
 
-That question decides the covenant contract's shape and the orchestrator's advancement rule, so
-the PRD puts it before Phase 1 rather than inside it. `docs/CLAIMS.md` has carried the load-bearing
-half of it, "a reverted broadcast is distinguishable from a transport failure", as `ASSUMED` and
-unmeasured since Phase 0.
-
-**It is still `ASSUMED`.** Documentation cannot promote it and this session did not measure it.
-Section 6 explains what the current official documentation does and does not say, and section 7
-says which of the twelve states each probe scenario would settle.
+**Yes, with an explicit ambiguous state and a bounded reconciliation loop, and only because the
+chain is consulted.** KeeperHub alone is not sufficient and never becomes sufficient: the case
+that matters most, a response that never arrived, is resolvable through KeeperHub in bounded
+time but is only *provable* on chain.
 
 ---
 
-## 2. The credential boundary
+## 2. The eleven measured facts
 
-The session brief stated that a local ignored KeeperHub credential was present through the
-repository's established runtime configuration path. It is not present, and this was checked
-before anything was built on the assumption that it was.
+Each one names the scenario that produced it. `packages/seam-probe/test/offline/measured-semantics.test.ts`
+asserts every claim below against the committed JSON, so this section cannot drift away from its
+evidence without failing `pnpm gate`.
 
-`packages/seam-probe/src/local-env.ts` probes every runtime configuration path this repository
-establishes, reports each one by name, and reports environment variable *names* that could
-carry the credential under a different spelling. Its output, verbatim, with no value anywhere
-in it because the module cannot emit one:
+### F1. `/api/execute/contract-call` is synchronous, and HTTP 202 is not acceptance
+
+The POST blocks until the execution is terminal: several seconds for both the successful call
+and the refused one, 4 to 8 seconds across runs. The response body carries the outcome.
+
+A 202 can mean the attempt succeeded **or that it never happened**:
+
+| | P05 | P09 |
+|---|---|---|
+| HTTP | 202 | 202 |
+| body `status` | `completed` | `failed` |
+| `transactionHash` | on the status endpoint | `null` |
+| `receipts` | one, verified | `[]` |
+| chain effects | 1 | 0 |
+
+This falsifies the entry condition the previous design used for `ACCEPTED`, which was "a 2xx
+carrying an `executionId`". P09 is a 2xx carrying an `executionId` and nothing was broadcast.
+
+### F2. A call whose gas estimation reverts is never broadcast, deterministically
+
+Three observations (P09, P14 twice), zero chain effects each. The refusal is reported as
+`status: failed`, `sponsored: false`, `receipts: []`, and an error naming a **balance
+shortfall**:
 
 ```
-USER ACTION REQUIRED
-runtime configuration file found: (none)
-  ENOENT  .env
-  ENOENT  .env.local
-  ENOENT  .dev.vars
-  ENOENT  apps/worker/.dev.vars
-  ENOENT  apps/worker/.env
-names assigned: (none)
-names already in the process environment: (none)
-credential-shaped variable names visible to this process: (none)
-KEEPERHUB_API_KEY is not set
+Insufficient BASE balance. Have: 0.0, Need: 0.000000231.
+Fund 0xfd35…834c with at least 0.000000231 BASE on this chain and retry.
 ```
 
-Corroborated independently: a directory listing of the repository root shows `.env.example` and
-no `.env`, and `find . -maxdepth 3 -type f -name ".*"` returns `.gitmodules`, `.gitignore` and
-`.env.example` only.
+That message is misleading and a caller must not act on it. The controlled comparison is in the
+same run, one variable changed: the same wallet, at the same zero balance, on the same chain,
+executes the valid call with `sponsored: true`. Sponsorship is declined because gas estimation
+reverts, and only then does the empty wallet matter.
 
-Why five paths rather than the one `docs/RUNBOOKS.md` names. `wrangler dev` reads `.dev.vars`
-by itself, so a credential placed for the Worker would land there, and PRD 12.2 calls the
-variable `KH_API_KEY` while this repository standardized on `KEEPERHUB_API_KEY`. A session that
-checked one path and one spelling could report a missing credential that was actually present,
-which is a worse failure than the one being reported. `credentialShapedEnvNames()` closes the
-spelling half: it matched nothing.
+**Consequence, and it is the reason this phase is `SEAM REVISE` and not `SEAM PASS`:** on this
+configuration `ACCEPTED → broadcast → reverted onchain` is unreachable. Both routes to it
+failed, and the second failed for a reason worth recording separately.
 
-### What this session did not do about it
+### F3. `gasLimitMultiplier` below 1.0 was accepted and did not reduce the gas limit
 
-- did not copy a credential from `keeperhub-flightcheck` or any other repository;
-- did not create, edit or read any environment file;
-- did not ask for the value, and would not accept it in conversation if offered;
-- did not proceed on a mock, a recorded fixture or a sibling repository's numbers, and did not
-  promote a single claim on the strength of them.
+P10 sent `"0.951"`, computed at run time to land the gas limit between the transaction's
+intrinsic cost (21,576) and its execution cost (23,929). It landed with a gas limit of 92,446
+against 92,518 for the same call with no multiplier at all: a 0.08% difference where the
+multiplier predicts 4.9%.
 
-### The unblock, in full
+The comparison is a ratio and not an equality on purpose. Two runs of the identical call differ
+by a few dozen gas, and an earlier version of the test asserting byte-equality passed once by
+luck and failed on the next run. The gas-starvation route to an onchain revert does not exist
+here, and that is the finding; the exact figures are not stable enough to quote as constants.
+
+### F4. `completed` implies a chain receipt KeeperHub verified itself
+
+Every `completed` execution carried `receipts[0].verified: true` with `receiptStatus: "success"`,
+and every one was confirmed independently at status `0x1` by both pinned RPC origins. The
+documented rule, "execution settles as `completed` only when all receipts verify successfully",
+held on six of six.
+
+### F5. Transport idempotency bounds effects to one per key
+
+| Scenario | Key | Result | Effects |
+|---|---|---|---|
+| P05 | fresh | 202, execution created | 1 |
+| P06 | same key, same body | 202, `idempotentReplay: true`, **same** `executionId` | still 1 |
+| P07 | same key, different body | 409 `idempotency_conflict`, `retryable: false` | 0 from the new body |
+| P08 | **new** key, same economic action | 202, new `executionId` | **2** |
+
+P08 is the measurement that matters most for the contract. Replaying a key is safe; repeating
+the *action* under a new key executes it again. **Transport idempotency is not semantic
+idempotency, and nothing in KeeperHub provides the second.** That is what the onchain attempt id
+is for, permanently, beyond the 24-hour window.
+
+Nothing measured supports the phrase "exactly once". What was measured is "at most one economic
+effect per idempotency key, within the replay window".
+
+### F6. `idempotentReplay` is a reliable commit marker, and its absence is evidence
+
+| Response | Meaning |
+|---|---|
+| 202 with `idempotentReplay: true` | an earlier request under this key was accepted |
+| 202 without the field | this request is the one that committed the key |
+
+Observed on both branches and cross-checked against timestamps every time. In the
+`2026-08-12T15-35` run, P11's aborted request created its execution at `+264 ms` while the client
+gave up at `+255 ms`, and the replay came back `idempotentReplay: true`. P13's aborted request
+committed nothing, and its replay created the execution `575 ms` after the replay was sent, with
+no flag.
+
+The rule is what is asserted, not either outcome: the marker is present exactly when the
+execution predates the replay. `measured-semantics.test.ts` checks that against the timestamps
+in whichever run is committed, because which branch an abort lands on is a race and an assertion
+that pinned one outcome would be a flaky test wearing a finding's clothes.
+
+`readIdempotentReplay` in `@resurv/keeperhub-client` therefore returns a tri-state. Collapsing
+absent into `false` would throw the information away.
+
+### F7. A lost response is genuinely ambiguous, and both outcomes were observed
+
+The same client-side observation, an abort at ~253 ms with no HTTP status at all, corresponds to
+two opposite economic outcomes. Across four runs of the same scenario, the aborted request
+sometimes committed and sometimes did not, and nothing available to the client at that moment
+distinguishes them.
+
+The race is narrow and real: in the one case where both timestamps are available, the execution
+was created 264 ms after the request was sent and the client gave up at 255 ms. Nine
+milliseconds decided whether an economic action happened.
+
+This is the case `docs/THREAT_MODEL.md` T3 exists for, and it is no longer hypothetical.
+
+### F8. Three recovery routes, measured, in order of strength
+
+| Route | Result |
+|---|---|
+| List the executions | **Does not exist.** `GET /api/execute` and `GET /api/executions` both 404 `not_found`. ADR-004's load-bearing premise is now verified against a live 404 rather than an absence in documentation |
+| Replay the key, byte-identical body | **Works.** 202 with the `executionId`, plus `idempotentReplay` telling you which side of F6 you are on; or 409 `idempotency_in_progress` with `retryable: true` while it is still running, in which case repeat the same key |
+| 409 `idempotency_conflict` → `originalExecutionId` | **Sometimes works, and is documented nowhere.** P15 aborts a request, then deliberately sends a *different* body under the same key. In the `2026-08-12T15-35` run the 409 named `0uudacxzflm0nf2k9p92t`, which resolved to `completed` with a confirmed receipt. In the committed run it named nothing, because the aborted request had registered the key without creating an execution. **Key registration and execution creation are separate events**, so this is a bonus route and never the one to depend on. The conflicting body executed nothing in either case |
+| Ask the chain | **Works, and is the only route that survives an API change.** P11 recovered `0x157d1e41…30326` from `eth_getLogs` alone, by searching for the attempt's own marker, in the run where the key replay reported only `idempotency_in_progress` |
+
+Across every run, each of P11, P13 and P15 produced **at most one** onchain effect: one when the
+key had committed, none when it had not, never two. That bound, not any particular outcome, is
+what makes replaying a key safe.
+
+### F9. `msg.sender` at the target is the organization wallet, and the receipt does not say so
+
+Every transaction: `receipt.from` is a relayer `0xDcF4bac4bD805948168Ff63483BC493894A29613`,
+`receipt.to` is a router `0x5aF5194B4b0909eB978e3Cf1e25333852277f07D`, and the decoded event
+carries `0xfd35ae935de7be93ffd585d6627268d833ed834c`, the organization wallet, as the caller.
+
+Access control at a RESURV contract must key on the organization wallet, and verification must
+decode the log rather than read the receipt's `from`. This was `MEASURED_EXTERNAL` from a sibling
+repository; it is now measured here, against a different contract.
+
+`gasUsed` is about 45,850 on every call while a direct `ping` estimates 23,929, so the router
+costs roughly 22,000 gas per attempt. That is a real number for the covenant's gas budget, and
+it is quoted as approximate because it varies by a few dozen gas between otherwise identical
+calls.
+
+### F10. Three error envelope shapes, and the documentation is wrong about one
+
+| Shape | Where | Body |
+|---|---|---|
+| A | 401; 404 for an unknown execution id | `{error}` **only** |
+| B | 404 for an unrouted path | `{error: code, detail: sentence, request_id}` |
+| C | both 409s | `{error: sentence, code, retryable, originalExecutionId?}` |
+
+`error` is the machine code in B and the human sentence in C, on the same API. And shape A
+carries no `request_id`, which both `/api` and `/api/errors` say every error carries. The
+repository's own `ASSUMED` claim, written by the Phase 0 author with no source, was right and the
+vendor's documentation is wrong.
+
+`errors.ts` was updated from these observations only: `code ?? error` picks the machine value in
+all three shapes, `detail ?? error` picks the human value in all three, and `retryable` and
+`originalExecutionId` are now parsed because both are load-bearing. An unrecognized envelope
+still normalizes rather than throwing.
+
+### F11. Simulation is a real pre-check that touches nothing
+
+P03: HTTP 200, `wouldRevert: false`, `from` = the organization wallet, `gasEstimate: 23917`,
+zero chain effects. P04: HTTP 400, `wouldRevert: true`, `failureKind: "revert"`, no
+`executionId`, zero chain effects.
+
+Two smaller things. `failureKind` is undocumented and useful. And `revertReason` leaks an
+ethers.js `CALL_EXCEPTION` string containing the whole transaction object rather than the clean
+`Error(...)` string the documentation shows, so it is a diagnostic and never something to parse.
+
+---
+
+## 3. What could not be measured, stated plainly
+
+| | Why it matters |
+|---|---|
+| A broadcast transaction reverting onchain | Both routes failed: KeeperHub refuses the call before broadcast (F2), and `gasLimitMultiplier` is ignored (F3). The residual is real: the refusal came with `sponsored: false` and a balance error, so a **funded** organization wallet might reach the broadcast and revert. RESURV must handle `REVERTED` even though this run never produced one |
+| `safe_inner_failure` | Never observed. `result.executedCall.reverted` was `false` on every success. T15 stays a documented hazard, but the surface to watch is now known: `executedCall.reverted` and `receipts[].receiptStatus`, not the outer receipt |
+| `pending` or `running` | The POST is synchronous, so a completed call never shows them. The only in-flight signal observed is 409 `idempotency_in_progress` on a replay |
+| Behavior at the 24-hour idempotency boundary | Needs a 24-hour experiment. The onchain attempt id is what covers it regardless |
+| Idempotency scope: per key, per organization, per endpoint | Not documented and not derivable from one organization |
+| A partition that drops the response *after* KeeperHub commits, at KeeperHub's choosing | Needs infrastructure manipulation this project will not perform. A client-side abort reproduced the client's half, which is the half the control works from, and F7 shows it reproduced both economic outcomes |
+
+---
+
+## 4. One finding was my own bug, and it is recorded because it nearly became a claim
+
+The first run reported `originsAgreed: false` on every reconciliation. That would have been a
+serious finding: two independent RPC origins disagreeing about a receipt.
+
+They did not disagree. Both returned status `0x1` at the same block. `rpcQuorum` compared the raw
+JSON bodies, and OP-stack nodes differ on optional L1-fee fields, key order and hex casing.
+Agreement is now judged on a projection, `receiptFingerprint`, covering the fields that decide
+something: hash, status, block number, gas used, and the logs. After the fix, every scenario
+reports `originsAgreed: true`.
+
+A check that cries wolf on every single run is worse than no check, because a reader learns to
+ignore it. It is written up here rather than quietly fixed because a phase log that only records
+the platform's mistakes and not the author's is not an honest instrument.
+
+---
+
+## 5. Evidence
+
+Sixteen JSON files plus an index in `docs/phase-logs/evidence/phase-00-5/`, 30 recorded HTTP
+exchanges and 5 Base Sepolia transactions between them, each carrying the
+semantic attempt id, the request body and its hash, the idempotency key, every HTTP status,
+sanitized response bodies and headers, the execution id, every status transition with timing,
+the transaction hash, the receipt from both pinned origins with their agreement, the decoded
+event topics, and the count of onchain effects attributable to that scenario.
+
+Transactions, confirmed independently with `cast receipt` against `https://sepolia.base.org`
+after the run:
+
+From the committed run:
+
+| Scenario | Execution | Transaction | Block |
+|---|---|---|---|
+| P05 confirmed broadcast | `eu71kzol9c0f33xk5xpo6` | `0xb7159cbb942caadc2e19d973938bcb2e32757375a2a4b9c7841f50f5a780ba17` | 45391613 |
+| P11 recovered **from chain alone**, after the key replay answered 409 `idempotency_in_progress` and named nothing | — | `0x157d1e41f31231420e2ba933654666e1cd8e2ff2291970ea3b7d2d3095f30326` | 45391629 |
+| P13 recovered by key replay | `z1e425xr2ge2frqosir28` | `0x8ebf5e2bfa876464d72ed122d08516a6ef2a31499254ee89d231f35fd9ceb8dc` | 45391609 |
+
+From the `2026-08-12T15-35` run, kept because it is the one that exercised the conflict channel:
+
+| Scenario | Execution | Transaction | Block |
+|---|---|---|---|
+| P15 recovered via `originalExecutionId` | `0uudacxzflm0nf2k9p92t` | `0x2b21456cff034934a657be61a99ff43f1973828db056e872f8527f9e8c7b8eff` | 45390344 |
+
+Every one: status `1`, `from` the relayer `0xDcF4bac4bD805948168Ff63483BC493894A29613`, `to` the
+router `0x5aF5194B4b0909eB978e3Cf1e25333852277f07D`, and the organization wallet in the decoded
+event. Confirmed with `cast receipt` against `https://sepolia.base.org` after the run, separately
+from the probe's own reconciliation.
+
+P11 in the committed run is the strongest single piece of evidence in this phase: the client had
+no response, the list endpoints do not exist, the key replay reported only that something was
+running, and the chain still answered.
+
+No credential appears in any of it. The sanitizer removes credential shapes, the exact loaded
+credential, authorization-bearing headers, and email addresses, and keeps hashes, addresses,
+topics and calldata. `writeEvidence` re-scans its own serialized output and refuses to write a
+file that still matches a credential shape.
+
+---
+
+## 6. Reproducing this
 
 ```bash
-cp .env.example .env    # then paste the kh_ organization key with an editor
-pnpm --filter @resurv/seam-probe test:seam
+pnpm --filter @resurv/seam-probe test:seam     # live, spends the credential, lands transactions
+pnpm --filter @resurv/seam-probe test          # offline, in the gate, asserts this report
 ```
 
-The variable is `KEEPERHUB_API_KEY`. Its value is an organization key beginning `kh_`. A `wfb_`
-webhook key cannot execute and the probe rejects it before any request leaves the process. The
-first command is a human step by design: Claude Code's deny rules block that path, which is the
-control `docs/THREAT_MODEL.md` T13 describes.
+The live suite is classified as an external effect in `@resurv/repo-policy` and is reachable
+from no auto-approved Claude Code command. Re-running it rewrites the evidence with a new run
+label and lands a handful of new canary pings; the findings reproduced identically across the
+two runs performed, except where section 4 records a fix between them.
 
 ---
 
-## 3. What was delivered
+## 7. What this refutes in our own record
 
-| Deliverable | State |
-|---|---|
-| `docs/keeperhub/SOURCE_SNAPSHOT.md` | **new.** The PRD 28 deliverable Phase 0 marked PASS without producing. 11 official pages retrieved 2026-08-12, every behavior graded |
-| `docs/keeperhub/SEAM_CHECKLIST.md` | **new.** PRD 21.4 mapped to scenarios, plus the twelve states and which scenario settles each |
-| `packages/seam-probe` | **new.** 12 scenarios, credential loader, evidence sanitizer, chain reconciler, 29 offline tests |
-| Fixture verification | **new.** The canary verified from this repository against a public node, section 5 |
-| `packages/repo-policy` | the live suite is classified as an external effect and cannot be auto-approved. 391 tests, up from 381 |
-| `docs/CLAIMS.md` | nine rows corrected against the retrieved sources. No behavioral row promoted |
-| `docs/THREAT_MODEL.md` | two new threats, T15 and T16, both found by reading the documentation |
-| `docs/BUILD_STATE.md`, `docs/RUNBOOKS.md`, `docs/PROOF_LADDER.md` | updated for the above |
-
-`docs/DECISIONS.md` gains no ADR. The attempt lifecycle is the thing being measured, and
-recording an architecture decision about it now would be recording a guess.
-
----
-
-## 4. The probe
-
-`pnpm --filter @resurv/seam-probe test:seam`. Deliberately outside `pnpm gate` and outside every
-auto-approved command.
-
-### It records, it does not assert
-
-Every scenario writes an evidence file and asserts only that the evidence is complete and
-credential-free. There is no expectation about what KeeperHub returns, because that is the
-measurement. A probe that asserted `expect(status).toBe('failed')` for a reverted broadcast
-would pass or fail on the author's prior belief rather than on the platform's behavior, which is
-the same defect ADR-009 records for a property test whose generator is filtered by the
-implementation under test.
-
-The second live file, pinning the observed behavior so a future KeeperHub change fails a test,
-is not written. Nothing has been observed. It is the first thing the completing session adds.
-
-### The twelve scenarios
-
-| Id | Question | Which of the twelve states |
+| Claim | Was | Now |
 |---|---|---|
-| `P00` | Is the credential live, is Base Sepolia enabled, what is the org identity | preflight |
-| `P01` | What is refused locally, with zero network exposure | 1 |
-| `P02` | What an authentication failure returns, with a wrong key and with no key | 2 |
-| `P03` | Does a simulation answer, what is `from`, does it touch chain | 3 |
-| `P04` | Is a would-revert simulation an answer or an error | 3 |
-| `P05` | What an accepted broadcast returns, and whether chain agrees | 4, 5, 6, 12 |
-| `P06` | Does replaying the same key create a second economic effect | 10 |
-| `P07` | Same key, different body | 10 |
-| `P08` | Does a new key permit a second execution of the same action | 11 |
-| `P09` | Does KeeperHub broadcast a call it can predict will revert | 7 |
-| `P10` | A valid call starved of gas: is a reverted broadcast distinguishable | **7, and the dominant question** |
-| `P11` | The client got no usable response: can RESURV find out what happened | **8, and the dominant question** |
-| `P12` | What KeeperHub says about an execution id it has never seen | 9 |
-
-`P01` is the only one measurable without a credential, and it is measured: `isApiKeyShapeValid`
-rejects a `wfb_` key, an unprefixed key and a bare prefix, and `idempotencyPreimage` throws on a
-field containing the `|` separator, all with zero HTTP requests.
-
-### Two revert paths, because one may not be reachable
-
-`P09` submits a call whose selector the canary does not implement. If KeeperHub pre-simulates
-before broadcasting, it refuses and nothing lands. That is a finding, not a failure, and the
-Phase 0.5 prompt anticipated it: a purpose-built fixture would not change the answer, and the
-result is a `SEAM REVISE` rather than a workaround.
-
-`P10` therefore submits a **valid** call starved of gas. The gas limit is computed at run time
-from the intrinsic cost of the transaction and its measured execution cost, so estimation
-succeeds and the call runs out of gas inside the contract. That produces a broadcast that
-reverts onchain without a purpose-built contract, a deployer key, a faucet, or any dependence on
-third-party protocol state. Both paths are recorded whatever happens, including whether
-`gasLimitMultiplier` below 1.0 is honored at all, which no page documents.
-
-### The transport-failure experiment, and its honest limit
-
-`P11` sends a real, complete request and stops listening 250 ms later. Nothing is mocked and no
-local error is substituted for a network one: the request reaches KeeperHub and KeeperHub does
-whatever it does. The client is left in exactly the state T3 describes, holding an idempotency
-key and a canonical body hash and no response.
-
-What it cannot reproduce: a partition that drops the response after KeeperHub commits, at a
-moment of KeeperHub's choosing rather than the client's. Inducing that needs infrastructure
-manipulation this project will not perform, and saying so is more useful than a test that
-pretends otherwise. A client-side abort is the nearest reproducible ambiguity case and it is
-genuinely ambiguous from the client's side, which is the property under test.
-
-`P11` then tries all three recovery routes in order and records which work:
-
-1. list the executions, `GET /api/execute` and `GET /api/executions`;
-2. replay the stored idempotency key with a byte-identical body;
-3. ask chain, by searching for the attempt's own challenge word in the canary's logs.
-
-Route 3 is the only one that cannot be taken away by an API change, which is why the fixture is
-built around an attributable challenge word rather than a bare counter.
-
-### Evidence
-
-One JSON file per scenario under `docs/phase-logs/evidence/phase-00-5/`, plus an index. Each
-carries the semantic attempt id, the request body and its hash, the idempotency key, every HTTP
-status, the sanitized response body and headers, the execution id, every KeeperHub status
-transition with timing, the transaction hash, the receipt from **both** pinned RPC origins with
-their agreement recorded, the block number, any recoverable revert reason, and the count of
-onchain effects attributable to that scenario's challenge.
-
-### The sanitizer, and why it is not `@resurv/config`'s
-
-`redact` in `@resurv/config` fails closed on `0x` followed by 64 hex characters, because an EVM
-private key and a transaction hash are the same 66 characters. Its own source says public chain
-data belongs in a proof serializer instead. A seam report whose transaction hashes are all
-`[redacted]` proves nothing, so `packages/seam-probe/src/sanitize.ts` is that proof serializer:
-it removes credential shapes, the exact loaded credential, and authorization-bearing headers by
-name, and it keeps hashes, addresses, topics and calldata.
-
-Both halves of that trade are pinned by `test/offline/sanitize.test.ts`, so a future change that
-"hardens" the sanitizer by adding the 32-byte rule back fails a test rather than silently
-gutting the evidence. `writeEvidence` then re-scans the serialized output and throws
-`CredentialLeakError` rather than write a file that still matches a credential shape. The test
-for that guard uses the one shape the walker genuinely cannot reach, a credential arriving as an
-object *key* rather than a value.
+| A 401 envelope is `{error}` alone with no `request_id` | `ASSUMED`, contradicted by the docs | **VERIFIED.** The docs are wrong |
+| A reverted broadcast is distinguishable from a transport failure | `ASSUMED` | **Still unresolved, for a new reason.** A reverting call never becomes a broadcast here |
+| `msg.sender` equals the org wallet under sponsorship | `MEASURED_EXTERNAL` | **VERIFIED** here |
+| `/contract-call` 202 carries no `transactionHash` | `MEASURED_EXTERNAL` | **VERIFIED** here |
+| `gasUsedWei` carries gas units, not wei | `MEASURED_EXTERNAL` | **VERIFIED** here |
+| There is no list-executions endpoint | `DOCUMENTED`, never probed | **VERIFIED** against a live 404 |
+| The rate limit is 60 per minute per key | `DOCUMENTED (conflicting)`, 60 against 100 | **VERIFIED.** `x-ratelimit-limit: 60` |
+| Base Sepolia has no private mempool | `MEASURED_EXTERNAL` | **VERIFIED** here |
+| A crash between send and response cannot double-submit | `ASSUMED` | **VERIFIED** for one idempotency key, across three lost-response scenarios |
 
 ---
 
-## 5. The fixture, verified from this repository
+## 8. The canonical attempt lifecycle Phase 1 must implement
 
-`0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A` on Base Sepolia, against
-`https://sepolia.base.org`, 2026-08-12:
-
-```
-cast code 0x2A6F…555A                     139 bytes of runtime
-cast selectors <runtime>                  0x33d425c4  uint256  view   (one entry, only entry)
-cast sig "ping(bytes32)"                  0x33d425c4
-cast call  "ping(bytes32)" 0x…01          0x
-cast call  "resurvSeamNoSuchFunction()"   execution reverted
-cast estimate "ping(bytes32)" 0x…01       23557
-```
-
-The runtime is
-`6080604052348015600e575f80fd5b50600436106026575f3560e01c806333d425c414602a575b5f80fd5b…`:
-one selector compare and `5f80fd`, a bare `revert(0, 0)`, as the default arm. No fallback, no
-receive. So both halves of the deterministic pair are properties of the bytecode rather than of
-anyone's protocol state, which is what the Phase 0.5 prohibition on "unpredictable DeFi protocol
-state" requires.
-
-Every probe call carries value 0. The organization wallet holds no ETH under sponsorship, so a
-value-carrying call to a non-payable function would revert on balance rather than on payability
-and would confound the measurement.
-
-The contract emits one LOG3 per successful `ping`, topic0
-`0x4947ef22330e8e81cdedf82c33d366e9c942511f5edf79140686b33af9de7f33`, with the caller and the
-challenge indexed and the chain id as data. The event's Solidity name is not published anywhere
-this repository can reach, so the probe treats topic0 as opaque and decodes the two indexed
-parameters by shape. That is deliberate: the alternative is to invent a name and record it as if
-it were known.
-
-Why no purpose-built contract. Deploying one needs `forge script --broadcast`, a funded deployer
-key and a faucet trip. KeeperHub sponsors the calls it executes, not a Foundry deployment, so
-that is a separate blocker for a fixture that adds nothing the canary lacks.
-
----
-
-## 6. Source lock, and what it corrects
-
-Full record in `docs/keeperhub/SOURCE_SNAPSHOT.md`. The findings that change how this project
-behaves:
-
-**Three documented error envelopes, not one.** `/api/errors` and `/api` both give
-`{error, detail, request_id}` with optional `hint` and `docs`. `/api/direct-execution`'s generic
-example gives `{error, field, details}`, with `details` rather than `detail`. Its
-insufficient-scope example gives `{error, message, required_scope, granted_scope}`.
-`packages/keeperhub-client/src/errors.ts` parses the first shape and none of the others. That is
-a real gap and it is not closed here, because closing it without a measured response body means
-guessing which shape the live endpoint actually emits.
-
-**The 401 claim is contradicted.** `docs/CLAIMS.md` has carried "a 401 envelope is `{error}`
-alone, with no detail and no `request_id`" as `ASSUMED`. Both `/api` and `/api/errors` say every
-error carries `request_id`. The claim stays `ASSUMED` and now records that official documentation
-disagrees with it. `P02` settles it.
-
-**`unconfirmed` has no locatable source.** The ledger rated it `DOCUMENTED (conflicting)`,
-citing "the first-verified-transaction guide". The word appears on none of `/api/direct-execution`,
-`/api/executions`, `/getting-started/api` or `/keeper-runs/status-logs` as retrieved on
-2026-08-12. Downgraded to `ASSUMED`. The code needs no change: `status.ts` maps every
-unrecognized value to `UNKNOWN` and non-terminal, so the special case costs nothing and removing
-it would gain nothing.
-
-**`safe_inner_failure` is documented after all.** The ledger said it "appears nowhere outside our
-own source". It is on the current Direct Execution page, in the documented `receiptStatus` union.
-This is a correction to our own record, and section 8 explains why it matters more than a
-correction usually would.
-
-**Two official rate limits.** `/api/direct-execution` says 60 requests per minute per API key.
-`/api` says 100 per minute for authenticated users. `constants.ts` encodes 60 and stays at 60:
-the lower of two documented numbers is the safe one.
-
-**`X-Poll-Interval-Hint` is documented, verbatim.** "A value of `0` means the execution has
-reached a terminal state (`completed` or `failed`) and you can stop polling." Our implementation
-already matches. The ledger row moves from `ASSUMED` to `DOCUMENTED`.
-
-**Both 409 codes are documented,** with `retryable: false` for `idempotency_conflict` and
-`retryable: true` for `idempotency_in_progress`. So is `idempotentReplay: true` on a replayed
-response, which this repository did not know about and which `P06` now looks for.
-
-**The list-executions premise needs a qualifier.** ADR-004 rests on "there is no list-executions
-endpoint". True for direct execution. False for workflows, where
-`GET /api/workflows/{workflowId}/executions` is documented. The ADR means the first and should
-say so. An absence in documentation is also not a 404, which is why `P11` asks the API directly.
-
-**`usePrivateMempoolRpc` is weaker than the name suggests.** `/api/chains` says it "describes a
-chain capability, not the route used by a specific transaction". Even where true it would not
-establish that a given transaction was privately routed. This strengthens the existing
-`REFUTED (as a benefit)` row rather than changing it.
-
-**Gas sponsorship has documented eligibility rules.** Fee only, never the asset. Base and its
-testnets are eligible. The active sender must be the wallet, not a Safe. Private-mempool routes
-are not sponsored. Testnet usage does not consume the monthly credit allowance, so neither the
-probe nor the demo can exhaust it.
-
-### Documentation is not measurement
-
-Nine rows move in `docs/CLAIMS.md`. Not one of them is about broadcast, revert, transport
-failure or reconciliation, because those are the rows the probe exists to settle and no page can
-settle them. `docs/keeperhub/SOURCE_SNAPSHOT.md` section 11 lists ten behaviors the current
-documentation does not state at all.
-
----
-
-## 7. The attempt lifecycle, as a design under stated assumptions
-
-The Phase 0.5 prompt asks for the canonical state machine to be derived from measured behavior
-and warns against forcing evidence into a proposed model. There is no evidence yet, so what
-follows is **not** presented as the canonical machine. It is the model that follows from the
-documented semantics plus the one rule that holds no matter what the measurement says, with
-every edge carrying the evidence level it currently has and the scenario that would settle it.
-
-### The rule that does not depend on the measurement
-
-> If the previous semantic attempt might still produce an economic effect, RESURV must not
-> advance to the next recovery action.
-
-This is a safety property, not an observation, so it survives any measurement outcome. What the
-measurement decides is how often RESURV can *leave* the ambiguous state, and by what evidence.
+Derived from the measurements, not from the model this phase started with. Three of that
+model's entry conditions were falsified and the differences are named at the end.
 
 ### States
 
-| State | Entry | Authority | May RESURV start another semantic action | Terminal |
+| State | Entry condition | Authoritative evidence | May RESURV start another semantic action | Terminal |
 |---|---|---|---|---|
-| `PLANNED` | a semantic attempt id and canonical body exist, nothing sent | RESURV store | yes, this one has no effect | no |
-| `REJECTED_LOCALLY` | refused before any socket opened | RESURV, offline | yes | yes |
-| `SIMULATED_OK` | `simulate: true` returned `wouldRevert: false` | KeeperHub body | yes, nothing was broadcast | no |
-| `SIMULATION_REJECTED` | `simulate: true` returned `wouldRevert: true` | KeeperHub body | yes, nothing was broadcast | yes |
-| `SUBMITTED` | key and body hash persisted, POST in flight | RESURV store | **no** | no |
-| `ACCEPTED` | a 2xx carrying an `executionId` | KeeperHub | **no** | no |
-| `RECONCILIATION_REQUIRED` | any outcome that is not a chain-confirmed terminal state | nothing yet, that is the point | **no** | no |
-| `CONFIRMED` | chain receipt status `0x1` **and** the expected effect present in its logs | chain, cross-origin | yes | yes |
-| `REVERTED` | chain receipt status `0x0`, or a receipt reporting an inner failure | chain, cross-origin | yes, the attempt had no effect | yes |
-| `PROVEN_NOT_BROADCAST` | no transaction exists after the settlement window, and the onchain attempt id was never consumed | chain | yes | yes |
+| `PLANNED` | a semantic attempt id, a canonical body and its hash exist; nothing sent | RESURV store | yes | no |
+| `REJECTED_LOCALLY` | refused before a socket opened | RESURV, offline | yes | yes |
+| `SIMULATION_REJECTED` | HTTP 400 with `wouldRevert: true` | KeeperHub body | yes, nothing was broadcast | yes |
+| `SIMULATED_OK` | HTTP 200 with `wouldRevert: false` | KeeperHub body | yes, nothing was broadcast | no |
+| `KEY_COMMITTED` | idempotency key and body hash **durably written**, request not yet sent | RESURV store | **no** | no |
+| `EXECUTED_NO_EFFECT` | a response whose body `status` is `failed` **and** `transactionHash` is null **and** `receipts` is empty | KeeperHub body, confirmed by a chain read finding no effect | yes | yes |
+| `RECONCILIATION_REQUIRED` | anything else: no response, a 409, a timeout, an unrecognized status, or a `completed` not yet confirmed on chain | **nothing yet, and that is the definition** | **no** | no |
+| `CONFIRMED` | a chain receipt with status `0x1` **and** the expected event present in its logs **and** `executedCall.reverted !== true` **and** `receiptStatus` not an inner-failure value | chain, across two origins | yes | yes |
+| `REVERTED` | a chain receipt with status `0x0`, or any inner-failure signal on a receipt that otherwise succeeded | chain, across two origins | yes, the attempt had no effect | yes |
+| `PROVEN_NOT_BROADCAST` | the key replay reports no prior commit **and** no effect exists on chain after the settlement window | chain, plus the absence of `idempotentReplay` | yes | yes |
 
-`SUBMITTED` and `ACCEPTED` are separate because the persisted idempotency key is what makes
-recovery possible, and it has to exist before the socket opens. `ADR-004` already rests on that
-and `packages/db` already models it: `idempotency_key_hash` is `NOT NULL` and unique while
-`execution_id` and `transaction_hash` are nullable.
+### Transitions
 
-### Edges, and what each one currently rests on
+```
+PLANNED ──► REJECTED_LOCALLY
+PLANNED ──► SIMULATED_OK ──► KEY_COMMITTED
+PLANNED ──► SIMULATION_REJECTED
 
-| Edge | Evidence level | Settled by |
-|---|---|---|
-| `PLANNED -> REJECTED_LOCALLY` | **MEASURED** | `P01`, no network involved |
-| `PLANNED -> SIMULATED_OK` | `DOCUMENTED` | `P03` |
-| `PLANNED -> SIMULATION_REJECTED` | `DOCUMENTED` | `P04` |
-| `SIMULATED_OK -> SUBMITTED` | design | — |
-| `SUBMITTED -> ACCEPTED` | `DOCUMENTED` | `P05` |
-| `SUBMITTED -> RECONCILIATION_REQUIRED` on a lost response | **ASSUMED** | `P11` |
-| `ACCEPTED -> CONFIRMED` | `REQUIRES MEASUREMENT` | `P05` plus the chain read |
-| `ACCEPTED -> REVERTED` | **ASSUMED, the dominant question** | `P09`, `P10` |
-| `ACCEPTED -> RECONCILIATION_REQUIRED` on `timeout` or `not_found` | `DOCUMENTED` receipt values, unmeasured behavior | `P05`, `P12` |
-| `RECONCILIATION_REQUIRED -> CONFIRMED \| REVERTED` | `REQUIRES MEASUREMENT` | `P10`, `P11` |
-| `RECONCILIATION_REQUIRED -> PROVEN_NOT_BROADCAST` | **ASSUMED** | `P11`. This is the edge that decides whether RESURV can ever safely retry |
+KEY_COMMITTED ──► EXECUTED_NO_EFFECT           status:failed + null hash + no receipts + chain agrees
+KEY_COMMITTED ──► RECONCILIATION_REQUIRED      every other outcome, including HTTP 202
 
-### What each measurement would change
+RECONCILIATION_REQUIRED ──► CONFIRMED
+RECONCILIATION_REQUIRED ──► REVERTED
+RECONCILIATION_REQUIRED ──► PROVEN_NOT_BROADCAST
+RECONCILIATION_REQUIRED ──► RECONCILIATION_REQUIRED   (bounded retry; never leaves on a timer)
+```
 
-- If `P09` shows KeeperHub refuses to broadcast anything it predicts will revert, then
-  `ACCEPTED -> REVERTED` is rare rather than routine, and the demo's "false outcome reverts the
-  attempt" story has to be told through the contract's own revert rather than through a
-  KeeperHub status. That is a `SEAM REVISE`.
-- If `P10` shows a reverted broadcast settles as `failed` with a transaction hash and a
-  `reverted` receipt status, then `ACCEPTED -> REVERTED` is directly observable, the claim is
-  promoted, and the lifecycle above stands.
-- If `P11` shows a key replay returns the original execution, `RECONCILIATION_REQUIRED` usually
-  resolves in one request and RESURV can advance quickly. If it starts a second execution
-  instead, the transport key is not a recovery mechanism at all, the only recovery is the chain
-  read, and the onchain attempt id has to carry the whole burden. That is also a `SEAM REVISE`,
-  and a larger one.
-- If `P12` shows an unknown execution id is indistinguishable from one that is still settling,
-  then `RECONCILIATION_REQUIRED` cannot be left on KeeperHub's word at all.
+There is no `ACCEPTED` state and no `PENDING` state. Both were in the model this phase started
+with and neither survives F1: a 2xx with an `executionId` is not acceptance, and the call is
+synchronous so there is no pending phase to poll through.
 
-### One thing that is already decided
+### The reconciliation algorithm, derived from F6 and F8
 
-`CONFIRMED` requires a chain receipt **and** the expected effect in its logs. Not a KeeperHub
-status, and not a receipt alone. PRD 12.6 already says "do not mark RESURV satisfied from
-KeeperHub status alone", and section 8 turns that from a preference into a requirement.
+From `RECONCILIATION_REQUIRED`, in this order. Every step is a measured behavior, not a guess.
 
----
+1. **Replay the idempotency key with a byte-identical body.**
+   - 409 `idempotency_conflict` (`retryable: false`) — the stored body is not what was sent.
+     A programming error. Read `originalExecutionId`, go to step 3, and never rotate the key.
+   - 409 `idempotency_in_progress` (`retryable: true`) — still running. Wait and repeat this
+     step with the same key. Never rotate it.
+   - 202 with `idempotentReplay: true` — an earlier request committed. Take its `executionId`,
+     go to step 3.
+   - 202 without `idempotentReplay` — this replay is the first commit. Take its `executionId`,
+     go to step 3.
+2. **If no execution id can be obtained**, search the chain for the attempt's onchain marker.
+   Found means the effect happened; go to step 4 with that hash. Not found, after the settlement
+   window, means `PROVEN_NOT_BROADCAST`.
+3. **Read `GET /api/execute/{id}/status`** for the transaction hash. A body with `status: failed`,
+   a null hash and empty receipts still needs step 2 before it is believed.
+4. **Fetch the receipt from two independent origins** and classify by the `CONFIRMED` and
+   `REVERTED` entry conditions above. Disagreement between origins is itself
+   `RECONCILIATION_REQUIRED`, not a tie to break.
 
-## 8. Two new threats, both found by reading
+The loop is bounded by attempt count and wall clock. When it exhausts, the attempt stays in
+`RECONCILIATION_REQUIRED` and the covenant does not advance. There is no timeout that promotes
+an ambiguous attempt to a terminal state, because a timeout is not evidence.
 
-### T15. A successful transaction that contains a failed attempt
+### Two things the contract must carry, not the orchestrator
 
-The documented `receiptStatus` union includes `safe_inner_failure`, and the gas page says
-sponsorship "uses direct wallet calls; applying it to Safe writes would alter `msg.sender` away
-from the Safe itself", so a Safe route is a real execution mode on this platform.
-
-When execution routes through a Safe, the outer transaction can succeed while the inner call
-fails. A RESURV attempt executed that way would produce a receipt with status `0x1` while
-`executeAttempt` reverted. A verifier that reads the transaction receipt would read that as
-success. The entire product rests on a false outcome reverting the attempt.
-
-Two consequences, both carried into `docs/THREAT_MODEL.md`:
-
-1. RESURV must execute on the direct-wallet-sender path, which is also what gas sponsorship
-   requires, so the constraints agree.
-2. Reconciliation must treat an inner-failure receipt status as a failed attempt regardless of
-   the outer receipt status, and must confirm the expected event rather than the receipt alone.
-
-`INFERRED` from documentation, not measured. The probe records `sponsored` and the decoded
-sender on every attempt so the assumption is checked rather than trusted.
-
-### T16. A daily spending cap turns into a mid-incident refusal
-
-`/api/direct-execution`: an organization can configure a daily spending cap in wei, and exceeding
-it returns HTTP 403 with `Daily spending cap exceeded`. That is a failure mode that appears only
-under load, which is exactly when a recovery covenant is executing. It is a different branch
-from an authentication failure and must not be retried as one.
+- **Semantic idempotency is onchain.** F5 measured a second economic effect from a new key for
+  the same action. The covenant must reject a replayed semantic attempt id permanently,
+  independently of anything KeeperHub does and long past the 24-hour window.
+- **Access control keys on the organization wallet.** F9 measured `msg.sender` as the org wallet
+  while the receipt's `from` was a relayer. A contract that authorizes on anything visible in the
+  receipt authorizes the wrong address.
 
 ---
 
-## 9. Repository changes
+## 9. The advancement rule
 
-### New package
+> RESURV may begin another semantic recovery action only when the previous attempt is in
+> `REJECTED_LOCALLY`, `SIMULATION_REJECTED`, `EXECUTED_NO_EFFECT`, `CONFIRMED`, `REVERTED` or
+> `PROVEN_NOT_BROADCAST`, and every one of those was entered on chain evidence or on the
+> absence of an effect proven on chain.
+>
+> From `KEY_COMMITTED` or `RECONCILIATION_REQUIRED`, RESURV may only repeat the same
+> idempotency key with the same body. It may not rotate the key, may not try a different
+> action, and may not advance on elapsed time.
 
-`packages/seam-probe`, eleven source and test files. `test` is offline and inside the gate;
-`test:seam` is live and outside it.
+The single sentence behind it: **an HTTP status never advances a covenant; a chain read does.**
 
-`packages/repo-policy/src/dangerous-commands.ts` gains a `live-seam-execution` rule matching
-`vitest run --dir test/live`, so the live suite is classified as an external effect. The existing
-generic control, "auto-approves no workspace script that has an external effect", then covers it,
-and `test/seam-probe-boundary.test.ts` names it explicitly so a change to the rule itself is
-caught. `@resurv/seam-probe#test`, `#typecheck` and `#clean` were added to
-`REVIEWED_AUTO_APPROVED_SCRIPTS`; `#test:seam` is reachable from no allow rule and is not in the
-manifest.
+---
 
-**One thing this session could not do.** Adding `Bash(pnpm --filter @resurv/seam-probe test:seam)`
-to the `ask` tier of `.claude/settings.json` was refused by the permission classifier, so that
-file is unchanged. It costs nothing: ADR-010 already records that `ask` was measured not to
-prompt in the mode this project's sessions run in, so the entry would have been documentation of
-intent rather than a control. The controls that do carry weight, the absence of an allow rule and
-the external-effect classification, are both in place. The real control is that no credential
-exists, so the live suite cannot do anything even if it runs.
+## 10. Repository changes
 
-### Test counts, re-derived
+| Change | Why |
+|---|---|
+| `packages/seam-probe` gains `test/live/recovery.test.ts` | P13, P14 and P15, all three demanded by the first run's results rather than planned |
+| `src/rpc.ts` judges quorum on a projection | Section 4 |
+| `probe.test.ts` P11 reconciles from a chain-discovered hash | A reconciler that can only start from a KeeperHub-supplied hash is useless in the case it exists for |
+| `src/sanitize.ts` removes email addresses | `GET /api/keys` and `GET /api/user` return the operator's, and this evidence is committed |
+| `@resurv/keeperhub-client` `errors.ts` parses `retryable`, `originalExecutionId`, `hint`, `docs` and exports `readIdempotentReplay` | F10 and F6, from observed bodies only |
+| `test/offline/measured-semantics.test.ts` | 42 assertions reading the committed evidence, so this report cannot drift from it silently |
+
+Test counts, re-derived:
 
 | Suite | Before | After |
 |---|---|---|
 | `@resurv/domain` | 34 | 34 |
-| `@resurv/keeperhub-client` | 30 | 30 |
+| `@resurv/keeperhub-client` | 30 | 36 |
 | `@resurv/config` | 38 | 38 |
 | `@resurv/db` | 7 | 7 |
 | `@resurv/chain` | 7 | 7 |
 | `@resurv/worker` | 7 | 7 |
-| `@resurv/repo-policy` | 381 | 391 |
-| `@resurv/seam-probe` | — | 29 |
-| `@resurv/web` | 0 | 0 |
-| **TypeScript substantive** | **504** | **543** |
+| `@resurv/repo-policy` | 391 | 391 |
+| `@resurv/seam-probe` | 29 | 71 |
+| **TypeScript substantive** | **543** | **591** |
 | Foundry | 26 | 26 |
-
-`pnpm test:integration` and `pnpm test:e2e` still contain zero specs and are still not counted.
-
-### Gate
 
 ```
 TURBO_FORCE=true pnpm gate       exit 0
@@ -476,33 +428,45 @@ TURBO_FORCE=true pnpm gate       exit 0
   contracts test:invariant   5 passed
 ```
 
-Eleven tasks where there were ten, which is the new package.
+---
+
+## 11. Why `SEAM REVISE` rather than `SEAM PASS`
+
+KeeperHub is usable. Nothing measured prevents RESURV's dominant mechanism. Every failure mode
+encountered is observable and every ambiguous state is resolvable in bounded time.
+
+The gate turns on the second clause: *the planned attempt and reconciliation architecture must
+change before contracts or orchestrator implementation*. It must, in four ways:
+
+1. **`ACCEPTED` is not a state.** Its entry condition, a 2xx carrying an `executionId`, is
+   satisfied by an attempt that never reached the chain (F1).
+2. **`PENDING` is not a state.** The call is synchronous (F1).
+3. **`EXECUTED_NO_EFFECT` is a new terminal state** the previous model had nowhere to put, and
+   it is the *common* outcome for a rejected action, not an edge case (F2).
+4. **`RECONCILIATION_REQUIRED` is mandatory, not optional**, and its resolution depends on an
+   undocumented response field (F8) plus a chain read.
+
+Writing the covenant contract against the old model would have produced an orchestrator that
+treats a refused attempt as an executed one. That is the failure this phase existed to prevent,
+and it is worth the day it cost.
 
 ---
 
-## 10. What is still open
+## 12. What Phase 1 inherits
 
-| Item | Why |
-|---|---|
-| Every behavioral KeeperHub claim | No credential. Section 2 |
-| The canonical attempt state machine | Section 7 is a design under stated assumptions, not a measurement |
-| The second live test file, pinning observed behavior | Nothing has been observed |
-| `errors.ts` parsing the other two documented envelope shapes | Would be guessing which one the live endpoint emits. `P02` decides it |
-| `msg.sender` at a RESURV contract under sponsorship | Needs a RESURV contract. Phase 1, and the probe records the canary's answer meanwhile |
-| Rung 5 of the proof ladder | Unchanged. Not reached from this repository |
-| Whether an idempotency key is scoped per organization, per key or per endpoint | Not documented and not measurable in one run |
-
-## 11. Next action
-
-Create the environment file with the `kh_` organization key, then run
-`pnpm --filter @resurv/seam-probe test:seam` in a fresh session with this log and
-`docs/keeperhub/SEAM_CHECKLIST.md` open. That session reads the twelve evidence files, writes
-the behavioral test file, replaces section 7 with the measured lifecycle, and issues the
-`SEAM PASS`, `SEAM REVISE` or `SEAM FAIL` this one cannot.
+- The lifecycle in section 8 and the rule in section 9.
+- A measured gas figure for the sponsored path: about 45,850 units per attempt, roughly 22,000
+  of it the router wrapper.
+- Access control that must key on `0xfd35ae935de7be93ffd585d6627268d833ed834c`, never on
+  anything in the receipt.
+- The obligation to handle `REVERTED` despite never having observed it, because the refusal that
+  prevented it came with `sponsored: false` and a funded wallet may behave differently.
+- `docs/keeperhub/SEAM_CHECKLIST.md` for which of PRD 21.4 remains open: item 8, the contract
+  event and fee transfer sharing one transaction, needs the covenant contract and is the first
+  thing Phase 1 proves.
 
 Phase 1 was not started. Nothing in this session touched contracts, the orchestrator or the UI.
 
 ---
 
-**`USER ACTION REQUIRED`** — `KEEPERHUB_API_KEY`, an organization key beginning `kh_`, in `.env`
-at the repository root.
+**`SEAM REVISE`**

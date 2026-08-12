@@ -5,8 +5,12 @@ marked it PASS and did not produce it; `docs/CLAIMS.md` has carried that as `REF
 Phase 0 independent review. This is the artifact.
 
 Retrieved: **2026-08-12**. Every page below was fetched on that date from
-`https://docs.keeperhub.com`. Nothing here was reproduced live against the API from this
-repository, and the evidence level of every row says so.
+`https://docs.keeperhub.com`.
+
+**Amended the same day, after the live probe ran.** Section 13 lists what the measurement
+confirmed, what it contradicted, and the one place where this repository's undocumented
+assumption turned out to be right and the vendor's documentation wrong. Read section 13 before
+relying on any row above it.
 
 ## How to read this
 
@@ -454,3 +458,61 @@ longer experiment than Phase 0.5 justifies.
 
 No row about broadcast, revert, transport failure or reconciliation is promoted by this
 document, because documentation cannot promote them.
+
+---
+
+## 13. What the live probe found, added after measurement
+
+The seam probe ran on 2026-08-12 against the real API and Base Sepolia. Full record in
+`docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md`, evidence in
+`docs/phase-logs/evidence/phase-00-5/`.
+
+### Confirmed
+
+| Statement | Where |
+|---|---|
+| `simulate: true` answers a would-revert call with HTTP 400 and `wouldRevert: true` | S2 |
+| Simulation runs as the organization EOA and broadcasts nothing | S2 |
+| `X-Poll-Interval-Hint: 0` on a terminal execution | S2 |
+| Both 409 codes, with `retryable: false` and `retryable: true` | S3 |
+| `idempotentReplay: true` on a replayed response | S2 |
+| An execution settles `completed` only when its receipts verify | S2, six of six |
+| `usePrivateMempoolRpc: false` on Base Sepolia | S5 |
+| Gas sponsorship on Base Sepolia, with a 0-ETH wallet | S8 |
+| No list endpoint for direct executions, now a live 404 rather than an absence | S2 vs S4 |
+
+### Contradicted
+
+**The error envelope.** S1 and S3 both state that every error carries `request_id`. It does not.
+A 401 on `/api/execute/contract-call` and a 404 for an unknown execution id both return
+`{error}` and nothing else. This repository's own `ASSUMED` claim, written from a reading with
+no source and rated below documentation, was correct and the documentation is wrong.
+
+A third envelope exists that appears on no page retrieved: both 409s return
+`{error: <sentence>, code: <machine value>, retryable, originalExecutionId?}`, in which `error`
+and `code` carry the opposite roles from the documented shape.
+
+**The rate limit.** S2 said 60 per key, S1 said 100 per authenticated user. The live header is
+`x-ratelimit-limit: 60` on every Direct Execution response. S2 is right for this endpoint.
+
+### Documented nowhere, and load-bearing
+
+| Behavior | Why it matters |
+|---|---|
+| HTTP 202 is returned with `status: "failed"` for an attempt that never reached the chain | The status code carries no information about broadcast. This falsified the lifecycle RESURV was going to build |
+| `POST /api/execute/contract-call` is synchronous and does not return until terminal | There is no pending phase to poll on the happy path |
+| A call whose gas estimation reverts is refused before broadcast, and reported as an insufficient-balance error | The message names the wrong cause; a caller who funds the wallet and retries would loop |
+| `gasLimitMultiplier` below 1.0 is accepted and ignored | Removes the only route to a deliberate onchain revert |
+| A 409 `idempotency_conflict` carries `originalExecutionId` | The only KeeperHub-side handle on an execution whose id was never received |
+| The absence of `idempotentReplay` is itself informative | It marks the request that committed the key |
+| `result.executedCall.reverted` exists on a status body | The observable surface for the `safe_inner_failure` hazard in section 3 |
+| `failureKind: "revert"` on a simulation rejection | Separates a revert from other simulation failures |
+| `revertReason` leaks an ethers.js `CALL_EXCEPTION` string containing the whole transaction | It is a diagnostic, never something to parse |
+| `retryCount` and `kh-minimum-cli-version` | Minor, recorded for completeness |
+
+### Still unmeasured after the probe
+
+Items 2 and 3 of section 11 remain open, and for a reason section 11 did not anticipate: a
+reverting call never becomes a broadcast on this configuration, so there was no reverted
+broadcast whose presentation could be observed. Items 5, 7 and 10 are unchanged. Item 9 was
+never triggered.

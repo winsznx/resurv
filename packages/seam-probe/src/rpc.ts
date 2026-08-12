@@ -61,14 +61,48 @@ async function callOne<T>(
   }
 }
 
-export async function rpcQuorum<T>(method: string, params: unknown[]): Promise<Quorum<T>> {
+/**
+ * Agreement is judged on a projection, not on the raw JSON.
+ *
+ * Measured on 2026-08-12: `sepolia.base.org` and `base-sepolia-rpc.publicnode.com` returned the
+ * same receipt for the same hash, with the same `status` and the same `blockNumber`, and a
+ * byte comparison of the two bodies said they disagreed. Nodes differ on optional and
+ * presentational fields (OP-stack L1 fee accounting, key order, hex casing) that decide
+ * nothing. Comparing those and calling the result a disagreement produces a false alarm on
+ * every single reconciliation, which is worse than not checking, because a reader learns to
+ * ignore it.
+ *
+ * So the caller says what "the same answer" means for its method, and everything outside that
+ * projection is recorded but not judged.
+ */
+export async function rpcQuorum<T>(
+  method: string,
+  params: unknown[],
+  fingerprint: (value: T | undefined) => unknown = (value) => value,
+): Promise<Quorum<T>> {
   const answers = await Promise.all(
     PUBLIC_RPC_URLS.map((origin) => callOne<T>(origin, method, params)),
   );
   const successful = answers.filter((answer) => answer.ok);
-  const serialized = successful.map((answer) => JSON.stringify(answer.value ?? null));
+  const serialized = successful.map((answer) => JSON.stringify(fingerprint(answer.value) ?? null));
   const agreed = serialized.length > 1 && new Set(serialized).size === 1;
   return { method, answers, agreed, value: successful[0]?.value };
+}
+
+/** The consensus-relevant part of a receipt: what it settled, where, and what it emitted. */
+function receiptFingerprint(receipt: TransactionReceipt | null | undefined): unknown {
+  if (receipt === null || receipt === undefined) return null;
+  return {
+    transactionHash: receipt.transactionHash?.toLowerCase(),
+    status: receipt.status,
+    blockNumber: receipt.blockNumber,
+    gasUsed: receipt.gasUsed,
+    logs: (receipt.logs ?? []).map((entry) => ({
+      address: entry.address?.toLowerCase(),
+      topics: entry.topics.map((topic) => topic.toLowerCase()),
+      data: entry.data,
+    })),
+  };
 }
 
 export interface TransactionReceipt {
@@ -82,7 +116,11 @@ export interface TransactionReceipt {
 }
 
 export async function getReceipt(hash: string): Promise<Quorum<TransactionReceipt | null>> {
-  return rpcQuorum<TransactionReceipt | null>('eth_getTransactionReceipt', [hash]);
+  return rpcQuorum<TransactionReceipt | null>(
+    'eth_getTransactionReceipt',
+    [hash],
+    receiptFingerprint,
+  );
 }
 
 export interface TransactionByHash {
@@ -123,14 +161,20 @@ export async function getLogs(query: {
   fromBlock: number;
   toBlock: number | 'latest';
 }): Promise<Quorum<LogEntry[]>> {
-  return rpcQuorum<LogEntry[]>('eth_getLogs', [
-    {
-      address: query.address,
-      topics: query.topics,
-      fromBlock: `0x${query.fromBlock.toString(16)}`,
-      toBlock: query.toBlock === 'latest' ? 'latest' : `0x${query.toBlock.toString(16)}`,
-    },
-  ]);
+  return rpcQuorum<LogEntry[]>(
+    'eth_getLogs',
+    [
+      {
+        address: query.address,
+        topics: query.topics,
+        fromBlock: `0x${query.fromBlock.toString(16)}`,
+        toBlock: query.toBlock === 'latest' ? 'latest' : `0x${query.toBlock.toString(16)}`,
+      },
+    ],
+    // `toBlock: latest` resolves to a different head on each origin, so the two answers are
+    // compared on the transactions they name rather than on the window they cover.
+    (logs) => (logs ?? []).map((entry) => `${entry.transactionHash}:${entry.topics.join(',')}`),
+  );
 }
 
 export interface CallRequest {

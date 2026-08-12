@@ -1,0 +1,181 @@
+{
+  "semanticAttemptId": "c80e9d9422160d66f5ab83923ada6906a17d56ab9911a5d520615960707164f1",
+  "challenge": "0x6c2bc1bfd15db620b57a5623170f6b36ce2fbd578b2fc898ff4ee9d29f890be3",
+  "idempotencyKey": "908d47201f2f670aa84166fe60d0df8489d9eb965d93c42ad4f125ded9c9a4b8",
+  "requestBodyHash": "sha256:9f0e2d29e0e00589b16337c9902b639d4e7873a5606b4376d503a65dd3e93f9b",
+  "requestBody": {
+    "abi": "[{\"type\":\"function\",\"name\":\"ping\",\"inputs\":[{\"name\":\"challenge\",\"type\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"}]",
+    "chainId": 84532,
+    "contractAddress": "0x2A6FC8182Bf9928Ef7517dA980dC79e8107c555A",
+    "functionArgs": "[\"0x6c2bc1bfd15db620b57a5623170f6b36ce2fbd578b2fc898ff4ee9d29f890be3\"]",
+    "functionName": "ping"
+  },
+  "executionId": null,
+  "statusTransitions": [],
+  "chain": {
+    "transactionHash": "0x157d1e41f31231420e2ba933654666e1cd8e2ff2291970ea3b7d2d3095f30326",
+    "receiptStatusHex": "0x1",
+    "receiptVerdict": "success",
+    "blockNumber": 45391629,
+    "from": "0xdcf4bac4bd805948168ff63483bc493894a29613",
+    "to": "0x5af5194b4b0909eb978e3cf1e25333852277f07d",
+    "gasUsed": "0xb335",
+    "gasLimit": "0x16966",
+    "decodedSenderTopic": "0x000000000000000000000000fd35ae935de7be93ffd585d6627268d833ed834c",
+    "decodedChallengeTopic": "0x6c2bc1bfd15db620b57a5623170f6b36ce2fbd578b2fc898ff4ee9d29f890be3",
+    "originsAgreed": true,
+    "originAnswers": [
+      {
+        "origin": "https://sepolia.base.org",
+        "ok": true,
+        "status": "0x1",
+        "blockNumber": "0x2b49f0d",
+        "error": null
+      },
+      {
+        "origin": "https://base-sepolia-rpc.publicnode.com",
+        "ok": true,
+        "status": "0x1",
+        "blockNumber": "0x2b49f0d",
+        "error": null
+      }
+    ],
+    "revertData": null
+  },
+  "onchainEffectCount": 1,
+  "id": "P11-transport-abort",
+  "question": "the client did not receive a usable response: can RESURV find out whether the action happened",
+  "transport": [
+    {
+      "method": "POST",
+      "path": "/api/execute/contract-call",
+      "sentAt": "2026-08-12T16:19:02.872Z",
+      "elapsedMs": 252,
+      "requestBodyHash": "sha256:9f0e2d29e0e00589b16337c9902b639d4e7873a5606b4376d503a65dd3e93f9b",
+      "idempotencyKey": "908d47201f2f670aa84166fe60d0df8489d9eb965d93c42ad4f125ded9c9a4b8",
+      "httpStatus": null,
+      "responseHeaders": {},
+      "responseBody": null,
+      "responseText": null,
+      "transportError": "Error: probe-abort"
+    },
+    {
+      "method": "GET",
+      "path": "/api/execute",
+      "sentAt": "2026-08-12T16:19:04.126Z",
+      "elapsedMs": 427,
+      "requestBodyHash": null,
+      "idempotencyKey": null,
+      "httpStatus": 404,
+      "responseHeaders": {
+        "cache-control": "no-store",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a2a0ccafcb082fc1-AMS",
+        "connection": "keep-alive",
+        "content-encoding": "br",
+        "content-type": "application/json",
+        "date": "Wed, 12 Aug 2026 16:19:04 GMT",
+        "expect-ct": "max-age=86400, enforce",
+        "kh-minimum-cli-version": "0.11.1",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "permissions-policy": "geolocation=(), microphone=(), camera=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=8wGHMx4x1IY1ACIk5dBuvIdn2pCUkyQWcy4JTEIdS2nVBJDJQswAukV07bDYgapVg%2FpSHW0F7BYca6fIyCI%2FcpG8B%2BghKzIWQ9UmrO5eyLIHoPXGtAkL%2FrMmOItibsH%2F9HP5\"}]}",
+        "server": "cloudflare",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-request-id": "8fdc5a0c-7d8f-47cf-91bc-d8346e941d24",
+        "x-xss-protection": "1; mode=block"
+      },
+      "responseBody": {
+        "error": "not_found",
+        "detail": "Route GET /api/execute not found",
+        "request_id": "8fdc5a0c-7d8f-47cf-91bc-d8346e941d24"
+      },
+      "responseText": "{\"error\":\"not_found\",\"detail\":\"Route GET /api/execute not found\",\"request_id\":\"8fdc5a0c-7d8f-47cf-91bc-d8346e941d24\"}",
+      "transportError": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/executions",
+      "sentAt": "2026-08-12T16:19:05.556Z",
+      "elapsedMs": 425,
+      "requestBodyHash": null,
+      "idempotencyKey": null,
+      "httpStatus": 404,
+      "responseHeaders": {
+        "cache-control": "no-store",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a2a0ccb8ddf52fc1-AMS",
+        "connection": "keep-alive",
+        "content-encoding": "br",
+        "content-type": "application/json",
+        "date": "Wed, 12 Aug 2026 16:19:05 GMT",
+        "expect-ct": "max-age=86400, enforce",
+        "kh-minimum-cli-version": "0.11.1",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "permissions-policy": "geolocation=(), microphone=(), camera=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=HbyuJld6Oel5wlpTQDo8Xb7gS7m4TahoA9gkbn9iuQHpJ6Zrgom1Yizqi7RnxpLRwOu%2BfjwjfhcQIZKuz11g0QrfmG%2FH1HkgSCopdTHIZ0ZAJdbdmL2sJ%2BOTwqxdfaPb3s2q\"}]}",
+        "server": "cloudflare",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-request-id": "6c7d2682-c7f3-4e32-8e82-ee6b2dff0a22",
+        "x-xss-protection": "1; mode=block"
+      },
+      "responseBody": {
+        "error": "not_found",
+        "detail": "Route GET /api/executions not found",
+        "request_id": "6c7d2682-c7f3-4e32-8e82-ee6b2dff0a22"
+      },
+      "responseText": "{\"error\":\"not_found\",\"detail\":\"Route GET /api/executions not found\",\"request_id\":\"6c7d2682-c7f3-4e32-8e82-ee6b2dff0a22\"}",
+      "transportError": null
+    },
+    {
+      "method": "POST",
+      "path": "/api/execute/contract-call",
+      "sentAt": "2026-08-12T16:19:06.983Z",
+      "elapsedMs": 409,
+      "requestBodyHash": "sha256:9f0e2d29e0e00589b16337c9902b639d4e7873a5606b4376d503a65dd3e93f9b",
+      "idempotencyKey": "908d47201f2f670aa84166fe60d0df8489d9eb965d93c42ad4f125ded9c9a4b8",
+      "httpStatus": 409,
+      "responseHeaders": {
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a2a0ccc1debf2fc1-AMS",
+        "connection": "keep-alive",
+        "content-type": "application/json",
+        "date": "Wed, 12 Aug 2026 16:19:07 GMT",
+        "expect-ct": "max-age=86400, enforce",
+        "kh-minimum-cli-version": "0.11.1",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "permissions-policy": "geolocation=(), microphone=(), camera=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=gvOgi1pTQXbLXCau5AbXXNwsi6R%2F0y3Lq6hD3BgqNim9Dg%2F6j%2BJe5GoWUWSiRukNTJRJ8bc3saNM5YCRN0rLEb5vZiAslUVwJBaZwLm3ClxzldnFsXxUC%2FX2kEUx5WT0lR4g\"}]}",
+        "server": "cloudflare",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-ratelimit-limit": "60",
+        "x-ratelimit-remaining": "56",
+        "x-ratelimit-reset": "1786551569",
+        "x-xss-protection": "1; mode=block"
+      },
+      "responseBody": {
+        "error": "A request with this Idempotency-Key is already being processed. Retry the same key shortly; do not rotate it.",
+        "code": "idempotency_in_progress",
+        "retryable": true
+      },
+      "responseText": "{\"error\":\"A request with this Idempotency-Key is already being processed. Retry the same key shortly; do not rotate it.\",\"code\":\"idempotency_in_progress\",\"retryable\":true}",
+      "transportError": null
+    }
+  ],
+  "observation": "abort: no HTTP response (Error: probe-abort) after 252ms; GET /api/execute HTTP 404 in 427ms; GET /api/executions HTTP 404 in 425ms; key replay HTTP 409 in 409ms code=idempotency_in_progress idempotentReplay=undefined executionId=undefined; chain effects for this challenge=1 (hashes 0x157d1e41f31231420e2ba933654666e1cd8e2ff2291970ea3b7d2d3095f30326); chain-first reconciliation=success sender=0x000000000000000000000000fd35ae935de7be93ffd585d6627268d833ed834c block=45391629 origins agreed=true"
+}

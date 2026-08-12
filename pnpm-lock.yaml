@@ -23,12 +23,21 @@ importers:
 
   apps/web:
     dependencies:
+      '@resurv/chain':
+        specifier: workspace:*
+        version: link:../../packages/chain
+      '@resurv/proof':
+        specifier: workspace:*
+        version: link:../../packages/proof
       react:
         specifier: 19.2.8
         version: 19.2.8
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
+      viem:
+        specifier: 2.55.13
+        version: 2.55.13(typescript@7.0.2)(zod@4.4.3)
     devDependencies:
       '@tailwindcss/vite':
         specifier: 4.3.3
@@ -72,6 +81,9 @@ importers:
       '@resurv/keeperhub-client':
         specifier: workspace:*
         version: link:../../packages/keeperhub-client
+      '@resurv/proof':
+        specifier: workspace:*
+        version: link:../../packages/proof
       '@resurv/web':
         specifier: workspace:*
         version: link:../web
@@ -221,6 +233,18 @@ importers:
       '@resurv/keeperhub-client':
         specifier: workspace:*
         version: link:../keeperhub-client
+    devDependencies:
+      '@types/node':
+        specifier: 26.2.0
+        version: 26.2.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@26.2.0)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
+
+  packages/proof:
     devDependencies:
       '@types/node':
         specifier: 26.2.0

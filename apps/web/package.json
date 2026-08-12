@@ -13,8 +13,11 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
+    "@resurv/chain": "workspace:*",
+    "@resurv/proof": "workspace:*",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "viem": "2.55.13"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",

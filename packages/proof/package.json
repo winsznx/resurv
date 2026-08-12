@@ -1,0 +1,20 @@
+{
+  "name": "@resurv/proof",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The committed evidence, typed. Imports the deployment manifest and the canonical outcome receipt directly so the proof page and the Worker read the same bytes the live run wrote.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  }
+}

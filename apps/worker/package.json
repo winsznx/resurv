@@ -18,6 +18,7 @@
     "@resurv/db": "workspace:*",
     "@resurv/domain": "workspace:*",
     "@resurv/keeperhub-client": "workspace:*",
+    "@resurv/proof": "workspace:*",
     "@resurv/web": "workspace:*",
     "hono": "4.13.1"
   },

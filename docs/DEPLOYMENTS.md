@@ -51,6 +51,70 @@ the verifier returned false, none of those six logs would exist.
 
 Full receipt: `docs/proof/canonical-covenant.json`.
 
+## Contract source verification
+
+All six contracts are verified on **Sourcify** at `match` level — the strongest one, meaning both
+the creation bytecode and the deployed runtime bytecode reproduce exactly from this repository's
+source at the pinned compiler settings. Sourcify propagated each one to Blockscout, so there is a
+browsable explorer view as well as a machine-checkable one.
+
+Verified 2026-08-12 from commit `2ccf02f`, solc 0.8.36, EVM cancun, optimizer on at 200 runs,
+`bytecode_hash = "none"`, `cbor_metadata = false`.
+
+| Contract | Sourcify | Blockscout |
+|---|---|---|
+| `ResurvCovenantManager` | [match](https://repo.sourcify.dev/84532/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21) | [source](https://base-sepolia.blockscout.com/address/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21?tab=contract) |
+| `PauseAction` | [match](https://repo.sourcify.dev/84532/0x84c21e26ed405f6959b53a577afc677854f35fb6) | [source](https://base-sepolia.blockscout.com/address/0x84c21e26ed405f6959b53a577afc677854f35fb6?tab=contract) |
+| `EvacuateERC20Action` | [match](https://repo.sourcify.dev/84532/0x498bd80ebc30d51de9764a20abc96b50d6840416) | [source](https://base-sepolia.blockscout.com/address/0x498bd80ebc30d51de9764a20abc96b50d6840416?tab=contract) |
+| `VaultSafeStateVerifier` | [match](https://repo.sourcify.dev/84532/0xde41aab7341db6ef25f513df51a264faf23ca737) | [source](https://base-sepolia.blockscout.com/address/0xde41aab7341db6ef25f513df51a264faf23ca737?tab=contract) |
+| `DemoVault` | [match](https://repo.sourcify.dev/84532/0x60ff59ea3eac52fd0c02dd8e31a368b4bd2f1cb8) | [source](https://base-sepolia.blockscout.com/address/0x60ff59ea3eac52fd0c02dd8e31a368b4bd2f1cb8?tab=contract) |
+| `TestUSD` | [match](https://repo.sourcify.dev/84532/0x96981488e239142e340bf32679059baa56bae2b1) | [source](https://base-sepolia.blockscout.com/address/0x96981488e239142e340bf32679059baa56bae2b1?tab=contract) |
+
+Check any of them without trusting this table:
+
+```bash
+curl -s https://sourcify.dev/server/v2/contract/84532/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21 \
+  | jq '{match, creationMatch, runtimeMatch}'
+```
+
+The exact commands that produced it, run from `packages/contracts`:
+
+```bash
+W=0xfd35ae935de7be93ffd585d6627268d833ed834c   # KeeperHub organization wallet
+T=0x96981488e239142e340bf32679059baa56bae2b1   # TestUSD
+M=0xfcafbc81f253e62a3818ecda7a7a71e557c65b21   # ResurvCovenantManager
+
+forge verify-contract $T src/demo/TestUSD.sol:TestUSD \
+  --chain 84532 --verifier sourcify
+
+forge verify-contract 0xde41aab7341db6ef25f513df51a264faf23ca737 \
+  src/verifiers/VaultSafeStateVerifier.sol:VaultSafeStateVerifier \
+  --chain 84532 --verifier sourcify
+
+forge verify-contract 0x60ff59ea3eac52fd0c02dd8e31a368b4bd2f1cb8 src/demo/DemoVault.sol:DemoVault \
+  --chain 84532 --verifier sourcify \
+  --constructor-args "$(cast abi-encode 'constructor(address)' $W)"
+
+forge verify-contract 0x84c21e26ed405f6959b53a577afc677854f35fb6 \
+  src/actions/PauseAction.sol:PauseAction \
+  --chain 84532 --verifier sourcify \
+  --constructor-args "$(cast abi-encode 'constructor(address)' $M)"
+
+forge verify-contract 0x498bd80ebc30d51de9764a20abc96b50d6840416 \
+  src/actions/EvacuateERC20Action.sol:EvacuateERC20Action \
+  --chain 84532 --verifier sourcify \
+  --constructor-args "$(cast abi-encode 'constructor(address)' $M)"
+
+forge verify-contract $M src/ResurvCovenantManager.sol:ResurvCovenantManager \
+  --chain 84532 --verifier sourcify \
+  --constructor-args "$(cast abi-encode 'constructor(address,address,address,address[])' $W $W $W "[$T]")"
+```
+
+Sourcify rather than Basescan because Basescan's v2 API needs a key this build does not have.
+Sourcify needs none, and it reported `Daily limit of 500 source code submissions reached` when it
+tried to forward to Etherscan on our behalf, which is why the Basescan tab may still show these
+as unverified while Sourcify and Blockscout show the source.
+
 ## Reproducing a deployment
 
 Both commands spend the KeeperHub organization credential and land real transactions. Neither is
@@ -114,24 +178,27 @@ forge verify-contract 0xfcafbc81f253e62a3818ecda7a7a71e557c65b21 \
       '[0x96981488e239142e340bf32679059baa56bae2b1]')"
 ```
 
-## Database: Supabase Postgres
+## Persistence: no database
 
-Schema and the generated migration live in `packages/db`. No live connection exists.
+RESURV ships without one, and that is a decision rather than an omission. ADR-016.
 
-The live demo does not need one. `packages/orchestrator` defines the durable store as an
-interface with two implementations: `FileAttemptStore`, an `fsync`'d append-only journal used by
-the CLI runner, and the Supabase-backed store used by a deployed multi-worker orchestrator. Both
-pass the same conformance suite. ADR-004's requirement is durability before the first POST, and
-the journal satisfies it for a single process; what it does not satisfy is two workers sharing a
-store, which is why the interface exists.
+The orchestrator's durable store is `FileAttemptStore`: an append-only JSONL journal that
+`fsync`s before `reserve` returns. That is what ADR-004's argument actually requires — the
+idempotency key and canonical body on stable storage before the first POST — and it is what
+every live deployment and the canonical covenant in this repository ran on.
 
-### USER ACTION REQUIRED to run the orchestrator as a service
+Nothing to provision. No connection string. No credential.
 
-| Variable | Why |
-|---|---|
-| `SUPABASE_URL` | Project endpoint |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-side writes from the Worker. Must never reach browser code |
-| `DATABASE_URL` | Migration application, transaction-mode pooling for a serverless caller |
+`packages/db` holds a Drizzle schema and a generated migration that nothing imports at runtime.
+It is a design artifact for a multi-worker orchestrator that does not exist, kept because the
+shape of the tables is the useful part and regenerating it later from scratch would lose the
+reasoning. `pnpm --filter @resurv/db migrate:generate` still regenerates the SQL from the schema
+and opens no connection.
+
+The limit worth stating: a journal is durable for one process and is not a store two processes
+can share. Nothing in RESURV needs one — the deployed Worker serves read-only routes and has no
+write path — and the `AttemptStore` interface is the seam to implement against on the day
+something does.
 
 ## Gas
 

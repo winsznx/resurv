@@ -24,6 +24,16 @@ export const serverSecretsSchema = z.object({
     (value) => value.startsWith('kh_'),
     'must be an organization key starting with kh_ (a wfb_ webhook key cannot execute)',
   ),
+  /**
+   * The three below are optional and **nothing in RESURV reads them**. No database is wired: the
+   * orchestrator persists to an `fsync`'d journal (`FileAttemptStore`) and the Worker serves
+   * read-only routes from committed artifacts. See ADR-016.
+   *
+   * They stay declared for one reason, and it is not aspiration: `DECLARED_SECRET_KEYS` drives
+   * redaction, so a value under any of these names is scrubbed out of a log line or an error
+   * report even though no code path would ever have put one there. Declaring a secret you do not
+   * use is cheap; failing to redact one you did not declare is not.
+   */
   DATABASE_URL: secret.optional(),
   SUPABASE_URL: z.url().optional(),
   SUPABASE_SERVICE_ROLE_KEY: secret.optional(),

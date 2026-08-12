@@ -30,19 +30,26 @@ describe('the proof page', () => {
     expect(markup).toContain(`sepolia.basescan.org/tx/${RECEIPT.successTransaction.hash}`);
   });
 
-  it('renders every step of the timeline', () => {
-    // #then
+  it('renders every step the receipt records, with its evidence', () => {
+    // #then: a proof page that quietly dropped a step it had no copy for would be the exact
+    // failure this asserts against. Every step is present by its transaction or by its note.
     for (const step of RECEIPT.steps) {
-      expect(markup, `${step.label} is missing from the page`).toContain(
-        step.state.replace(/_/g, ' ').toLowerCase(),
-      );
+      const evidence = step.transactionHash ?? step.note.slice(0, 30);
+      expect(markup, `${step.label} is missing from the page`).toContain(evidence);
     }
   });
 
-  it('says the primary action was refused and the fallback confirmed', () => {
+  it('distinguishes the refused action from the confirmed one in words, not only in colour', () => {
     // #then
-    expect(markup).toContain('simulation rejected');
-    expect(markup).toContain('confirmed');
+    expect(markup).toContain('refused, not broadcast');
+    expect(markup).toContain('confirmed on chain');
+    // and the refusal is marked up as such, so it does not rely on the accent colour alone
+    expect(markup).toContain('resurv-rail__marker--refused');
+  });
+
+  it('states, in the timeline itself, that the refused action sent no transaction', () => {
+    // #then
+    expect(markup).toContain('No transaction. This step is offchain evidence');
   });
 
   it('states its limitations on the page rather than only in a document', () => {

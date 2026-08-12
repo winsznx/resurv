@@ -4,19 +4,18 @@
  * This is the durable store the live demo runner uses, and the choice is worth stating plainly
  * rather than leaving to be discovered.
  *
- * `docs/DECISIONS.md` ADR-004 requires that the idempotency key and canonical body reach stable
- * storage before the first POST, so that a process that dies mid-request can replay rather than
- * re-send. It names Supabase Postgres as the production store, and Supabase credentials are a
- * user-owned resource this build does not have. What the argument actually requires is
- * durability across a crash, and an `fsync`'d append satisfies that for a single-process runner
- * exactly as a committed row does for a service.
+ * This is the production store. There is no other one, and no database. ADR-016.
  *
- * What it does not satisfy: two processes sharing a store. Nothing in this repository does yet.
- * The deployed Worker serves read-only routes and has no write path at all, and a
- * Supabase-backed implementation of `AttemptStore` is an open item under ADR-004 rather than a
- * shipped component. An earlier version of this comment claimed one existed and that a
- * conformance suite ran against both; it did not, and saying so was the kind of overclaim the
- * rest of this repository exists to avoid.
+ * ADR-004 proved that the idempotency key and canonical body must reach stable storage before
+ * the first POST, so that a process which dies mid-request can replay rather than re-send. That
+ * proof stands. Its conclusion — that the store had to be a hosted Postgres — did not: what the
+ * argument requires is durability across a process death, and an `fsync`'d append gives exactly
+ * that for a single-process runner.
+ *
+ * What it does not give is a store two processes can share. Nothing in RESURV needs one: the
+ * deployed Worker serves read-only routes and has no write path at all. `AttemptStore` is the
+ * seam to implement against on the day something does, and until then this file is not a
+ * placeholder for a real store, it is the real store.
  */
 
 import { closeSync, fsyncSync, mkdirSync, openSync, readFileSync, writeSync } from 'node:fs';

@@ -189,8 +189,8 @@ live deployment. A covenant already satisfied at trigger time can still pay a fu
 to the PRD's own `executeAttempt`, and the PRD is what is wrong. A requester who can satisfy
 their own outcome can reclaim the escrow, and a pauser can block the payout window until the
 deadline; both are within the design and neither has a responder protection in v1.
-`TestUSD.mint` is permissionless. Supabase is unwired. No CI has ever run, because there is no
-remote.
+`TestUSD.mint` is permissionless. There is no database; the orchestrator persists to an
+`fsync`'d journal (ADR-016).
 
 ## Security findings
 

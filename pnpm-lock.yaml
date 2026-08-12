@@ -72,9 +72,6 @@ importers:
       '@resurv/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@resurv/db':
-        specifier: workspace:*
-        version: link:../../packages/db
       '@resurv/domain':
         specifier: workspace:*
         version: link:../../packages/domain

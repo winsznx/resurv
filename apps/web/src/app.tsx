@@ -1,16 +1,8 @@
 import { explorerAddressUrl, explorerTxUrl } from '@resurv/chain';
-import { ATOMIC_LOG_ORDER, DEPLOYMENT, RECEIPT, type ReceiptStep } from '@resurv/proof';
+import { ATOMIC_LOG_ORDER, DEPLOYMENT, RECEIPT } from '@resurv/proof';
 import { useEffect, useState } from 'react';
-import {
-  Card,
-  Chip,
-  type ChipTone,
-  ExternalLink,
-  Mono,
-  Row,
-  SectionHeading,
-  Stat,
-} from './proof/components.tsx';
+import { Card, Chip, ExternalLink, Mono, Row, SectionHeading, Stat } from './proof/components.tsx';
+import { Timeline } from './proof/timeline.tsx';
 import {
   decodeVerifierContext,
   formatUsd,
@@ -27,29 +19,6 @@ import {
  * committed; everything about the present is read from two public RPC origins in the visitor's
  * own browser, so nothing here depends on a RESURV server telling the truth.
  */
-
-const STEP_TONE: Record<string, ChipTone> = {
-  CONFIRMED: 'confirmed',
-  SIMULATION_REJECTED: 'refused',
-  REJECTED: 'rejected',
-};
-
-const STEP_TITLES: Record<string, string> = {
-  'revoke-pauser': 'The primary lever is quietly revoked',
-  'mint-fee': 'The success fee is minted to the requester',
-  'approve-escrow': 'The escrow is approved to take the fee',
-  'covenant-create': 'Covenant created: outcome, plan and authority committed',
-  'covenant-arm': 'Covenant funded and ARMED',
-  trigger: 'Signed risk trigger accepted',
-  'attempt-primary': 'Attempt 1, pause: refused before broadcast',
-  'attempt-fallback': 'Attempt 2, evacuate: executed and confirmed',
-  'replay-trigger': 'The same trigger, replayed',
-  'replay-attempt': 'The same attempt, replayed',
-};
-
-function stepTone(step: ReceiptStep): ChipTone {
-  return STEP_TONE[step.state] ?? 'neutral';
-}
 
 export function App() {
   const [live, setLive] = useState<LiveVerification | undefined>(undefined);
@@ -80,16 +49,23 @@ export function App() {
 
   return (
     <div className="min-h-screen">
+      <a className="resurv-skip" href="#main">
+        Skip to the proof
+      </a>
       <header className="sticky top-0 z-10 border-cloud/70 border-b bg-paper/85 backdrop-blur">
         <div className="mx-auto flex max-w-[var(--page-max-width)] items-center justify-between px-6 py-4">
           <span className="font-semibold text-obsidian tracking-tight" style={{ fontSize: 18 }}>
             RESURV
           </span>
-          <nav className="flex items-center gap-5" style={{ fontSize: 'var(--text-caption)' }}>
+          <nav
+            aria-label="Sections of this proof"
+            className="flex items-center gap-4 sm:gap-5"
+            style={{ fontSize: 'var(--text-caption)' }}
+          >
             <a href="#timeline" className="text-iron hover:text-obsidian">
               Timeline
             </a>
-            <a href="#atomic" className="text-iron hover:text-obsidian">
+            <a href="#atomic" className="hidden text-iron hover:text-obsidian sm:inline">
               One transaction
             </a>
             <a href="#verify" className="text-iron hover:text-obsidian">
@@ -102,7 +78,7 @@ export function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[var(--page-max-width)] px-6 pb-24">
+      <main id="main" className="mx-auto max-w-[var(--page-max-width)] px-6 pb-24">
         {/* ---------------------------------------------------------------- hero */}
         <section className="py-16 md:py-20">
           <div className="flex flex-wrap items-center gap-2">
@@ -117,31 +93,53 @@ export function App() {
             The transaction landed. That was never the question.
           </h1>
           <p className="mt-6 max-w-2xl text-steel" style={{ fontSize: 'var(--text-body-lg)' }}>
-            RESURV is an outcome covenant. A protocol commits, before an incident, to what safe
-            means and to a short list of pre-authorized recovery actions. The responder is paid only
-            when a verifier observes that state, inside the same transaction that produced it. This
-            page is one covenant that ran.
+            RESURV keeps executing pre-authorized recovery actions through KeeperHub until the
+            promised onchain state is verified, then releases payment. A protocol commits to what
+            safe means before an incident; the responder is paid only when a verifier observes that
+            state, inside the same transaction that produced it. Below is one covenant that ran.
           </p>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div
+            className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            aria-live="polite"
+            aria-busy={live === undefined && liveError === undefined}
+          >
             <Card>
               <Stat
                 label="Covenant"
-                value={live?.statusName ?? '…'}
-                hint="read from chain just now"
+                value={live?.statusName ?? (liveError === undefined ? 'reading…' : 'RPC down')}
+                hint={
+                  liveError === undefined
+                    ? 'read from chain just now'
+                    : 'the receipt below is unaffected'
+                }
               />
             </Card>
             <Card>
               <Stat
                 label="Declared outcome"
-                value={live === undefined ? '…' : live.satisfied ? 'True' : 'False'}
+                value={
+                  live === undefined
+                    ? liveError === undefined
+                      ? 'reading…'
+                      : 'RPC down'
+                    : live.satisfied
+                      ? 'True'
+                      : 'False'
+                }
                 hint="the verifier, called live"
               />
             </Card>
             <Card>
               <Stat
                 label="Success fee released"
-                value={live === undefined ? '…' : `${formatUsd(live.responderBalance)} rUSD`}
+                value={
+                  live === undefined
+                    ? liveError === undefined
+                      ? 'reading…'
+                      : `${formatUsd(BigInt(RECEIPT.outcome.responderBalance))} rUSD`
+                    : `${formatUsd(live.responderBalance)} rUSD`
+                }
                 hint="in the same transaction"
               />
             </Card>
@@ -164,7 +162,7 @@ export function App() {
                   Open the successful attempt on Basescan
                 </span>
               </ExternalLink>
-              <p className="mt-2">
+              <p className="mt-2 resurv-break">
                 <Mono>{success.hash}</Mono>
               </p>
             </div>
@@ -211,13 +209,19 @@ export function App() {
               <p style={{ fontSize: 'var(--text-caption)' }} className="text-ash">
                 COVENANT ID
               </p>
-              <p className="mt-2 break-all font-mono" style={{ fontSize: 'var(--text-caption)' }}>
+              <p
+                className="mt-2 resurv-break font-mono"
+                style={{ fontSize: 'var(--text-caption)' }}
+              >
                 {RECEIPT.covenant.covenantId}
               </p>
               <p className="mt-6 text-ash" style={{ fontSize: 'var(--text-caption)' }}>
                 VERIFIER CONTEXT HASH
               </p>
-              <p className="mt-2 break-all font-mono" style={{ fontSize: 'var(--text-caption)' }}>
+              <p
+                className="mt-2 resurv-break font-mono"
+                style={{ fontSize: 'var(--text-caption)' }}
+              >
                 {RECEIPT.covenant.verifierContextHash}
               </p>
               <p className="mt-6 text-ash" style={{ fontSize: 'var(--text-caption)' }}>
@@ -229,54 +233,26 @@ export function App() {
         </section>
 
         {/* ------------------------------------------------------------- timeline */}
-        <section id="timeline" className="py-10">
-          <SectionHeading eyebrow="what happened" title="The execution timeline" />
-          <Card>
-            <ol>
-              {RECEIPT.steps.map((step, index) => (
-                <li
-                  key={step.label}
-                  className="grid gap-3 border-cloud border-b py-5 last:border-b-0 md:grid-cols-[2.5rem_1fr_auto]"
-                >
-                  <span className="text-ash" style={{ fontSize: 'var(--text-caption)' }}>
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <div>
-                    <p
-                      className="font-medium text-obsidian"
-                      style={{ fontSize: 'var(--text-body)' }}
-                    >
-                      {STEP_TITLES[step.label] ?? step.label}
-                    </p>
-                    <p className="mt-1 text-steel" style={{ fontSize: 'var(--text-caption)' }}>
-                      {step.note}
-                    </p>
-                    {step.explorer === undefined ? null : (
-                      <p className="mt-2">
-                        <ExternalLink href={step.explorer}>
-                          <Mono>{shorten(step.transactionHash ?? '', 14, 10)}</Mono>
-                        </ExternalLink>
-                      </p>
-                    )}
-                  </div>
-                  <div className="md:text-right">
-                    <Chip tone={stepTone(step)}>{step.state.replace(/_/g, ' ').toLowerCase()}</Chip>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </Card>
-          <p className="mt-4 max-w-3xl text-steel" style={{ fontSize: 'var(--text-caption)' }}>
-            Step 8 is the one that matters. The primary action was refused by simulation, so no
-            transaction was ever sent and nothing on chain moved. RESURV did not retry it, did not
-            widen its authority and did not guess: it moved to the next action its covenant had
-            already approved.
+        <section id="timeline" className="py-10" aria-labelledby="timeline-heading">
+          <SectionHeading
+            id="timeline-heading"
+            eyebrow="what happened, in order"
+            title="The execution timeline"
+          />
+          <p className="mb-8 max-w-3xl text-steel" style={{ fontSize: 'var(--text-body)' }}>
+            Read the two emphasised beats and you have the product. The first approved action could
+            not safely complete, so nothing was sent. The second one did, and it carried the
+            outcome, the state change and the payment in a single transaction.
           </p>
+          <Card>
+            <Timeline steps={RECEIPT.steps} />
+          </Card>
         </section>
 
         {/* --------------------------------------------------------------- atomic */}
-        <section id="atomic" className="py-10">
+        <section id="atomic" className="py-10" aria-labelledby="atomic-heading">
           <SectionHeading
+            id="atomic-heading"
             eyebrow="why it is not just a bot"
             title="One transaction, six logs, in this order"
           />
@@ -323,8 +299,9 @@ export function App() {
         </section>
 
         {/* --------------------------------------------------------------- verify */}
-        <section id="verify" className="py-10">
+        <section id="verify" className="py-10" aria-labelledby="verify-heading">
           <SectionHeading
+            id="verify-heading"
             eyebrow="check it yourself"
             title="Read live, from two independent nodes"
           />
@@ -364,8 +341,11 @@ export function App() {
               <p style={{ fontSize: 'var(--text-caption)' }} className="text-ash">
                 OR FROM A TERMINAL
               </p>
+              {/* Wraps rather than scrolls. A horizontally scrolling code block needs a
+                  focusable, named container to be reachable by keyboard at all; wrapping removes
+                  the problem instead of managing it, and reads better on a phone. */}
               <pre
-                className="mt-3 overflow-x-auto whitespace-pre text-snow"
+                className="mt-3 whitespace-pre-wrap break-words text-snow"
                 style={{ fontSize: 'var(--text-caption)', lineHeight: 1.7 }}
               >
                 {`cast call ${RECEIPT.covenant.manager} \\
@@ -416,8 +396,12 @@ cast receipt ${success.hash ?? ''} \\
         </section>
 
         {/* ------------------------------------------------------------- evidence */}
-        <section id="evidence" className="py-10">
-          <SectionHeading eyebrow="what this page does not claim" title="The evidence ledger" />
+        <section id="evidence" className="py-10" aria-labelledby="evidence-heading">
+          <SectionHeading
+            id="evidence-heading"
+            eyebrow="what this page does not claim"
+            title="The evidence ledger"
+          />
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
               <p className="font-medium text-obsidian" style={{ fontSize: 'var(--text-body)' }}>

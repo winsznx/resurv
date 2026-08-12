@@ -15,7 +15,6 @@
   "dependencies": {
     "@resurv/chain": "workspace:*",
     "@resurv/config": "workspace:*",
-    "@resurv/db": "workspace:*",
     "@resurv/domain": "workspace:*",
     "@resurv/keeperhub-client": "workspace:*",
     "@resurv/proof": "workspace:*",

@@ -119,13 +119,13 @@ qualifier on rung 9 rather than claiming the rung whole.
    derivable from one organization. The onchain attempt id covers both.
 4. **Whether a concurrent-writer store behaves.** `InMemoryAttemptStore.reserve` is synchronous,
    so the concurrency test cannot interleave. The design is right and the race is not exercised.
-   That test belongs with the Supabase store, which does not exist.
+   Nothing that ships has two writers, so the test belongs with the shared store that would.
 
 ## Known limitations
 
 - Testnet only. No mainnet, no external audit, not production-ready by this project's own gate.
 - The requester, the admin, the pauser and the executor are one address on the live deployment.
-- Supabase is designed, migrated and unwired. The live runner uses an `fsync`'d journal.
+- No database. The orchestrator persists to an `fsync`'d journal. ADR-016.
 - A covenant already satisfied at trigger time can still pay a full fee if an executor runs an
   action against it. Faithful to the PRD's own illustrative `executeAttempt`; the PRD is what is
   wrong. Accepted for v1 and recorded.

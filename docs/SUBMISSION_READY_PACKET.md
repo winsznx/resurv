@@ -175,8 +175,9 @@ Stated here rather than left to be found:
   failed, because KeeperHub refuses to broadcast a call whose gas estimation reverts. `REVERTED`
   is implemented and tested anyway, and nothing is claimed about how it presents.
 - `safe_inner_failure` is documented and was never observed. It is handled conservatively.
-- Supabase is designed and unwired; the live runner uses an `fsync`'d journal that satisfies the
-  same durability requirement for one process.
+- No database. The orchestrator persists to an `fsync`'d append-only journal, which is what the
+  durability argument requires for one process; a shared store does not exist and nothing that
+  ships needs one.
 - The model-assisted planner is not built. Action order is the covenant's committed order, which
   means no model is anywhere near the safety path.
 

@@ -22,7 +22,7 @@ export function Card({
     tone === 'dark' ? 'bg-slate text-snow border-slate' : 'bg-snow text-graphite border-cloud';
   return (
     <section
-      className={`rounded-[36px] border p-7 ${surface} ${className}`}
+      className={`rounded-cards border p-7 ${surface} ${className}`}
       style={{ borderWidth: 1 }}
     >
       {children}
@@ -30,13 +30,23 @@ export function Card({
   );
 }
 
-export function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
+export function SectionHeading({
+  eyebrow,
+  title,
+  id,
+}: {
+  eyebrow: string;
+  title: string;
+  /** Referenced by the section's `aria-labelledby`, so the landmark is actually named. */
+  id?: string;
+}) {
   return (
     <header className="mb-8">
       <p className="text-fog" style={{ fontSize: 'var(--text-caption)', letterSpacing: '0.08em' }}>
         {eyebrow.toUpperCase()}
       </p>
       <h2
+        {...(id === undefined ? {} : { id })}
         className="mt-2 font-semibold text-obsidian"
         style={{ fontSize: 'var(--text-heading-sm)', lineHeight: 1.25 }}
       >

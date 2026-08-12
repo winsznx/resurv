@@ -576,3 +576,53 @@ commitments would then be made by something other than the manager.
 The manager grew by 516 bytes and had to be redeployed, which took the salt namespace from
 `resurv/v1` to `resurv/v2`. The v1 contracts remain on chain, unused and unreferenced, because
 CREATE2 will not redeploy an unchanged contract at an address it already occupies.
+
+---
+
+## ADR-016: RESURV ships with no database, and ADR-004's conclusion no longer holds
+
+Date: 2026-08-12. Status: accepted, supersedes the operational half of ADR-004. Phase: release.
+
+### Context
+
+ADR-004 proved that persistent offchain state is *necessary* and concluded that it should be
+Supabase Postgres. The proof is still correct and worth restating, because it is the reason any
+of this machinery exists: `/api/execute/contract-call` is synchronous, there is no
+list-executions endpoint for direct execution, and a client that dies between sending and
+reading cannot recover the execution id by querying. The only recovery is replaying the same
+idempotency key with a byte-identical body, which requires both to be durable *before* the first
+POST.
+
+What ADR-004 got wrong was the second step. "Persistent state is necessary" does not imply "a
+hosted Postgres is necessary". It implies durability across a process death.
+
+### Decision
+
+The shipped runtime uses **no database**. `AttemptStore` is an interface with one production
+implementation, `FileAttemptStore`: an append-only JSONL journal that `fsync`s before `reserve`
+returns. That satisfies ADR-004's actual requirement for a single-process runner exactly as a
+committed row would for a service, and it is what every live deployment and every live covenant
+in this repository actually ran on.
+
+`@supabase/supabase-js` is not installed. `packages/db` is a Drizzle schema and a generated
+migration that nothing imports at runtime; it is a design artifact for the multi-worker
+orchestrator that does not exist. `DATABASE_URL`, `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
+remain declared in `@resurv/config` as redaction surface and are read by nothing.
+
+### Consequences
+
+There is no Supabase credential in RESURV's `USER ACTION REQUIRED` list, and there never should
+have been one: the documents that listed it were describing an architecture the build did not
+end up needing. Those have been corrected.
+
+What `FileAttemptStore` does **not** provide is a store two processes can share. Nothing in
+RESURV needs one today — the Worker serves read-only routes and holds no write path at all — and
+the moment something does, the interface is the seam to implement against. `docs/CLAIMS.md` and
+`docs/FINAL_BUILD_REPORT.md` both record that the concurrency test cannot currently interleave,
+which is the honest limit of what has been demonstrated.
+
+### Revisit if
+
+The orchestrator moves into the Worker's `queue` or `scheduled` entry points, or more than one
+process is ever expected to advance the same covenant. Either makes a shared store mandatory and
+`FileAttemptStore` immediately wrong.

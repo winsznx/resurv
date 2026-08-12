@@ -276,9 +276,10 @@ or production readiness.
   claimed about how a reverted broadcast presents.
 - **`safe_inner_failure` is documented and never observed.** It is handled conservatively and
   tested; the evidence level stays DOCUMENTED.
-- **Supabase is designed and unwired.** The live runner uses an `fsync`'d journal that satisfies
-  the same durability requirement for a single process. A multi-worker deployment needs the
-  database and its credentials.
+- **No database, by decision.** The orchestrator persists to an `fsync`'d append-only journal,
+  which is what ADR-004's durability argument actually requires. There is nothing to provision
+  and no connection string. A store two processes could share does not exist and is not needed
+  by anything that ships today. [ADR-016](docs/DECISIONS.md).
 - **The bounded planner is deterministic.** The model-assisted ranking path in PRD 13 is not
   built; action order is the covenant's committed order. No model is in the safety path, which
   was always the requirement.

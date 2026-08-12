@@ -98,24 +98,53 @@ schema change that produced it, never separately.
 
 ## Diagnosing a KeeperHub call
 
-Read `docs/CLAIMS.md` first, and read it as a ledger rather than as a manual. Every row in the
-table below is encoded in `@resurv/keeperhub-client` at `DOCUMENTED` or `ASSUMED`, not at
-`VERIFIED`: no KeeperHub call has ever been made from this repository. The Phase 0 review
-found this table presented as settled diagnosis, which it is not.
+Read `docs/CLAIMS.md` first, and read it as a ledger rather than as a manual. Nothing below is
+`VERIFIED`: no KeeperHub call has ever been made from this repository. The Phase 0 review found
+this table presented as settled diagnosis, which it is not. Phase 0.5 gave most rows a real
+source pointer, in `docs/keeperhub/SOURCE_SNAPSHOT.md`, which is still not the same as having
+seen one.
 
 | Symptom | Expected cause | Ledger status |
 |---|---|---|
 | `transactionHash` is `undefined` after a successful broadcast | `/contract-call` omits it from the 202. Poll `GET /api/execute/{id}/status` | `MEASURED_EXTERNAL` |
 | HTTP 400 on a simulation | That is an answer. Read `wouldRevert` before classifying it | `DOCUMENTED` |
-| Bare 401 with no detail or request id | The 401 envelope carries neither. Check the key starts with `kh_`, not `wfb_` | `ASSUMED` |
-| 409 `idempotency_conflict` | Same key, different body. Use the canonical serializer | `ASSUMED` |
-| 409 `idempotency_in_progress` | A previous attempt with this key is still running. Do not retry with a new key | `ASSUMED` |
-| Status is not one of the four documented values | The documented set is a lower bound. Treat unknown as non-terminal and keep polling | `DOCUMENTED (conflicting)` |
+| 401 with fields you did not expect | The vendor documents three different error envelope shapes and `errors.ts` parses one. Log the raw body before trusting a parsed field | `DOCUMENTED (conflicting)` |
+| Bare 401 with no detail or request id | Our code expects this; the docs say every error carries `request_id`. Whichever it is, check the key starts with `kh_`, not `wfb_` | `ASSUMED`, contradicted by the docs |
+| 409 `idempotency_conflict` | Same key, different body. Use the canonical serializer. `retryable: false` | `DOCUMENTED` |
+| 409 `idempotency_in_progress` | A previous attempt with this key is still running. Retry the same key; never rotate to a new one | `DOCUMENTED` |
+| 403 `Daily spending cap exceeded` | An organization cap, not an auth problem. Do not retry on a new key, and do not advance to the next recovery action | `DOCUMENTED` |
+| A response carrying `idempotentReplay: true` | This is a replay of an earlier response, not a new execution | `DOCUMENTED` |
+| Status is not one of the four documented values | The documented set is a lower bound. Treat unknown as non-terminal and keep polling | `DOCUMENTED` for the four; the fifth (`unconfirmed`) has no locatable source |
+| `receiptStatus: safe_inner_failure` | The outer transaction succeeded and the inner call failed. Treat the attempt as failed regardless of the receipt status | `DOCUMENTED` value, `ASSUMED` meaning. T15 |
 | Explorer shows nothing at the org wallet | Under sponsorship it neither sends nor pays. Verify by hash → receipt → log | `MEASURED_EXTERNAL` |
 
-The rate limit (60 requests per minute per key), `Retry-After`, and the `X-Poll-Interval-Hint`
-semantics where `0` means terminal are all `ASSUMED` in the ledger. Honor them, and expect the
-Phase 0.5 seam probe to confirm or refute them rather than assuming it will confirm them.
+The rate limit is documented twice and differently: 60 per minute per key on the Direct
+Execution page, 100 per minute for authenticated users on the API overview. We encode 60.
+`Retry-After` appears on 429 only, and `X-Poll-Interval-Hint` carries seconds with `0` meaning
+terminal, both now `DOCUMENTED` rather than `ASSUMED`.
+
+## Running the KeeperHub seam probe
+
+```bash
+cp .env.example .env    # human step, in an ordinary terminal; paste the kh_ key with an editor
+pnpm --filter @resurv/seam-probe test:seam
+```
+
+Twelve scenarios, a few minutes, evidence written to `docs/phase-logs/evidence/phase-00-5/`. It
+spends the organization credential and lands real Base Sepolia transactions, so it sits outside
+`pnpm gate` and outside every auto-approved Claude Code command by design.
+`packages/repo-policy` classifies `vitest run --dir test/live` as an external effect and fails
+if anyone ever allow-lists a path to it.
+
+Without a credential it stops at `beforeAll` with `USER ACTION REQUIRED` and prints which of the
+five runtime configuration paths it checked. That message contains no value and cannot: the
+loader returns variable names only.
+
+`pnpm --filter @resurv/seam-probe test` is the offline half, runs in the gate, and touches no
+network.
+
+Read `docs/keeperhub/SEAM_CHECKLIST.md` before interpreting a run. It maps each scenario to the
+attempt state it settles and records which are still open.
 
 ## Rotating the KeeperHub key
 
@@ -177,12 +206,22 @@ The rules that hold this up, all measured rather than assumed:
   parsed configuration. `apps/worker/src/index.ts` serializes through `redactedJson` and
   `/api/health` names failing variables, never their values.
 
-What Phase 0.5 has to add, and has not been added here because building it now would ship
-untested code with no consumer: a loader. Node does not read `.env` by itself, `--env-file=.env`
-would put the filename on a command line the deny rules block, and vitest only exposes
-`VITE_`-prefixed variables. The loader is a vitest setup module that reads the file with
-`node:fs` and populates `process.env`, referenced from `vitest.config.ts` rather than from the
-command line. `wrangler dev` reads `.dev.vars` by itself and needs no loader.
+The loader exists now: `packages/seam-probe/src/local-env.ts`, built in Phase 0.5. Node does not
+read a dotenv file by itself, `--env-file=` would put the filename on a command line the deny
+rules block, and vitest only exposes `VITE_`-prefixed variables, so the file is opened with
+`node:fs` at runtime by the process that needs it. It differs from the sketch this section used
+to carry in three ways, each deliberate:
+
+- it is a plain module the live suite calls, not a vitest setup file, so the offline suite and
+  the gate stay hermetic;
+- it probes five paths rather than one, because `wrangler dev` reads `.dev.vars` by itself and
+  PRD 12.2 calls the variable `KH_API_KEY` while this repository uses `KEEPERHUB_API_KEY`. A
+  loader that checked one path and one spelling could report a missing credential that was
+  present;
+- it returns variable *names* and never values, and never overwrites something already in the
+  process environment.
+
+`wrangler dev` still reads `.dev.vars` by itself and needs no loader.
 
 Rules for the value, which apply for the whole life of the project:
 

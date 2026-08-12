@@ -73,6 +73,11 @@ export const EXTERNAL_EFFECTS: readonly CommandRule[] = [
   },
   { id: 'git-publish', pattern: /\bgit\s+push\b/, why: 'writes to a remote repository' },
   {
+    id: 'live-seam-execution',
+    pattern: /\bvitest\s+run\s+--dir\s+test\/live\b/,
+    why: 'spends the live KeeperHub organization credential and broadcasts real transactions',
+  },
+  {
     id: 'github-mutation',
     pattern: /\bgh\s+(pr\s+create|release|repo\s+create|secret)\b/,
     why: 'writes to GitHub',

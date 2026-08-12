@@ -331,6 +331,11 @@ export const REVIEWED_AUTO_APPROVED_SCRIPTS: Readonly<Record<string, string>> = 
   '@resurv/repo-policy#clean': 'rm -rf dist .turbo',
   '@resurv/repo-policy#test': 'vitest run',
   '@resurv/repo-policy#typecheck': 'tsc --noEmit',
+  '@resurv/seam-probe#clean': 'rm -rf dist .turbo',
+  // The offline half only. `test:seam` runs `vitest run --dir test/live`, which
+  // `EXTERNAL_EFFECTS` classifies as an external effect, and no allow rule reaches it.
+  '@resurv/seam-probe#test': 'vitest run --dir test/offline',
+  '@resurv/seam-probe#typecheck': 'tsc --noEmit',
 
   '@resurv/web#build': 'vite build',
   '@resurv/web#clean': 'rm -rf dist .turbo',

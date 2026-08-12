@@ -1,0 +1,25 @@
+{
+  "name": "@resurv/seam-probe",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --dir test/offline",
+    "test:seam": "vitest run --dir test/live",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@resurv/chain": "workspace:*",
+    "@resurv/config": "workspace:*",
+    "@resurv/keeperhub-client": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  }
+}

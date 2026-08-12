@@ -16,10 +16,13 @@ resurv/
                           cross-language state machine pin. Tests only, ships nothing.
     domain/               Pure reference model: covenant + orchestration state machines.
     keeperhub-client/     Status normalization, error envelopes, idempotency derivation.
+    seam-probe/           Phase 0.5 attempt-semantics probe. Offline half in the gate; live
+                          half spends a credential and is auto-approved by nothing.
     chain/                Base Sepolia constants and independent RPC endpoints.
     config/               Zod environment validation and secret redaction.
     db/                   Drizzle schema, generated migration, repository interfaces.
   docs/
+    keeperhub/            Official-source snapshot and the seam-test checklist.
   .claude/                Project settings, four reviewer subagents, phase-gate skill.
 ```
 
@@ -78,20 +81,24 @@ by mutation rather than by inspection. Five source mutations, each detected. See
 Provenance first, because the Phase 0 version of this section claimed every rule came from a
 live probe contradicting the docs. It did not. No KeeperHub call has ever been made from this
 repository. The rules below come from official documentation, from two official documents
-disagreeing, or from the sibling `keeperhub-flightcheck` spike, and about half of them had no
-ledger row at all until the Phase 0 remediation added one. Read `docs/CLAIMS.md` for the level
-of each before relying on any of it.
+disagreeing, or from the sibling `keeperhub-flightcheck` spike. Phase 0.5 gave each one a named
+page and a retrieval date in `docs/keeperhub/SOURCE_SNAPSHOT.md`; read `docs/CLAIMS.md` for the
+level of each before relying on any of it.
 
 - The documented status set is a lower bound. Anything unrecognized normalizes to `UNKNOWN`
   and non-terminal, so a `switch` with `default: fail` cannot report a false failure for a
   transaction that is still settling.
-- `unconfirmed` is non-terminal and missing from the endpoint reference, on the strength of
-  two official documents disagreeing. Rated `DOCUMENTED (conflicting)`, not observed by us.
+- `unconfirmed` is treated as non-terminal. Phase 0.5 could not find the official page that was
+  cited for it, so it is `ASSUMED` rather than `DOCUMENTED (conflicting)`. The handling stays
+  because the rule above already covers it: an unrecognized status is non-terminal anyway.
 - `not_found` and `timeout` receipt statuses are `UNKNOWN`, never success and never failure.
 - A would-revert simulation is an *answer*, delivered as HTTP 400. Callers branch on the
   `wouldRevert` field, never on the status code.
-- Error envelopes are not uniform: 401 returns `{error}` alone, 404 returns
-  `{error, detail, request_id}`. Both normalize to one shape and `request_id` is preserved.
+- Error envelopes are not uniform, and the vendor documents three shapes:
+  `{error, detail, request_id}`, `{error, field, details}`, and
+  `{error, message, required_scope, granted_scope}`. `errors.ts` parses the first and normalizes
+  it, preserving `request_id`. The other two are a known gap, left open in Phase 0.5 rather than
+  closed on a guess, and `P02` decides which the live endpoint emits.
 - Idempotency keys are namespaced `resurv/v1`, because another project shares this
   organization's API key and idempotency scope is per organization and per endpoint.
 - Request bodies serialize through a key-sorting canonicalizer, because a replay must be

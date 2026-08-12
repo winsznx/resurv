@@ -13,7 +13,8 @@ because it is intended.
 | Escrowed success fees | Covenant contract | Paid to the wrong party, or paid twice |
 | Emergency action authority | Committed adapters | An unauthorized action executes |
 | KeeperHub organization wallet | KeeperHub / Turnkey | Arbitrary execution as our organization |
-| KeeperHub API key | `.env`, Worker secret | Same as above |
+| KeeperHub API key | a local ignored environment file, Worker secret | Same as above |
+| Seam evidence files | `docs/phase-logs/evidence/` | A credential committed to source control inside a proof artifact |
 | Trigger authority key | Requester's control | Forged trigger |
 | Action commitments and config hashes | Covenant contract | Substituted behavior at attempt time |
 | Canonical receipts | Database | Fabricated proof |
@@ -55,7 +56,24 @@ Controls: the idempotency key and canonical request body hash are persisted befo
 POST; recovery replays the stored key with a byte-identical body; the onchain semantic
 attempt id rejects a replay permanently, beyond KeeperHub's 24-hour transport window.
 Status: `PARTIAL`. Key derivation, canonical serialization and the schema columns are
-`IN PLACE` and unit-tested. The kill-the-network replay test is `PLANNED`.
+`IN PLACE` and unit-tested.
+
+The kill-the-network replay is now **built and not yet run**. `packages/seam-probe` scenario
+`P11` sends a real, complete request and stops listening 250 ms later, leaving the client in
+exactly this state, then tries all three recovery routes and records which work: list the
+executions, replay the stored key, or ask chain. It is blocked on the credential, not on the
+code. See `docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md`.
+
+The honest limit of that experiment, stated so nobody reads more into it: a client-side abort
+cannot reproduce a partition that drops the response *after* KeeperHub commits, at a moment of
+KeeperHub's choosing. Inducing that needs infrastructure manipulation this project will not
+perform. What it does reproduce is the client's side of the ambiguity, which is the side the
+control has to work from.
+
+The second control the middle route depends on is undocumented: no page states whether replaying
+a key whose response was never received returns the original execution or starts a new one. If
+it starts a new one, the transport key is not a recovery mechanism and the chain read carries the
+whole burden.
 
 ### T4. A model produces raw calldata
 
@@ -100,6 +118,15 @@ Controls in place, each with the test that holds it up:
   `packages/repo-policy/test/ci-workflow.test.ts` derives that requirement from the script
   graph. A job that cannot run is not a control, and the Phase 0 form of that job could not
   have run.
+- Committed seam evidence is written through a serializer that removes credentials and keeps
+  chain data, and the writer re-scans its own output and throws rather than emit a file that
+  still matches a credential shape. `packages/seam-probe/src/sanitize.ts` and
+  `test/offline/sanitize.test.ts`. This is a separate mechanism from `@resurv/config`'s
+  `redact`, on purpose: `redact` fails closed on every 32-byte hex value, which would erase the
+  transaction hashes the evidence exists to record.
+- The credential loader reports variable *names* and never values, so a caller that prints its
+  result cannot print a credential, and it never overwrites a value already in the process
+  environment.
 
 Status: `IN PLACE` for the controls above.
 
@@ -306,6 +333,49 @@ Residual: this is a drift guard, not an integrity control. Anyone with commit ac
 `package.json`, the manifest and the test in one change and nothing will object. It stops the
 accident and the unnoticed edit, which is the class of failure that actually happened here. It
 does not stop a hostile contributor, and no test in this repository does.
+
+### T15. A successful transaction that contains a failed attempt
+
+Found in Phase 0.5 by reading the vendor documentation rather than by modelling. Recorded in
+`docs/keeperhub/SOURCE_SNAPSHOT.md` sections 3 and 10.
+
+`receiptStatus` has a documented value `safe_inner_failure`, and the gas page states that
+sponsorship "uses direct wallet calls; applying it to Safe writes would alter `msg.sender` away
+from the Safe itself", so routing through a Safe is a real execution mode on this platform.
+
+When execution routes through a Safe, the outer transaction can succeed while the inner call
+fails. A RESURV attempt executed that way produces a transaction receipt with status `0x1` while
+`executeAttempt` reverted. Anything that verifies by reading the receipt reads that as success,
+and T1 is the whole product.
+
+Controls:
+
+- RESURV executes on the direct-wallet-sender path. That is also what gas sponsorship requires,
+  so the two constraints agree rather than trade off.
+- Reconciliation treats an inner-failure receipt status as a failed attempt regardless of the
+  outer receipt status.
+- `CONFIRMED` requires the expected event in the receipt's logs, never the receipt status alone.
+  PRD 12.6 already says not to mark RESURV satisfied from KeeperHub status alone; this makes the
+  same true of the receipt.
+- `packages/seam-probe` records `sponsored` and the decoded sender on every attempt, so the
+  execution mode is observed rather than assumed.
+
+Status: `PLANNED`. This is a documented platform behavior and an inference about its
+consequence, not a measurement, and the covenant contract that would be affected does not exist
+yet. Nothing in this repository currently reads a receipt at all.
+
+### T16. A daily spending cap refuses execution mid-incident
+
+The Direct Execution page documents a configurable organization daily spending cap in wei, and
+HTTP 403 with `Daily spending cap exceeded` when it is passed. That branch appears only under
+load, which is exactly when a recovery covenant is executing, and it is a different failure from
+an authentication 401 or a scope 403.
+
+Control: the orchestrator classifies 403 `Daily spending cap exceeded` as a refusal that must
+not be retried on a new idempotency key, must alert, and must not advance to the next recovery
+action, because a cap that refuses one attempt will refuse the next one too.
+Status: `PLANNED`. No orchestrator exists. `packages/seam-probe` captures the response envelope
+if the branch is ever hit.
 
 ### T12. Self-referential property testing
 

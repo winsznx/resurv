@@ -3,15 +3,15 @@
 Canonical handoff document. Read this first in a new session. Updated at the end of every
 phase.
 
-Last updated: 2026-08-12, end of the pre-seam hardening pass.
+Last updated: 2026-08-12, end of the Phase 0.5 preparation pass.
 
 ## Where we are
 
 | | |
 |---|---|
-| Current phase | Phase 0 complete, remediated, independently re-validated, and hardened. Phase 0.5 not started. Phase 1 not started. |
+| Current phase | Phase 0.5 **started and blocked**. Everything that does not need a credential is done; the measurement is not. Phase 1 not started. |
 | Completed phases | 0, the Phase 0 remediation, the pre-seam hardening pass |
-| Active gate | Phase 0 remediation independent validation: **PASS**. See `docs/phase-logs/PHASE_00_REMEDIATION_INDEPENDENT_REVIEW.md` |
+| Active gate | Phase 0.5: **`USER ACTION REQUIRED`**, no seam verdict issued. See `docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md` |
 | Submission deadline | 2026-08-13 12:00 UTC+2 |
 
 Read the phase logs in order, because the earlier ones contain figures the later ones
@@ -23,6 +23,8 @@ disproved:
 4. `PHASE_00_REMEDIATION_INDEPENDENT_REVIEW.md` — PASS, eight new non-blocking findings, and
    clearance for live credential entry.
 5. `PRE_SEAM_HARDENING.md` — closes those eight before a credential arrives. PASS.
+6. `PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md` — the source lock, the fixture verification and
+   the whole probe. No measurement, because no credential exists here. `USER ACTION REQUIRED`.
 
 ## Session order
 
@@ -32,51 +34,64 @@ committed under `docs/prompts/` so no step depends on conversational memory.
 1. Phase 0 independent validation. `docs/prompts/PHASE_00_VALIDATION.md` — **done, FAIL**
 2. Phase 0 remediation — **done**
 3. Phase 0 remediation independent re-validation — **done, PASS**
-4. Pre-seam hardening — **done, PASS**, this is the current state
-5. Phase 0.5 seam probe. `docs/prompts/PHASE_00_5_SEAM_PROBE.md` — **next**, blocked on the
-   human prerequisite below
-6. If `SEAM PASS`, the autonomous run. `docs/prompts/PHASE_01_TO_10_AUTONOMOUS.md`
-7. If `SEAM REVISE`, redesign the attempt boundary before writing core contracts.
-8. After the build completes, a fresh session for adversarial review and submission prep.
+4. Pre-seam hardening — **done, PASS**
+5. Phase 0.5 seam probe. `docs/prompts/PHASE_00_5_SEAM_PROBE.md` — **started, `USER ACTION
+   REQUIRED`**. The source lock, the fixture verification and the whole probe are done and
+   committed. The measurement is not, because no credential exists here. This is the current
+   state
+6. Phase 0.5 completion: paste the key, run one command, read the evidence, issue the verdict
+7. If `SEAM PASS`, the autonomous run. `docs/prompts/PHASE_01_TO_10_AUTONOMOUS.md`
+8. If `SEAM REVISE`, redesign the attempt boundary before writing core contracts.
+9. After the build completes, a fresh session for adversarial review and submission prep.
 
-### Blocking prerequisite for the seam probe
+### The one blocking prerequisite, still open
 
-No environment file exists in this repository, and no live secret has ever been placed here.
-Phase 0.5 forbids the session from copying a credential out of another repository, so a human
-has to create the file and paste the `kh_` organization key before that session starts.
+No environment file exists in this repository and no live secret has ever been placed here.
+The Phase 0.5 session checked all five runtime configuration paths this repository establishes
+and every credential-shaped variable name visible to the process, and found nothing. The
+verbatim output is in the phase log, section 2.
 
 The variable is `KEEPERHUB_API_KEY`. It is the only one required. The file is `.env` at the
-repository root, copied from `.env.example`. `docs/RUNBOOKS.md` has the full path under "The
-one local secret Phase 0.5 needs", including the loader Phase 0.5 has to add, and the reasons
-a repository-local ignored file beats an exported shell variable.
+repository root, copied from `.env.example`.
 
-This is deliberately not something an agent session can do: the permission boundary denies
-Bash commands that name the environment file or the variable, denies reading, editing and
-writing the file, and denies every environment-dump form. Do it in an ordinary terminal.
-Nothing else is required. The revert probe needs no contract deployment, no deployer key and
-no faucet. See the fixture note in `docs/prompts/PHASE_00_5_SEAM_PROBE.md`.
+```bash
+cp .env.example .env    # then paste the kh_ organization key with an editor
+pnpm --filter @resurv/seam-probe test:seam
+```
+
+The first line is deliberately not something an agent session can do: the permission boundary
+denies Bash commands that name the environment file or the variable, denies reading, editing
+and writing the file, and denies every environment-dump form. Do it in an ordinary terminal.
+
+Nothing else is required. The probe needs no contract deployment, no deployer key and no
+faucet, and the fixture it uses is already verified from this repository.
 
 ## Next exact task
 
-Probe the KeeperHub revert path before writing any covenant code.
+Run the probe. It is built.
 
-Deploy a contract whose function always reverts, call it through
-`POST /api/execute/contract-call` with `simulate: false`, and record what comes back: whether
-an `executionId` and `transactionHash` are returned, what `status` settles to, what
-`receiptStatus` says, and whether the revert reason survives.
+`pnpm --filter @resurv/seam-probe test:seam` runs twelve scenarios, writes one evidence file
+each under `docs/phase-logs/evidence/phase-00-5/`, and takes a few minutes. Then read the
+evidence, write the behavioral test file that pins what was observed, replace section 7 of the
+phase log with the measured lifecycle, and issue `SEAM PASS`, `SEAM REVISE` or `SEAM FAIL`.
 
-This is the single unmeasured seam that RESURV's entire thesis depends on. A false outcome
-reverting the whole atomic attempt is the product. If a reverted broadcast is
-indistinguishable from a transport failure, the proof page cannot tell that story and the
-architecture needs to change before, not after, the contract is written.
+The question it settles is still the single unmeasured seam RESURV's thesis depends on: whether
+a reverted broadcast is distinguishable from a transport failure. A false outcome reverting the
+whole atomic attempt is the product. If those two are indistinguishable, the proof page cannot
+tell that story and the architecture has to change before the contract is written, not after.
 
-Estimated 20 minutes. Everything else in Phase 1 is downstream of the answer.
+`docs/keeperhub/SEAM_CHECKLIST.md` tracks which of the twelve states each scenario settles.
 
 ## Architecture as built
 
 One Cloudflare Worker (`fetch` today; `scheduled` and `queue` reserved) serving `/api/*` and
-the built SPA as static assets. Six workspace packages. Foundry for contracts. Full detail in
+the built SPA as static assets. Seven workspace packages. Foundry for contracts. Full detail in
 `docs/ARCHITECTURE.md`, deviations from the PRD in `docs/DECISIONS.md`.
+
+`packages/seam-probe` is the newest and is not a product package. It exists to measure the
+KeeperHub attempt seam and to keep that measurement reproducible. Its offline half runs in the
+gate; its live half spends a credential and lands transactions and is reachable from no
+auto-approved command.
 
 ## Deployed resources
 
@@ -94,13 +109,28 @@ None. No contract is deployed, no Worker is deployed, no database is connected.
 No execution has been performed from this repository. Rung 5 of the proof ladder is not
 reached here.
 
+What Phase 0.5 did add: `docs/keeperhub/SOURCE_SNAPSHOT.md`, the PRD 28 deliverable that Phase 0
+marked PASS without producing. Eleven official pages retrieved 2026-08-12, every behavior graded
+`DOCUMENTED`, `DOCUMENTED (conflicting)`, `INFERRED`, `ASSUMED`, `REFUTED` or
+`REQUIRES MEASUREMENT`, and a section listing the ten behaviors the documentation does not state
+at all. Nine ledger rows moved on the strength of it and none of them was a behavioral row.
+
+Two findings from that reading are worth carrying in your head:
+
+- `safe_inner_failure` is a documented receipt status, and gas sponsorship documentation
+  explains why: a Safe route makes the outer transaction succeed while the inner call fails. A
+  receipt with status `0x1` therefore does not prove a RESURV attempt succeeded.
+  `docs/THREAT_MODEL.md` T15.
+- The vendor documents three different error envelope shapes on two pages.
+  `packages/keeperhub-client/src/errors.ts` parses one of them.
+
 A sibling project, `keeperhub-flightcheck`, has landed a real Base Sepolia transaction through
-KeeperHub and produced the seam measurements now recorded in `docs/CLAIMS.md` as
+KeeperHub and produced the seam measurements recorded in `docs/CLAIMS.md` as
 `MEASURED_EXTERNAL`. Those are strong prior information and are not RESURV's own evidence.
 
-The organization API key exists in that project's `.env` and has scopes
-`mcp:read mcp:write mcp:admin`. It has not been copied into this repository. Copying it is a
-manual step and the value must never be echoed.
+The organization API key exists in that project's environment file. It has not been copied into
+this repository and no session may copy it. Creating the local credential is a manual step and
+the value must never be echoed.
 
 ## Tests
 
@@ -115,9 +145,10 @@ something; the two empty harnesses are listed separately and never folded into a
 | `@resurv/db` | 7 |
 | `@resurv/chain` | 7 |
 | `@resurv/worker` | 7 |
-| `@resurv/repo-policy` | 381 |
+| `@resurv/repo-policy` | 391 |
+| `@resurv/seam-probe` | 29 |
 | `@resurv/web` | 0 |
-| **TypeScript substantive total** | **504** |
+| **TypeScript substantive total** | **543** |
 | `contracts` unit and fuzz | 21 |
 | `contracts` invariant | 5 |
 | **Foundry total** | **26** |
@@ -134,9 +165,14 @@ to include the empty suites, so the split above is now explicit.
 
 `@resurv/repo-policy` is large because it is mostly parameterized fixtures: one case per
 blocked command, per permitted command, per secret path, per auto-approved script. That is the
-shape the work needs, and 381 assertions there is not equivalent to 381 assertions about the
+shape the work needs, and 391 assertions there is not equivalent to 391 assertions about the
 product. It grew from 157 during the pre-seam hardening pass, which added the credential
-surfaces, the auto-approved script graph and the CI workflow policy.
+surfaces, the auto-approved script graph and the CI workflow policy, and by 10 in Phase 0.5,
+which added the live-seam-probe boundary.
+
+`@resurv/seam-probe`'s 28 are the offline half only: the evidence sanitizer, the fail-closed
+writer, and semantic attempt identity. Its twelve live scenarios assert nothing yet because
+nothing has been measured.
 
 Fuzz: 512 runs per test. Invariants: 256 runs at depth 64. Every one of the 16,384 handler
 calls per invariant is a real transition attempt, roughly 8 to 15 of which mutate state per
@@ -155,25 +191,40 @@ Turbo caching means a green `pnpm gate` can be a replay of an earlier log. For e
 
 ## Unresolved blockers
 
-None blocking the seam probe. F6-A, the permission bypass that did block it, is fixed and
-regression-tested; the remediation log records the evidence. The eight findings the
-independent re-validation raised are closed or explicitly deferred in
+One, and it is the same one, still human: `.env` at the repository root with a `kh_`
+organization key under `KEEPERHUB_API_KEY`. Phase 0.5 verified its absence rather than assuming
+it, across five paths and every credential-shaped variable name, and stopped there.
+
+Everything downstream of that key is blocked: the entire seam measurement, the canonical attempt
+state machine, and therefore the covenant contract's shape. Everything upstream of it is done.
+
+F6-A, the permission bypass that used to block the probe, is fixed and regression-tested. The
+eight findings the independent re-validation raised are closed or explicitly deferred in
 `docs/phase-logs/PRE_SEAM_HARDENING.md`.
 
-The only outstanding input is human: `.env` with a `kh_` organization key under
-`KEEPERHUB_API_KEY`.
+One smaller thing Phase 0.5 could not do: adding an `ask` entry for the live seam command to
+`.claude/settings.json` was refused by the permission classifier, so that file is untouched. It
+costs nothing, because ADR-010 already records that `ask` does not prompt in this project's
+sessions. The controls that carry weight are the absence of an allow rule, the external-effect
+classification in `packages/repo-policy`, and the absence of a credential.
 
 ## Unresolved assumptions
 
 Tracked in `docs/CLAIMS.md`. The ones that will bite first:
 
-1. A reverted broadcast is distinguishable from a transport failure. `ASSUMED`, unmeasured,
-   and it is the next task.
-2. `msg.sender` at a RESURV contract equals the org wallet under sponsorship. Measured against
+1. A reverted broadcast is distinguishable from a transport failure. `ASSUMED`, unmeasured, and
+   it is still the next task. The experiment now exists: `packages/seam-probe` scenarios `P09`,
+   `P10` and `P11`.
+2. Whether KeeperHub pre-simulates a `simulate: false` request and refuses to broadcast
+   something it predicts will revert. Undocumented, and it decides the seam verdict.
+3. `msg.sender` at a RESURV contract equals the org wallet under sponsorship. Measured against
    a different contract in another repository. Must be re-measured against ours, because all
    access control depends on it and getting it wrong means every attempt reverts.
-3. A crash between send and response cannot double-submit. The derivation and schema exist and
-   are unit-tested; the kill-the-network replay has not been run.
+4. A crash between send and response cannot double-submit. The derivation and schema exist and
+   are unit-tested; the kill-the-network replay is built (`P11`) and has not been run.
+5. A transaction receipt with status `0x1` proves the attempt succeeded. It does not, if
+   execution ever routes through a Safe: `safe_inner_failure` is a documented receipt status.
+   T15.
 
 ## Known defects and limitations
 
@@ -200,10 +251,11 @@ Tracked in `docs/CLAIMS.md`. The ones that will bite first:
   `VERIFIED (model only)` row in the ledger says nothing about escrow, fees or atomicity.
 - The reference models are hand transcriptions of PRD 9.1. A misreading would be mirrored in
   both languages and no test would object.
-- The KeeperHub source snapshot and seam checklist that PRD 2429 names, and that the Phase 0
-  log marked PASS, does not exist. It is an outstanding input to Phase 0.5.
-- Eight seam behaviors encoded in `@resurv/keeperhub-client` are `ASSUMED` with no committed
-  source pointer. They are inputs to the probe, not conclusions from it.
+- `packages/keeperhub-client/src/errors.ts` parses one of the three error envelope shapes the
+  vendor documents. Not fixed in Phase 0.5, because choosing which shape the live endpoint
+  actually emits without measuring it would be guessing. `P02` decides it.
+- Twelve live seam scenarios are built and assert nothing, because nothing has been measured.
+  A green `pnpm gate` says nothing about them; they are not in it.
 - Every reproduction so far has resolved dependencies from a warm local store. A genuinely
   cold-network install is unproven.
 

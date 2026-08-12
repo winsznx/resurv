@@ -1,0 +1,31 @@
+{
+  "name": "@resurv/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Operator entry points. The read-only ones run anywhere; the `live:` ones spend the KeeperHub organization credential and land real Base Sepolia transactions.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo",
+    "live:contracts": "node --experimental-strip-types src/bin/contracts.ts",
+    "live:demo": "node --experimental-strip-types src/bin/demo.ts",
+    "verify": "node --experimental-strip-types src/bin/verify.ts"
+  },
+  "dependencies": {
+    "@resurv/chain": "workspace:*",
+    "@resurv/domain": "workspace:*",
+    "@resurv/keeperhub-client": "workspace:*",
+    "@resurv/node-runtime": "workspace:*",
+    "@resurv/orchestrator": "workspace:*",
+    "viem": "2.55.13"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  }
+}

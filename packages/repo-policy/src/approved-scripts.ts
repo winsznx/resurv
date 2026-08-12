@@ -313,6 +313,12 @@ export const REVIEWED_AUTO_APPROVED_SCRIPTS: Readonly<Record<string, string>> = 
   '<root>#typecheck': 'turbo run typecheck',
 
   '@resurv/chain#clean': 'rm -rf dist .turbo',
+  '@resurv/cli#clean': 'rm -rf dist .turbo',
+  // The `live:` scripts are deliberately absent from this manifest and from every allow rule.
+  // They spend the organization credential and land real transactions, and `EXTERNAL_EFFECTS`
+  // classifies them, so a future allow rule for one fails this suite.
+  '@resurv/cli#test': 'vitest run',
+  '@resurv/cli#typecheck': 'tsc --noEmit',
   '@resurv/chain#test': 'vitest run',
   '@resurv/chain#typecheck': 'tsc --noEmit',
   '@resurv/config#clean': 'rm -rf dist .turbo',
@@ -326,6 +332,12 @@ export const REVIEWED_AUTO_APPROVED_SCRIPTS: Readonly<Record<string, string>> = 
   '@resurv/domain#test': 'vitest run',
   '@resurv/domain#typecheck': 'tsc --noEmit',
   '@resurv/keeperhub-client#clean': 'rm -rf dist .turbo',
+  '@resurv/node-runtime#clean': 'rm -rf dist .turbo',
+  '@resurv/node-runtime#test': 'vitest run',
+  '@resurv/node-runtime#typecheck': 'tsc --noEmit',
+  '@resurv/orchestrator#clean': 'rm -rf dist .turbo',
+  '@resurv/orchestrator#test': 'vitest run',
+  '@resurv/orchestrator#typecheck': 'tsc --noEmit',
   '@resurv/keeperhub-client#test': 'vitest run',
   '@resurv/keeperhub-client#typecheck': 'tsc --noEmit',
   '@resurv/repo-policy#clean': 'rm -rf dist .turbo',

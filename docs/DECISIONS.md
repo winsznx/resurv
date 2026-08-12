@@ -524,3 +524,55 @@ and a faucet.
 
 KeeperHub adds a deployment endpoint, or a funded deployer becomes available and reproducibility
 would be better served by a plain `forge script`.
+
+### Outcome
+
+It worked, twice, on 2026-08-12. Six contracts and three configuration calls landed on Base
+Sepolia with `sponsored: true` and a zero-balance organization wallet, and all six addresses
+matched their offchain predictions. `docs/DEPLOYMENTS.md` has the transactions.
+
+---
+
+## ADR-015: `createCovenantEncoded`, because the request encoder cannot express a struct
+
+Date: 2026-08-12. Status: accepted. Phase: 2.
+
+### Context
+
+`createCovenant(CovenantParams, ActionInput[])` is the natural Solidity signature and it is what
+the Foundry tests use. KeeperHub's Direct Execution API takes `functionArgs` as a JSON-encoded
+string, and its encoder was measured on 2026-08-12 rejecting the struct:
+
+```
+Failed to encode call: invalid address (argument="address", value=["0x146DAb…", "0xb0b0…", …])
+```
+
+It read the tuple's first element as the whole tuple. Every other call in the demo encoded
+cleanly, including `trigger`, whose sixth argument is `bytes`, and `executeAttempt`, which takes
+two. The problem is nesting, not dynamic types.
+
+### Decision
+
+Add `createCovenantEncoded(bytes params, bytes actions)`, which `abi.decode`s into the identical
+structs and calls the identical internal function. Two `bytes` arguments are expressible in the
+request body; a nested tuple is not.
+
+It is not a second policy and the tests say so: `test_theEncodedEntryPointCreatesAnIdenticalCovenant`
+compares every stored field and every action commitment across both paths, and
+`test_theEncodedEntryPointEnforcesTheSameValidation` fires two rejections through it. A malformed
+encoding reverts inside `abi.decode` before any state is written.
+
+### Alternatives rejected
+
+A flat entry point with twelve scalar and three array arguments. It would have exceeded the EVM's
+addressable stack, and flattening a commitment into fifteen positional arguments is how a
+recipient ends up in the wrong slot.
+
+Building the covenant offchain and having KeeperHub call a factory. More moving parts, and the
+commitments would then be made by something other than the manager.
+
+### Consequences
+
+The manager grew by 516 bytes and had to be redeployed, which took the salt namespace from
+`resurv/v1` to `resurv/v2`. The v1 contracts remain on chain, unused and unreferenced, because
+CREATE2 will not redeploy an unchanged contract at an address it already occupies.

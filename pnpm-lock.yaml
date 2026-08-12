@@ -98,6 +98,40 @@ importers:
         specifier: 2.55.13
         version: 2.55.13(typescript@7.0.2)(zod@4.4.3)
     devDependencies:
+      '@types/node':
+        specifier: 26.2.0
+        version: 26.2.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@26.2.0)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
+
+  packages/cli:
+    dependencies:
+      '@resurv/chain':
+        specifier: workspace:*
+        version: link:../chain
+      '@resurv/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@resurv/keeperhub-client':
+        specifier: workspace:*
+        version: link:../keeperhub-client
+      '@resurv/node-runtime':
+        specifier: workspace:*
+        version: link:../node-runtime
+      '@resurv/orchestrator':
+        specifier: workspace:*
+        version: link:../orchestrator
+      viem:
+        specifier: 2.55.13
+        version: 2.55.13(typescript@7.0.2)(zod@4.4.3)
+    devDependencies:
+      '@types/node':
+        specifier: 26.2.0
+        version: 26.2.0
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -164,6 +198,40 @@ importers:
         specifier: 4.1.10
         version: 4.1.10(@types/node@26.2.0)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
 
+  packages/node-runtime:
+    devDependencies:
+      '@types/node':
+        specifier: 26.2.0
+        version: 26.2.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@26.2.0)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
+
+  packages/orchestrator:
+    dependencies:
+      '@resurv/chain':
+        specifier: workspace:*
+        version: link:../chain
+      '@resurv/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@resurv/keeperhub-client':
+        specifier: workspace:*
+        version: link:../keeperhub-client
+    devDependencies:
+      '@types/node':
+        specifier: 26.2.0
+        version: 26.2.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@26.2.0)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
+
   packages/repo-policy:
     dependencies:
       '@resurv/domain':
@@ -191,6 +259,9 @@ importers:
       '@resurv/keeperhub-client':
         specifier: workspace:*
         version: link:../keeperhub-client
+      '@resurv/node-runtime':
+        specifier: workspace:*
+        version: link:../node-runtime
     devDependencies:
       '@types/node':
         specifier: 26.2.0

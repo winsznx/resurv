@@ -118,3 +118,7 @@ desktop.ini
 evidence/runs/*.local.json
 tmp/
 .tmp/
+
+# Live-run journals. No credential is in them, but they are run state rather than source:
+# the durable attempt record a crash would be recovered from, not something to review in a diff.
+.resurv/

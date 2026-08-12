@@ -1,22 +1,21 @@
 {
-  "name": "@resurv/seam-probe",
+  "name": "@resurv/orchestrator",
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "description": "The measured attempt lifecycle, executed. Persists before it sends, reconciles against chain, and never advances a covenant on an HTTP status.",
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --dir test/offline",
-    "test:seam": "vitest run --dir test/live",
+    "test": "vitest run",
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
     "@resurv/chain": "workspace:*",
-    "@resurv/config": "workspace:*",
-    "@resurv/keeperhub-client": "workspace:*",
-    "@resurv/node-runtime": "workspace:*"
+    "@resurv/domain": "workspace:*",
+    "@resurv/keeperhub-client": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "26.2.0",

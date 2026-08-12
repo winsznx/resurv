@@ -78,6 +78,18 @@ export const EXTERNAL_EFFECTS: readonly CommandRule[] = [
     why: 'spends the live KeeperHub organization credential and broadcasts real transactions',
   },
   {
+    id: 'live-contract-deployment',
+    pattern: /\bnode\s+(--experimental-strip-types\s+)?\S*src\/bin\/contracts\.ts\b/,
+    neutralizedBy: /--dry-run\b/,
+    why: 'deploys the RESURV contracts through KeeperHub and lands real transactions',
+  },
+  {
+    id: 'live-covenant-demo',
+    pattern: /\bnode\s+(--experimental-strip-types\s+)?\S*src\/bin\/demo\.ts\b/,
+    neutralizedBy: /--dry-run\b/,
+    why: 'creates and settles a real covenant on Base Sepolia, moving real test value',
+  },
+  {
     id: 'github-mutation',
     pattern: /\bgh\s+(pr\s+create|release|repo\s+create|secret)\b/,
     why: 'writes to GitHub',

@@ -1,8 +1,9 @@
 {
-  "name": "@resurv/chain",
+  "name": "@resurv/node-runtime",
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "description": "Host-process concerns for Node entry points: locating the repository root and loading the one local credential. Never imported by the Worker or the browser bundle.",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -10,9 +11,6 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "clean": "rm -rf dist .turbo"
-  },
-  "dependencies": {
-    "viem": "2.55.13"
   },
   "devDependencies": {
     "@types/node": "26.2.0",

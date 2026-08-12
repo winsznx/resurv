@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // This package exists to touch the host process: `node:fs`, `import.meta.url`, `process.env`.
+    // It is the one package that may, and nothing in the Worker or browser bundle imports it.
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

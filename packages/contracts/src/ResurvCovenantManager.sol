@@ -268,6 +268,34 @@ contract ResurvCovenantManager is AccessControl, EIP712, ReentrancyGuard {
         whenNotPaused
         returns (bytes32 covenantId)
     {
+        return _createCovenant(params, actionInputs);
+    }
+
+    /// @notice The same creation, with both arguments handed over pre-encoded.
+    ///
+    /// @dev Not sugar, and not a second policy: it decodes into the identical structs and calls
+    ///      the identical internal function, so every validation and every commitment is the
+    ///      same. It exists because RESURV executes through KeeperHub's Direct Execution API,
+    ///      whose request body carries `functionArgs` as JSON, and whose encoder was measured on
+    ///      2026-08-12 rejecting a struct argument with `Failed to encode call: invalid address`.
+    ///      Two `bytes` arguments are expressible in JSON; a nested tuple is not.
+    ///
+    ///      `params` is `abi.encode(CovenantParams)` and `actions` is `abi.encode(ActionInput[])`.
+    ///      A malformed encoding reverts in `abi.decode` before any state is written.
+    function createCovenantEncoded(bytes calldata params, bytes calldata actions)
+        external
+        whenNotPaused
+        returns (bytes32 covenantId)
+    {
+        return _createCovenant(
+            abi.decode(params, (CovenantParams)), abi.decode(actions, (ActionInput[]))
+        );
+    }
+
+    function _createCovenant(CovenantParams memory params, ActionInput[] memory actionInputs)
+        internal
+        returns (bytes32 covenantId)
+    {
         if (
             params.triggerAuthority == address(0) || params.responder == address(0)
                 || params.verifier == address(0) || params.feeAmount == 0
@@ -318,7 +346,7 @@ contract ResurvCovenantManager is AccessControl, EIP712, ReentrancyGuard {
         );
 
         for (uint256 i = 0; i < actionInputs.length; ++i) {
-            ActionInput calldata input = actionInputs[i];
+            ActionInput memory input = actionInputs[i];
             if (input.adapter == address(0) || input.maxAttempts == 0) revert InvalidParameters();
             bytes32 configHash = keccak256(input.config);
             _actions[covenantId].push(

@@ -730,6 +730,63 @@ contract CovenantLifecycleTest is CovenantFixture {
         manager.createCovenant(_defaultParams(), _defaultActions());
     }
 
+    /// @dev The encoded entry point exists because KeeperHub's request encoder cannot express a
+    ///      struct argument. It must be the same creation, not a second policy, so this compares
+    ///      both paths field by field and then checks that the encoded one enforces every
+    ///      validation the flat one does.
+    function test_theEncodedEntryPointCreatesAnIdenticalCovenant() public {
+        ResurvCovenantManager.CovenantParams memory flatParams = _defaultParams();
+        bytes32 flatId = _createCovenant(flatParams);
+
+        ResurvCovenantManager.CovenantParams memory encodedParams = _defaultParams();
+        encodedParams.salt = bytes32(uint256(0xE1));
+        vm.prank(requester);
+        bytes32 encodedId =
+            manager.createCovenantEncoded(abi.encode(encodedParams), abi.encode(_defaultActions()));
+
+        ResurvCovenantManager.Covenant memory a = manager.getCovenant(flatId);
+        ResurvCovenantManager.Covenant memory b = manager.getCovenant(encodedId);
+        assertEq(a.requester, b.requester);
+        assertEq(a.triggerAuthority, b.triggerAuthority);
+        assertEq(a.responder, b.responder);
+        assertEq(a.verifier, b.verifier);
+        assertEq(a.feeToken, b.feeToken);
+        assertEq(a.feeAmount, b.feeAmount);
+        assertEq(a.deadline, b.deadline);
+        assertEq(a.maxTotalAttempts, b.maxTotalAttempts);
+        assertEq(uint8(a.status), uint8(b.status));
+        assertEq(a.verifierContextHash, b.verifierContextHash);
+
+        ResurvCovenantManager.ActionSpec[] memory flatActions = manager.getActions(flatId);
+        ResurvCovenantManager.ActionSpec[] memory encodedActions = manager.getActions(encodedId);
+        assertEq(flatActions.length, encodedActions.length);
+        for (uint256 i = 0; i < flatActions.length; ++i) {
+            assertEq(flatActions[i].adapter, encodedActions[i].adapter);
+            assertEq(flatActions[i].configHash, encodedActions[i].configHash);
+            assertEq(flatActions[i].maxAttempts, encodedActions[i].maxAttempts);
+        }
+    }
+
+    function test_theEncodedEntryPointEnforcesTheSameValidation() public {
+        ResurvCovenantManager.CovenantParams memory params = _defaultParams();
+        params.feeToken = address(0xBEEF);
+        vm.prank(requester);
+        vm.expectRevert(ResurvCovenantManager.FeeTokenNotAllowed.selector);
+        manager.createCovenantEncoded(abi.encode(params), abi.encode(_defaultActions()));
+
+        ResurvCovenantManager.ActionInput[] memory one = new ResurvCovenantManager.ActionInput[](1);
+        one[0] = _defaultActions()[0];
+        vm.prank(requester);
+        vm.expectRevert(ResurvCovenantManager.InvalidParameters.selector);
+        manager.createCovenantEncoded(abi.encode(_defaultParams()), abi.encode(one));
+    }
+
+    function test_theEncodedEntryPointRejectsAMalformedEncoding() public {
+        vm.prank(requester);
+        vm.expectRevert();
+        manager.createCovenantEncoded(hex"1234", abi.encode(_defaultActions()));
+    }
+
     function test_covenantIdMatchesTheAdvertisedDerivation() public {
         bytes32 covenantId = _createCovenant(_defaultParams());
         assertEq(covenantId, manager.computeCovenantId(requester, bytes32(uint256(1))));

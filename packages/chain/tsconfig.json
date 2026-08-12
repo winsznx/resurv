@@ -1,4 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // `fetch`, `Headers`, `AbortController` and the timer functions are globals in both Node 24
+    // and workerd. @types/node declares them without pulling in the DOM lib, which this package
+    // must not depend on: it runs in a Worker, not in a browser.
+    "types": ["node"]
+  },
   "include": ["src/**/*.ts", "test/**/*.ts"]
 }

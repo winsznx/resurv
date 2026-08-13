@@ -14,19 +14,18 @@ The hackathon submission must reach at least rung 9.
 | 4 | Local full lifecycle | **REACHED** | `test_primaryRefused_fallbackSucceeds_andPaysInTheSameTransaction` runs the whole demo against a local EVM, including the refused primary and both replays |
 | 5 | KeeperHub seam tests | **REACHED** | `packages/seam-probe`, 16 scenarios run live 2026-08-12, evidence committed, 42 offline tests asserting the findings against it |
 | 6 | Base fork integration | **not reached** | No `--fork-url` suite exists. Superseded in practice by rung 7: the contracts are deployed on the real chain and the demo ran against them, which is a stronger statement than a fork test, and is not the same statement |
-| 7 | Base Sepolia deployment | **REACHED, with one qualifier** | Six contracts and three configuration calls, `deployments/base-sepolia.json`, every address predicted offchain and matched, all six verified on Sourcify at `match` level. The qualifier is below |
-| 8 | Real KeeperHub atomic attempt | **REACHED** | [`0xf7f9aace…`](https://sepolia.basescan.org/tx/0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab): six logs in one transaction, the action, the verifier result, the state transition and the fee |
+| 7 | Base Sepolia deployment | **REACHED, with one qualifier** | Six contracts and three configuration calls, `deployments/base-sepolia.json`, every address predicted offchain and matched, five of six verified on Sourcify at `match` level. The qualifier is below |
+| 8 | Real KeeperHub atomic attempt | **REACHED** | [`0xef63ee11…`](https://sepolia.basescan.org/tx/0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22): six logs in one transaction, the action, the verifier result, the state transition and the fee |
 | 9 | Public proof page and verification | **REACHED, with one qualifier** | `apps/web` plus `/api/proof`, `/api/proof/summary`, `/api/deployment`. The qualifier is below |
 | 10 | Capped Base mainnet canary | out of scope for v1 | |
 | 11 | Independent audit and production launch | out of scope for v1 | |
 
 ## The qualifier on rung 7
 
-The deployed bytecode was compiled from commit `2ccf02f`, and a later audit round found three
-escrow-trapping defects that are fixed in this repository and still present on chain. Redeploying
-invalidates the rung 8 receipt, so it was not done. Rung 7 is claimed for what is deployed, which
-is what Sourcify attests. It is not a claim that `main` is deployed.
-`docs/phase-logs/PHASE_07_FINAL_AUDIT.md` section 2.
+Five of the six contracts are verified on Sourcify at `match` level. `ResurvCovenantManager` is
+not: three submissions answered `no_match` and the cause is unresolved. Rung 7 is claimed for the
+deployment, which is recorded, address-predicted and bytecode-compared. It is not claimed as
+"all six publicly verified", because that is not true. `docs/DEPLOYMENTS.md`.
 
 ## The qualifier on rung 9
 

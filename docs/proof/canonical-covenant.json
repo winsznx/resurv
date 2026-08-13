@@ -1,104 +1,104 @@
 {
   "schema": "resurv.outcome-receipt.v1",
-  "generatedAt": "2026-08-12T20:21:04.247Z",
+  "generatedAt": "2026-08-13T08:44:13.008Z",
   "chain": {
     "chainId": 84532,
     "name": "Base Sepolia"
   },
   "covenant": {
-    "manager": "0xfcafbc81f253e62a3818ecda7a7a71e557c65b21",
-    "covenantId": "0xd7250d1fd4c0f996475b78a00489ce0668bad187b342ca61d88983bf0ec7e14f",
+    "manager": "0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284",
+    "covenantId": "0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0",
     "requester": "0xfd35ae935de7be93ffd585d6627268d833ed834c",
     "responder": "0xb0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0",
-    "triggerAuthority": "0x3fAA406B30074c3fC295d088d4A75c7Fd0f2E0a6",
-    "deadline": "1787170772",
-    "verifier": "0xde41aab7341db6ef25f513df51a264faf23ca737",
-    "verifierContext": "0x00000000000000000000000060ff59ea3eac52fd0c02dd8e31a368b4bd2f1cb80000000000000000000000005afe5afe5afe5afe5afe5afe5afe5afe5afe5afe00000000000000000000000096981488e239142e340bf32679059baa56bae2b1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4240",
-    "verifierContextHash": "0xf3fe9471691f9a3ad5d95ee6b35525c1d1567479089641a80aef459d8dfad7ac",
-    "feeToken": "0x96981488e239142e340bf32679059baa56bae2b1",
+    "triggerAuthority": "0xA019e041c322071e0A127239Af2208030227E93D",
+    "deadline": "1787215398",
+    "verifier": "0xd71f170915bf9204033b40746ee3c5f05de712f1",
+    "verifierContext": "0x000000000000000000000000291efc6f53559d8316761309e856772f10d0cdc40000000000000000000000005afe5afe5afe5afe5afe5afe5afe5afe5afe5afe00000000000000000000000042a48b758d36866ee18b117f101aafdbb49bc7c7000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4240",
+    "verifierContextHash": "0x28b68d2099c510e14a282907017e56e72793795fb8f940793e31326c2467cdc3",
+    "feeToken": "0x42a48b758d36866ee18b117f101aafdbb49bc7c7",
     "feeAmount": "1000000"
   },
   "recoveryPlan": [
     {
       "index": 0,
-      "adapter": "0x84c21e26ed405f6959b53a577afc677854f35fb6",
+      "adapter": "0x2bf292c9bceac8a2d0846a05b8b49917977c98e2",
       "name": "pause",
-      "config": "0x00000000000000000000000060ff59ea3eac52fd0c02dd8e31a368b4bd2f1cb8"
+      "config": "0x000000000000000000000000291efc6f53559d8316761309e856772f10d0cdc4"
     },
     {
       "index": 1,
-      "adapter": "0x498bd80ebc30d51de9764a20abc96b50d6840416",
+      "adapter": "0x196f0125e73a78438f1518e5eb46d9f03afd2197",
       "name": "evacuate-to-safe",
-      "config": "0x00000000000000000000000060ff59ea3eac52fd0c02dd8e31a368b4bd2f1cb800000000000000000000000096981488e239142e340bf32679059baa56bae2b10000000000000000000000005afe5afe5afe5afe5afe5afe5afe5afe5afe5afe00000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000f4240"
+      "config": "0x000000000000000000000000291efc6f53559d8316761309e856772f10d0cdc400000000000000000000000042a48b758d36866ee18b117f101aafdbb49bc7c70000000000000000000000005afe5afe5afe5afe5afe5afe5afe5afe5afe5afe00000000000000000000000000000000000000000000000000000000000f4240000000000000000000000000000000000000000000000000000000003b9aca00"
     }
   ],
   "trigger": {
-    "signalHash": "0x3ea6c12d3b49599e2d3ad5166a517267d201fbc36fefc6f99dc526b2a35594c8",
+    "signalHash": "0xa36554c4c1a87cc5fc433911219f0a543a144c122c12ec70be6e8fbe5df09b74",
     "nonce": 0,
-    "validAfter": "1786565954",
-    "validUntil": "1786569554",
-    "signature": "0x2f3f2c8bdcab11b986d0310a62b87e68bc711c500a19fffd56fc679e49634ff64388da6509972e0ba8ee3119334f40813289fe7ae73e9cd0c7ee397ad81998c61b"
+    "validAfter": "1786610574",
+    "validUntil": "1786614174",
+    "signature": "0x227443600f3215a3fe06dd5236d12cca9f5c1f51c49f84350c03d3592bbf494228424aa12195541d37aabdaad6cc56d44fd47f98f6c99bcab9301bd8b59318d71b"
   },
   "steps": [
     {
       "label": "revoke-pauser",
       "state": "CONFIRMED",
-      "transactionHash": "0xac129d94ebc55ec18bebd4c3ea05a69c79b12027dc141f54af3729327d4a33c5",
-      "executionId": "eoozw2qh7p0j1hhp6659i",
-      "explorer": "https://sepolia.basescan.org/tx/0xac129d94ebc55ec18bebd4c3ea05a69c79b12027dc141f54af3729327d4a33c5",
+      "transactionHash": "0xf4b00ee227eee6e30695dcabb58db4b90c97d68fe885821a77ad6eeec937dfe5",
+      "executionId": "0wdof1jcpzvhocxls1421",
+      "explorer": "https://sepolia.basescan.org/tx/0xf4b00ee227eee6e30695dcabb58db4b90c97d68fe885821a77ad6eeec937dfe5",
       "note": "receipt 0x1 at two agreeing origins, expected event present, no inner failure"
     },
     {
       "label": "mint-fee",
       "state": "CONFIRMED",
-      "transactionHash": "0x96601a8a0fd4921c4af9fe403477b8f3e18283fc5d21d23c11744488037f1802",
-      "executionId": "r4i2lg7leje12wii1bth5",
-      "explorer": "https://sepolia.basescan.org/tx/0x96601a8a0fd4921c4af9fe403477b8f3e18283fc5d21d23c11744488037f1802",
+      "transactionHash": "0x09ebd0232fc754335077bcac22ae50ed19717246ec069f441b49e1e6feb1af3d",
+      "executionId": "pw3cgzwfdetg2m51st1ia",
+      "explorer": "https://sepolia.basescan.org/tx/0x09ebd0232fc754335077bcac22ae50ed19717246ec069f441b49e1e6feb1af3d",
       "note": "receipt 0x1 at two agreeing origins, expected event present, no inner failure"
     },
     {
       "label": "approve-escrow",
       "state": "CONFIRMED",
-      "transactionHash": "0xc6b6d0cdec9949dd08ad91dc13928b1271a2c64eaa320d73a2accb9a9baff8ef",
-      "executionId": "1wpqrg6ull8mqk0d31ud7",
-      "explorer": "https://sepolia.basescan.org/tx/0xc6b6d0cdec9949dd08ad91dc13928b1271a2c64eaa320d73a2accb9a9baff8ef",
+      "transactionHash": "0xc4f226196ae62fb059a9e9c621c403e7a4fd31f71737401233d3e0ae43f0b488",
+      "executionId": "5mlngr6f1sbw4s2r3xrwi",
+      "explorer": "https://sepolia.basescan.org/tx/0xc4f226196ae62fb059a9e9c621c403e7a4fd31f71737401233d3e0ae43f0b488",
       "note": "receipt 0x1 at two agreeing origins, expected event present, no inner failure"
     },
     {
       "label": "covenant-create",
       "state": "CONFIRMED",
-      "transactionHash": "0x6814a2046c9eb5bd916cefe52b66a97030f63873bb4fc61d0db058be3a4c3de9",
-      "executionId": "w6hhaovz8t4qlylqrdsse",
-      "explorer": "https://sepolia.basescan.org/tx/0x6814a2046c9eb5bd916cefe52b66a97030f63873bb4fc61d0db058be3a4c3de9",
+      "transactionHash": "0x1b9ef930be3a216ce22ec3e38787799da0c2c72c4e62d04debda0fc41106ff89",
+      "executionId": "24ku72za49y1v0mrfxxbk",
+      "explorer": "https://sepolia.basescan.org/tx/0x1b9ef930be3a216ce22ec3e38787799da0c2c72c4e62d04debda0fc41106ff89",
       "note": "receipt 0x1 at two agreeing origins, expected event present, no inner failure"
     },
     {
       "label": "covenant-arm",
       "state": "CONFIRMED",
-      "transactionHash": "0x5e1d224687de21d4f47bb84b1cd24da69727ae8a46cde2a3b35d655a5b395795",
-      "executionId": "8jg4q20q0rogijmit5g27",
-      "explorer": "https://sepolia.basescan.org/tx/0x5e1d224687de21d4f47bb84b1cd24da69727ae8a46cde2a3b35d655a5b395795",
+      "transactionHash": "0xd8ec979b4aeefbf1f11a5a81fbd52dfdba0b6905fb96eaaa6bd154d3cd9a2e84",
+      "executionId": "ttskibd8t5j4tm400wkiz",
+      "explorer": "https://sepolia.basescan.org/tx/0xd8ec979b4aeefbf1f11a5a81fbd52dfdba0b6905fb96eaaa6bd154d3cd9a2e84",
       "note": "receipt 0x1 at two agreeing origins, expected event present, no inner failure"
     },
     {
       "label": "trigger",
       "state": "CONFIRMED",
-      "transactionHash": "0x11d1b00ff207c3f87738c25c9be1e581867b2ed163bfe4c7efa73b3096a9609e",
-      "executionId": "sn7guqbjh7ss2qqwj9s0x",
-      "explorer": "https://sepolia.basescan.org/tx/0x11d1b00ff207c3f87738c25c9be1e581867b2ed163bfe4c7efa73b3096a9609e",
+      "transactionHash": "0x6a796dc3d3056d6d5a3a9de22bd0d5f506b91fb36c8ced640e74a340523afe66",
+      "executionId": "weyj8yhyu8gx0ocim49q1",
+      "explorer": "https://sepolia.basescan.org/tx/0x6a796dc3d3056d6d5a3a9de22bd0d5f506b91fb36c8ced640e74a340523afe66",
       "note": "receipt 0x1 at two agreeing origins, expected event present, no inner failure"
     },
     {
       "label": "attempt-primary",
       "state": "SIMULATION_REJECTED",
-      "note": "HTTP 400; AccessControlUnauthorizedAccount(0x84c21e26eD405F6959B53A577afc677854F35FB6, 0xaf922051d8baa383229a2f047ecb80d263f32453187c467d25feb581a07dad5c)"
+      "note": "HTTP 400; AccessControlUnauthorizedAccount(0x2bf292c9Bceac8a2d0846A05b8b49917977c98e2, 0xaf922051d8baa383229a2f047ecb80d263f32453187c467d25feb581a07dad5c)"
     },
     {
       "label": "attempt-fallback",
       "state": "CONFIRMED",
-      "transactionHash": "0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab",
-      "executionId": "0lcp3tlaug94dyiqlj9ns",
-      "explorer": "https://sepolia.basescan.org/tx/0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab",
+      "transactionHash": "0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22",
+      "executionId": "j0zunv9f6r0rbw50h3zok",
+      "explorer": "https://sepolia.basescan.org/tx/0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22",
       "note": "receipt 0x1 at two agreeing origins, expected event present, no inner failure"
     },
     {
@@ -115,17 +115,17 @@
   "outcome": {
     "terminalStatus": 5,
     "satisfied": true,
-    "stateHash": "0x726ba3bc4976e61fb089ac0c246430e2b232f103023801887b9514f670a4e3a6",
+    "stateHash": "0x0f9fba4a33572274442ffdd8dd4a99ca2c47b5350c55c4eeba8300a3498f27ec",
     "observedValue": "1000000",
     "vaultBalance": "0",
     "safeBalance": "1000000",
     "responderBalance": "1000000"
   },
   "successTransaction": {
-    "hash": "0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab",
-    "link": "https://sepolia.basescan.org/tx/0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab",
-    "keeperhubExecutionId": "0lcp3tlaug94dyiqlj9ns",
-    "blockNumber": "0x2b4bb5f",
+    "hash": "0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22",
+    "link": "https://sepolia.basescan.org/tx/0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22",
+    "keeperhubExecutionId": "j0zunv9f6r0rbw50h3zok",
+    "blockNumber": "0x2b5127c",
     "logCount": 6
   },
   "limitations": [

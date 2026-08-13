@@ -16,7 +16,7 @@ Three assets are required and incomplete submissions are not judged:
 |---|---|
 | GitHub repository link | **ready:** https://github.com/winsznx/resurv — public, full history, CI green |
 | Demo video | **needed.** Script in `docs/DEMO_SCRIPT.md`, checklist in `docs/DEMO_CAPTURE_CHECKLIST.md`. A human records it |
-| Link to a real transaction executed through KeeperHub | **ready:** https://sepolia.basescan.org/tx/0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab |
+| Link to a real transaction executed through KeeperHub | **ready:** https://sepolia.basescan.org/tx/0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22 |
 
 ---
 
@@ -115,9 +115,9 @@ shipped.
 
 ## Real KeeperHub transaction
 
-https://sepolia.basescan.org/tx/0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab
+https://sepolia.basescan.org/tx/0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22
 
-Block 45398879, status `0x1`, 245,555 gas. Six logs in this order: `AttemptStarted`, the vault's
+Block 45421180, status `0x1`, 245,380 gas. Six logs in this order: `AttemptStarted`, the vault's
 `Transfer` to the approved recipient, `VaultEvacuated`, `AttemptSucceeded`, the escrow's
 `Transfer` to the responder, `CovenantSatisfied`.
 

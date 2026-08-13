@@ -121,12 +121,12 @@ Base Sepolia, chain 84532, deployed 2026-08-12 through CreateX
 
 | Contract | Address |
 |---|---|
-| `ResurvCovenantManager` | `0xfcafbc81f253e62a3818ecda7a7a71e557c65b21` |
-| `PauseAction` | `0x84c21e26ed405f6959b53a577afc677854f35fb6` |
-| `EvacuateERC20Action` | `0x498bd80ebc30d51de9764a20abc96b50d6840416` |
-| `VaultSafeStateVerifier` | `0xde41aab7341db6ef25f513df51a264faf23ca737` |
-| `DemoVault` | `0x60ff59ea3eac52fd0c02dd8e31a368b4bd2f1cb8` |
-| `TestUSD` | `0x96981488e239142e340bf32679059baa56bae2b1` |
+| `ResurvCovenantManager` | `0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284` |
+| `PauseAction` | `0x2bf292c9bceac8a2d0846a05b8b49917977c98e2` |
+| `EvacuateERC20Action` | `0x196f0125e73a78438f1518e5eb46d9f03afd2197` |
+| `VaultSafeStateVerifier` | `0xd71f170915bf9204033b40746ee3c5f05de712f1` |
+| `DemoVault` | `0x291efc6f53559d8316761309e856772f10d0cdc4` |
+| `TestUSD` | `0x42a48b758d36866ee18b117f101aafdbb49bc7c7` |
 
 Bytecode hashes, salts, constructor arguments, compiler settings and every deployment
 transaction: `deployments/base-sepolia.json`.
@@ -141,9 +141,9 @@ daily submission limit. No document here claims Basescan verification, and none 
 
 | | |
 |---|---|
-| Covenant | `0xd7250d1fd4c0f996475b78a00489ce0668bad187b342ca61d88983bf0ec7e14f` |
-| Success transaction | `0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab` |
-| Block, gas, status | 45398879, 245,555, `0x1` |
+| Covenant | `0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0` |
+| Success transaction | `0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22` |
+| Block, gas, status | 45421180, 245,380, `0x1` |
 | Terminal status | `SATISFIED` (5) |
 | Verifier, read live | `satisfied: true`, observed 1,000,000 |
 | Vault / recipient / responder | 0 · 1.000000 rUSD · 1.000000 rUSD |
@@ -230,10 +230,10 @@ pnpm --filter @resurv/cli live:demo --dry-run        # simulates every step, bro
 pnpm --filter @resurv/cli live:contracts             # deploys, needs the credential
 pnpm --filter @resurv/cli live:demo                  # a new covenant, needs the credential
 
-cast receipt 0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab \
+cast receipt 0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22 \
   --rpc-url https://sepolia.base.org
-cast call 0xfcafbc81f253e62a3818ecda7a7a71e557c65b21 "statusOf(bytes32)(uint8)" \
-  0xd7250d1fd4c0f996475b78a00489ce0668bad187b342ca61d88983bf0ec7e14f \
+cast call 0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284 "statusOf(bytes32)(uint8)" \
+  0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0 \
   --rpc-url https://sepolia.base.org                 # 5 = SATISFIED
 ```
 

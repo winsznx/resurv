@@ -1,6 +1,6 @@
 import { KeeperhubClient } from '@resurv/keeperhub-client';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { type AttemptPlan, executeSemanticAttempt } from '../src/execute.ts';
+import { type AttemptPlan, executeSemanticAttempt, nextRoundDelayMs } from '../src/execute.ts';
 import { InMemoryAttemptStore } from '../src/store.ts';
 import {
   EXPECTED_TOPIC,
@@ -435,6 +435,84 @@ describe('the reconciliation loop itself', () => {
 
     // #then the attempt stays ambiguous rather than being declared never broadcast
     expect(outcome.state).toBe('RECONCILIATION_REQUIRED');
+  });
+});
+
+/**
+ * Rate limiting, which the client parsed into every exchange and the reconciler then ignored.
+ *
+ * The headers were measured in Phase 0.5 and recorded, and `parsePollIntervalHint` was unit
+ * tested in isolation while being called from no production code at all. A hint nothing reads is
+ * a comment with a test suite.
+ */
+describe('server hints about when to come back', () => {
+  const withRateLimit = (rateLimit: Record<string, unknown>) =>
+    ({ rateLimit }) as unknown as Parameters<typeof nextRoundDelayMs>[0];
+
+  it('honours Retry-After ahead of everything else', () => {
+    // #given a throttled response asking for 12 seconds
+    // #when / #then
+    expect(nextRoundDelayMs(withRateLimit({ retryAfterSeconds: 12, pollIntervalHint: '2' }))).toBe(
+      12_000,
+    );
+  });
+
+  it('falls back to the poll-interval hint when there is no Retry-After', () => {
+    expect(nextRoundDelayMs(withRateLimit({ pollIntervalHint: '8' }))).toBe(8_000);
+  });
+
+  it('falls back to the default when the server says nothing', () => {
+    expect(nextRoundDelayMs(undefined)).toBe(5_000);
+    expect(nextRoundDelayMs(withRateLimit({}))).toBe(5_000);
+  });
+
+  /**
+   * The safety rule. A server may legitimately ask for an hour, and honouring that literally
+   * would spend the whole round budget asleep and give up on an attempt the chain could have
+   * settled in a minute. A hint is information about the server's load, never permission to stop
+   * looking at chain.
+   */
+  it('never waits longer than a minute, whatever the server asks for', () => {
+    expect(nextRoundDelayMs(withRateLimit({ retryAfterSeconds: 3600 }))).toBe(60_000);
+    expect(nextRoundDelayMs(withRateLimit({ pollIntervalHint: '900' }))).toBe(60_000);
+  });
+
+  it('never busy-loops, including when the hint says the execution is settled', () => {
+    // `0` means terminal, which is a reason to look at the chain sooner and not a reason to stop.
+    expect(nextRoundDelayMs(withRateLimit({ pollIntervalHint: '0' }))).toBe(1_000);
+    expect(nextRoundDelayMs(withRateLimit({ retryAfterSeconds: 0.001 }))).toBe(1_000);
+  });
+
+  it('ignores a hint it cannot read rather than trusting it', () => {
+    expect(nextRoundDelayMs(withRateLimit({ pollIntervalHint: 'soon' }))).toBe(5_000);
+    expect(nextRoundDelayMs(withRateLimit({ retryAfterSeconds: Number.NaN }))).toBe(5_000);
+    expect(nextRoundDelayMs(withRateLimit({ retryAfterSeconds: -5 }))).toBe(5_000);
+  });
+
+  it('actually waits what the last exchange asked for, between real rounds', async () => {
+    // #given a 429 carrying Retry-After, then nothing that resolves
+    const keeperhub = new FakeKeeperhub()
+      .onExecute({
+        status: 429,
+        body: { error: 'slow down', code: 'rate_limited', retryable: true },
+        headers: { 'Retry-After': '7' },
+      })
+      .onStatus({ status: 200, body: { status: 'pending' } });
+    const rpc = new FakeRpc({ logs: [], blockNumber: '0x3000' });
+    const waited: number[] = [];
+
+    // #when
+    await executeSemanticAttempt(PLAN, {
+      ...runtime(keeperhub, rpc),
+      maxReconciliationRounds: 2,
+      settlementWindowMs: 10 ** 9,
+      waitMs: async (ms) => {
+        waited.push(ms);
+      },
+    });
+
+    // #then the reconciler backed off by what the server said, not by its own constant
+    expect(waited).toEqual([7_000, 7_000]);
   });
 });
 

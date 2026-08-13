@@ -46,14 +46,24 @@ export const CONTRACT_CREATION_UNSALTED_TOPIC =
   '0x4db17dd5e4732fb6da34a148104a592783ca119a1e7bb8829eba6cbadef0b511' as const;
 
 /**
- * Bumped to v2 when `createCovenantEncoded` was added, and to v3 when an independent audit
- * found two ways a covenant's escrow could be trapped permanently. CREATE2 addresses are a
- * function of the salt and the init code, so a changed contract lands at a new address anyway,
- * but the contracts whose bytecode did not change would have collided with their own first
- * deployment. Bumping the namespace keeps one deployment coherent instead of splitting it
- * across two generations. The v1 addresses stay on chain, unused and unreferenced.
+ * The deployment generation.
+ *
+ * v2 added `createCovenantEncoded`. v3 followed an audit that found two ways a covenant's escrow
+ * could be trapped permanently. v4 follows the second audit round, which found three more:
+ * a verifier returning a non-boolean word reverted the expiry in the manager's own frame, an
+ * over-long verifier return let the expiry refund over a true outcome, and a global pause closed
+ * the last exit for a covenant whose outcome came true past its deadline.
+ *
+ * Why a namespace bump rather than relying on the init code changing. A CREATE2 address is a
+ * function of the guarded salt and the init code, so a contract whose bytecode changed lands
+ * somewhere new by itself. `TestUSD`, `DemoVault` and `VaultSafeStateVerifier` did not change,
+ * and without a new namespace they would collide with their own previous deployment and revert,
+ * leaving a generation split across two sets of addresses. Bumping keeps one deployment coherent.
+ *
+ * Every earlier generation stays on chain. Nothing references it, and `deployments/historical/`
+ * records it as what it is: the evidence a previous run produced, superseded rather than deleted.
  */
-export const SALT_NAMESPACE = 'resurv/v3';
+export const SALT_NAMESPACE = 'resurv/v4';
 
 export class SaltRejectedError extends Error {
   constructor(reason: string) {

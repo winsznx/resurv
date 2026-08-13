@@ -111,6 +111,39 @@ describe('the request body', () => {
       expect(canonicalJson(contractCallBody(spec))).toBe(prepared.plan.canonicalBody);
     }
   });
+
+  /**
+   * The property above holds for one spec. This one holds the *shape* that makes it hold in
+   * production: everything that identifies the action lives in the spec, so a simulate request
+   * and an execute request built from the same spec cannot differ, and two specs that differ
+   * anywhere the chain can see produce different bytes. `demo.ts` builds one spec per action and
+   * hands the same object to both calls, so there is no second literal for a typo to live in.
+   */
+  it('puts every field the chain can see into the spec, and nothing else', async () => {
+    // #given one spec varied along each field that changes what executes
+    const variants: Record<string, Spec> = {
+      target: { ...SPEC, contractAddress: '0x00000000000000000000000000000000000000bb' },
+      selector: { ...SPEC, functionName: 'expireCovenant' },
+      args: { ...SPEC, args: ['0xcov', 2, '0x'] },
+      value: { ...SPEC, value: '1' },
+    };
+    const base = canonicalJson(contractCallBody(SPEC));
+
+    for (const [field, variant] of Object.entries(variants)) {
+      // #when / #then a change the chain would notice changes the bytes
+      expect(canonicalJson(contractCallBody(variant)), field).not.toBe(base);
+    }
+
+    // #and a change the chain cannot see does not: `label` and `expectedEffect` are RESURV's own
+    // bookkeeping, so they must stay out of the body or a replay would not be byte-identical.
+    const relabelled: Spec = {
+      ...SPEC,
+      label: 'a completely different label',
+      expectedEffect: { address: undefined, topics: ['0xsomethingelse'] },
+    };
+    expect(canonicalJson(contractCallBody(relabelled))).toBe(base);
+    expect((await prepareCall(relabelled)).plan.canonicalBody).toBe(base);
+  });
 });
 
 describe('the chain anchor', () => {

@@ -4,6 +4,7 @@ export {
   type ExecuteOptions,
   type ExpectedEffect,
   executeSemanticAttempt,
+  nextRoundDelayMs,
   receiptCarriesEffect,
 } from './execute.ts';
 

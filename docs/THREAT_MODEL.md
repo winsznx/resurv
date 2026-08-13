@@ -39,7 +39,7 @@ atomic attempt exists, is deployed, and settled a covenant on Base Sepolia:
 `test_falseOutcomeRevertsTheActionTheCountersTheStatusAndTheFee` shows the adapter's transfer,
 the attempt counters, the status change and the escrow unwinding together, a mutation removing
 the postcondition revert fails eight tests, and transaction
-`0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab` carries the six logs the
+`0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22` carries the six logs the
 claim rests on. The verifier is reached by STATICCALL, so one that tries to write reverts rather
 than satisfying itself.
 

@@ -5,21 +5,21 @@ recovery actions through KeeperHub until the promised onchain state is verified,
 payment.
 
 [![CI](https://github.com/winsznx/resurv/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/winsznx/resurv/actions/workflows/ci.yml)
-[![contracts: Sourcify match](https://img.shields.io/badge/contracts-Sourcify%20match-09090b)](https://repo.sourcify.dev/84532/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21)
-[![chain: Base Sepolia](https://img.shields.io/badge/chain-Base%20Sepolia-09090b)](https://sepolia.basescan.org/address/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21)
+[![contracts: Sourcify match](https://img.shields.io/badge/contracts-Sourcify%20match-09090b)](https://repo.sourcify.dev/84532/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284)
+[![chain: Base Sepolia](https://img.shields.io/badge/chain-Base%20Sepolia-09090b)](https://sepolia.basescan.org/address/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284)
 
 | | |
 |---|---|
-| **Real KeeperHub transaction** | [`0xf7f9aace…29d86ab`](https://sepolia.basescan.org/tx/0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab) — the successful attempt, block 45398879 |
+| **Real KeeperHub transaction** | [`0xef63ee11…1f9c7e22`](https://sepolia.basescan.org/tx/0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22) — the successful attempt, block 45421180 |
 | **Public proof page** | `apps/web`. Serve it with `pnpm build && pnpm --filter @resurv/web preview`. The Cloudflare deploy is one command and a deliberate human step — see [Deployment](#13-deployment) |
-| **Covenant** | `0xd7250d1fd4c0f996475b78a00489ce0668bad187b342ca61d88983bf0ec7e14f` |
-| **Covenant manager** | [`0xfcafbc81…7c65b21`](https://sepolia.basescan.org/address/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21) · [verified source](https://repo.sourcify.dev/84532/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21) |
+| **Covenant** | `0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0` |
+| **Covenant manager** | [`0x8e4c71d6…9d9d284`](https://sepolia.basescan.org/address/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284) · [verified source](https://repo.sourcify.dev/84532/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284) |
 | **Tests** | 727 TypeScript, 122 Foundry. CI green on a clean runner |
 
 Check the headline yourself in one command:
 
 ```bash
-cast receipt 0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab \
+cast receipt 0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22 \
   --rpc-url https://sepolia.base.org
 ```
 
@@ -164,22 +164,23 @@ exactly from this repository at the pinned compiler settings — and propagated 
 
 | Contract | Address | Verified source |
 |---|---|---|
-| `ResurvCovenantManager` | [`0xfcafbc81…`](https://sepolia.basescan.org/address/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21) | [Sourcify](https://repo.sourcify.dev/84532/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21) · [Blockscout](https://base-sepolia.blockscout.com/address/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21?tab=contract) |
-| `PauseAction` | [`0x84c21e26…`](https://sepolia.basescan.org/address/0x84c21e26ed405f6959b53a577afc677854f35fb6) | [Sourcify](https://repo.sourcify.dev/84532/0x84c21e26ed405f6959b53a577afc677854f35fb6) |
-| `EvacuateERC20Action` | [`0x498bd80e…`](https://sepolia.basescan.org/address/0x498bd80ebc30d51de9764a20abc96b50d6840416) | [Sourcify](https://repo.sourcify.dev/84532/0x498bd80ebc30d51de9764a20abc96b50d6840416) |
-| `VaultSafeStateVerifier` | [`0xde41aab7…`](https://sepolia.basescan.org/address/0xde41aab7341db6ef25f513df51a264faf23ca737) | [Sourcify](https://repo.sourcify.dev/84532/0xde41aab7341db6ef25f513df51a264faf23ca737) |
-| `DemoVault` | [`0x60ff59ea…`](https://sepolia.basescan.org/address/0x60ff59ea3eac52fd0c02dd8e31a368b4bd2f1cb8) | [Sourcify](https://repo.sourcify.dev/84532/0x60ff59ea3eac52fd0c02dd8e31a368b4bd2f1cb8) |
-| `TestUSD` | [`0x96981488…`](https://sepolia.basescan.org/address/0x96981488e239142e340bf32679059baa56bae2b1) | [Sourcify](https://repo.sourcify.dev/84532/0x96981488e239142e340bf32679059baa56bae2b1) |
+| `ResurvCovenantManager` | [`0x8e4c71d6…`](https://sepolia.basescan.org/address/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284) | [Sourcify](https://repo.sourcify.dev/84532/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284) · [Blockscout](https://base-sepolia.blockscout.com/address/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284?tab=contract) |
+| `PauseAction` | [`0x2bf292c9…`](https://sepolia.basescan.org/address/0x2bf292c9bceac8a2d0846a05b8b49917977c98e2) | [Sourcify](https://repo.sourcify.dev/84532/0x2bf292c9bceac8a2d0846a05b8b49917977c98e2) |
+| `EvacuateERC20Action` | [`0x196f0125…`](https://sepolia.basescan.org/address/0x196f0125e73a78438f1518e5eb46d9f03afd2197) | [Sourcify](https://repo.sourcify.dev/84532/0x196f0125e73a78438f1518e5eb46d9f03afd2197) |
+| `VaultSafeStateVerifier` | [`0xd71f1709…`](https://sepolia.basescan.org/address/0xd71f170915bf9204033b40746ee3c5f05de712f1) | [Sourcify](https://repo.sourcify.dev/84532/0xd71f170915bf9204033b40746ee3c5f05de712f1) |
+| `DemoVault` | [`0x291efc6f…`](https://sepolia.basescan.org/address/0x291efc6f53559d8316761309e856772f10d0cdc4) | [Sourcify](https://repo.sourcify.dev/84532/0x291efc6f53559d8316761309e856772f10d0cdc4) |
+| `TestUSD` | [`0x42a48b75…`](https://sepolia.basescan.org/address/0x42a48b758d36866ee18b117f101aafdbb49bc7c7) | [Sourcify](https://repo.sourcify.dev/84532/0x42a48b758d36866ee18b117f101aafdbb49bc7c7) |
 
 ```bash
-curl -s https://sourcify.dev/server/v2/contract/84532/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21 \
+curl -s https://sourcify.dev/server/v2/contract/84532/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284 \
   | jq '{match, creationMatch, runtimeMatch}'
 ```
 
-Two qualifiers, both load-bearing. Basescan may still list them as unverified, because Sourcify's
-forwarding to Etherscan hit a daily submission limit, and nothing here claims Basescan
-verification. And the source those addresses match is commit `2ccf02f`, not `main` — see
-[Known limitations](#14-known-limitations).
+Two qualifiers, both load-bearing. `ResurvCovenantManager` is **not** verified: three Sourcify
+submissions answered `no_match`, the other five verify from the same build, and the cause is
+unresolved. And Basescan may still list all of them as unverified, because Sourcify's forwarding
+to Etherscan hit a daily submission limit. Nothing here claims Basescan verification.
+`docs/DEPLOYMENTS.md` gives the `cast code` check that works without Sourcify.
 
 ## 8. The state machines
 
@@ -312,14 +313,6 @@ something an agent talks itself into.
 
 - **Testnet.** Base Sepolia. No mainnet deployment and no external audit, so nothing here is
   production-ready by this project's own definition.
-- **The deployed contracts predate the last audit round.** The bytecode at those six addresses
-  was compiled from commit `2ccf02f`. Three escrow-trapping defects found afterwards are fixed in
-  this repository and still present on chain; redeploying invalidates the canonical receipt every
-  surface here cites, so it was not done hours before a deadline. None of the three affects the
-  canonical covenant, which uses the honest shipped verifier and was never paused, and all three
-  require a verifier the requester chose to be malformed or the admin to pause. Sourcify's `match`
-  attests that the deployed bytecode reproduces from `2ccf02f`, which it does, and has never
-  attested anything about `main`.
 - **A verifier that runs out of gas at any budget still has no exit**, and nothing validates a
   verifier or an adapter at covenant creation. Same root cause, named and not fixed: the remedy is
   a conformance probe that needs its own design and its own review.

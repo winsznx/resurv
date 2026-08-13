@@ -32,6 +32,7 @@ import {
   TARGET_CHAIN_ID,
 } from '@resurv/chain';
 import {
+  type KeeperhubExchange,
   readFailureKind,
   readRevertReason,
   readWalletAddress,
@@ -49,7 +50,7 @@ import {
 } from 'viem';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { readArtifact } from '../artifacts.ts';
-import { contractCallBody, prepareCall } from '../call.ts';
+import { type ContractCallSpec, contractCallBody, prepareCall } from '../call.ts';
 import {
   ACTION_EVACUATE,
   ACTION_PAUSE,
@@ -177,35 +178,48 @@ async function main(): Promise<void> {
   const deadline = BigInt(Math.floor(Date.now() / 1000) + COVENANT_DURATION_SECONDS);
   const steps: StepRecord[] = [];
 
-  /** One live write, through the full measured lifecycle. */
-  async function send(
+  /**
+   * The semantic identity of one action, written exactly once.
+   *
+   * Simulation and execution are two questions about a single action, and the only difference
+   * between their bodies must be the `simulate` flag the client adds. Every call site below
+   * builds one of these and hands it to both, so there is no second literal to drift: a caller
+   * who repeats the target, the selector and the args by hand for the simulate request is one
+   * typo away from simulating one call and broadcasting another, and no KeeperHub response would
+   * say so. `packages/cli/test/call.test.ts` pins the byte equality this arrangement produces.
+   */
+  function specFor(
     label: string,
     contractAddress: string,
     functionName: string,
     abi: Abi,
     args: readonly unknown[],
     expectedTopic: string,
-  ): Promise<{ transactionHash: string | undefined; executionId: string | undefined }> {
-    const prepared = await prepareCall({
+  ): ContractCallSpec {
+    return {
       label: `demo/${runLabel}/${label}`,
       contractAddress,
       functionName,
       abi,
       args,
       expectedEffect: { address: contractAddress, topics: [expectedTopic] },
-    });
+    };
+  }
+
+  /** Simulate an action and record what came back. Nothing is broadcast on this path. */
+  async function simulateOnly(spec: ContractCallSpec): Promise<KeeperhubExchange> {
+    return runtime.keeperhub.simulate(contractCallBody(spec) as never);
+  }
+
+  /** One live write, through the full measured lifecycle. */
+  async function send(
+    label: string,
+    spec: ContractCallSpec,
+  ): Promise<{ transactionHash: string | undefined; executionId: string | undefined }> {
+    const prepared = await prepareCall(spec);
 
     if (dryRun) {
-      const simulation = await runtime.keeperhub.simulate(
-        contractCallBody({
-          label,
-          contractAddress,
-          functionName,
-          abi,
-          args,
-          expectedEffect: { topics: [] },
-        }) as never,
-      );
+      const simulation = await simulateOnly(spec);
       const wouldRevert = readWouldRevert(simulation.body);
       step(`${label}: simulate -> HTTP ${simulation.httpStatus} wouldRevert=${wouldRevert}`);
       if (wouldRevert === true) {
@@ -249,11 +263,14 @@ async function main(): Promise<void> {
   step('--- setup: revoking the vault role the primary action depends on');
   await send(
     'revoke-pauser',
-    vault,
-    'revokeRole',
-    vaultAbi,
-    [keccak256(toHex('DEMO_VAULT_PAUSER_ROLE')), pauseAction],
-    TOPIC.roleRevoked,
+    specFor(
+      'revoke-pauser',
+      vault,
+      'revokeRole',
+      vaultAbi,
+      [keccak256(toHex('DEMO_VAULT_PAUSER_ROLE')), pauseAction],
+      TOPIC.roleRevoked,
+    ),
   );
 
   // ---------------------------------------------------------------------------------------
@@ -262,19 +279,25 @@ async function main(): Promise<void> {
   step('--- covenant: mint the success fee, approve the escrow, create, fund and arm');
   await send(
     'mint-fee',
-    token,
-    'mint',
-    tokenAbi,
-    [requester, ONE_TEST_DOLLAR.toString()],
-    TOPIC.transfer,
+    specFor(
+      'mint-fee',
+      token,
+      'mint',
+      tokenAbi,
+      [requester, ONE_TEST_DOLLAR.toString()],
+      TOPIC.transfer,
+    ),
   );
   await send(
     'approve-escrow',
-    token,
-    'approve',
-    tokenAbi,
-    [manager, ONE_TEST_DOLLAR.toString()],
-    keccak256(toHex('Approval(address,address,uint256)')),
+    specFor(
+      'approve-escrow',
+      token,
+      'approve',
+      tokenAbi,
+      [manager, ONE_TEST_DOLLAR.toString()],
+      keccak256(toHex('Approval(address,address,uint256)')),
+    ),
   );
 
   // The trigger authority exists only in this process. Its private key is never written to
@@ -338,13 +361,19 @@ async function main(): Promise<void> {
 
   await send(
     'covenant-create',
-    manager,
-    'createCovenantEncoded',
-    managerAbi,
-    [encodedParams, encodedActions],
-    TOPIC.covenantCreated,
+    specFor(
+      'covenant-create',
+      manager,
+      'createCovenantEncoded',
+      managerAbi,
+      [encodedParams, encodedActions],
+      TOPIC.covenantCreated,
+    ),
   );
-  await send('covenant-arm', manager, 'fundAndArm', managerAbi, [covenantId], TOPIC.covenantArmed);
+  await send(
+    'covenant-arm',
+    specFor('covenant-arm', manager, 'fundAndArm', managerAbi, [covenantId], TOPIC.covenantArmed),
+  );
 
   // ---------------------------------------------------------------------------------------
   // 3. The incident. A signed risk trigger, relayed by anyone, authored only by the authority.
@@ -399,28 +428,24 @@ async function main(): Promise<void> {
     trigger.validUntil,
     signature,
   ];
-  await send('trigger', manager, 'trigger', managerAbi, triggerArgs, TOPIC.covenantTriggered);
+  await send(
+    'trigger',
+    specFor('trigger', manager, 'trigger', managerAbi, triggerArgs, TOPIC.covenantTriggered),
+  );
 
   // ---------------------------------------------------------------------------------------
   // 4. The primary action. Simulated, refused, and never broadcast.
   // ---------------------------------------------------------------------------------------
   step('--- attempt 1: the primary action, simulated before anything is sent');
-  const primaryBody = contractCallBody({
-    label: 'attempt/primary',
-    contractAddress: manager,
-    functionName: 'executeAttempt',
-    abi: managerAbi,
-    args: [
-      covenantId,
-      String(ACTION_PAUSE),
-      pauseConfig,
-      verifierContext,
-      `0x${'0'.repeat(64)}`,
-      '0',
-    ],
-    expectedEffect: { topics: [] },
-  });
-  const primarySimulation = await runtime.keeperhub.simulate(primaryBody as never);
+  const primarySpec = specFor(
+    'attempt-primary',
+    manager,
+    'executeAttempt',
+    managerAbi,
+    [covenantId, String(ACTION_PAUSE), pauseConfig, verifierContext, `0x${'0'.repeat(64)}`, '0'],
+    TOPIC.attemptSucceeded,
+  );
+  const primarySimulation = await simulateOnly(primarySpec);
   const primaryWouldRevert = readWouldRevert(primarySimulation.body);
   step(
     `primary simulation: HTTP ${primarySimulation.httpStatus} wouldRevert=${primaryWouldRevert} failureKind=${readFailureKind(primarySimulation.body) ?? 'none'}`,
@@ -452,16 +477,15 @@ async function main(): Promise<void> {
     `0x${'0'.repeat(64)}`,
     '1',
   ];
-  const fallbackSimulation = await runtime.keeperhub.simulate(
-    contractCallBody({
-      label: 'attempt/fallback',
-      contractAddress: manager,
-      functionName: 'executeAttempt',
-      abi: managerAbi,
-      args: fallbackArgs,
-      expectedEffect: { topics: [] },
-    }) as never,
+  const fallbackSpec = specFor(
+    'attempt-fallback',
+    manager,
+    'executeAttempt',
+    managerAbi,
+    fallbackArgs,
+    TOPIC.attemptSucceeded,
   );
+  const fallbackSimulation = await simulateOnly(fallbackSpec);
   step(
     `fallback simulation: HTTP ${fallbackSimulation.httpStatus} wouldRevert=${readWouldRevert(fallbackSimulation.body)}`,
   );
@@ -471,42 +495,21 @@ async function main(): Promise<void> {
     );
   }
 
-  const attempt = await send(
-    'attempt-fallback',
-    manager,
-    'executeAttempt',
-    managerAbi,
-    fallbackArgs,
-    TOPIC.attemptSucceeded,
-  );
+  // The same spec object that was just simulated. Not an equivalent one: the same one.
+  const attempt = await send('attempt-fallback', fallbackSpec);
 
   // ---------------------------------------------------------------------------------------
   // 6. Duplicate protection, proven rather than asserted.
   // ---------------------------------------------------------------------------------------
   step('--- replay: the same trigger and the same attempt, again');
-  const replayTrigger = await runtime.keeperhub.simulate(
-    contractCallBody({
-      label: 'replay/trigger',
-      contractAddress: manager,
-      functionName: 'trigger',
-      abi: managerAbi,
-      args: triggerArgs,
-      expectedEffect: { topics: [] },
-    }) as never,
+  const replayTrigger = await simulateOnly(
+    specFor('replay-trigger', manager, 'trigger', managerAbi, triggerArgs, TOPIC.covenantTriggered),
   );
   step(
     `replayed trigger: HTTP ${replayTrigger.httpStatus} wouldRevert=${readWouldRevert(replayTrigger.body)}`,
   );
-  const replayAttempt = await runtime.keeperhub.simulate(
-    contractCallBody({
-      label: 'replay/attempt',
-      contractAddress: manager,
-      functionName: 'executeAttempt',
-      abi: managerAbi,
-      args: fallbackArgs,
-      expectedEffect: { topics: [] },
-    }) as never,
-  );
+  // Byte-identical to the attempt that already ran, which is the point of the replay.
+  const replayAttempt = await simulateOnly(fallbackSpec);
   step(
     `replayed attempt: HTTP ${replayAttempt.httpStatus} wouldRevert=${readWouldRevert(replayAttempt.body)}`,
   );

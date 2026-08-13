@@ -78,7 +78,7 @@ HTTP 400; AccessControlUnauthorizedAccount(0x345FdCFE…, 0xaf922051…)
 > the sender; the gas is sponsored; the wallet holds no ETH at all.
 
 **On screen:** the Basescan logs tab of
-`0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab`.
+`0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22`.
 
 ---
 
@@ -123,9 +123,9 @@ HTTP 400; AccessControlUnauthorizedAccount(0x345FdCFE…, 0xaf922051…)
 **Type, live:**
 
 ```bash
-cast call 0xfcafbc81f253e62a3818ecda7a7a71e557c65b21 \
+cast call 0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284 \
   "statusOf(bytes32)(uint8)" \
-  0xd7250d1fd4c0f996475b78a00489ce0668bad187b342ca61d88983bf0ec7e14f \
+  0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0 \
   --rpc-url https://sepolia.base.org
 ```
 
@@ -158,9 +158,9 @@ Answer it directly. The answer is a strength in this build and hedging makes it 
 
 And the sentence to volunteer rather than wait to be caught on:
 
-> The deployed bytecode predates the last round, so three of those fixes are in the repository and
-> not on chain. Redeploying invalidates the canonical receipt, so it was not done. None of the
-> three affects this covenant, which uses the honest shipped verifier and was never paused.
+> The contracts on screen were redeployed from the current source after that round, and this run
+> is against those. Five of the six are verified on Sourcify; the covenant manager answered
+> `no_match` three times and is not verified, so check it with `cast code` instead.
 
 ## What not to say
 

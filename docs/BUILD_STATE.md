@@ -28,9 +28,9 @@ wallet and no faucet.
 
 | | |
 |---|---|
-| Success transaction | `0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab` |
-| Covenant | `0xd7250d1fd4c0f996475b78a00489ce0668bad187b342ca61d88983bf0ec7e14f` |
-| Manager | `0xfcafbc81f253e62a3818ecda7a7a71e557c65b21` |
+| Success transaction | `0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22` |
+| Covenant | `0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0` |
+| Manager | `0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284` |
 | Receipt | `docs/proof/canonical-covenant.json` |
 | Manifest | `deployments/base-sepolia.json` |
 
@@ -101,10 +101,10 @@ fund-loss guard it was named after deleted, plus an off-by-one in the reconcilia
 failed nothing because no test had ever counted a round. All fixed in source, each one verified
 by reverting the fix and confirming exactly one test fails.
 
-**The deployed contracts do not contain the second round's fixes.** Redeploying invalidates the
-canonical receipt every public surface cites and it was not done. None of the three affects the
-canonical covenant. That is written out in full in `PHASE_07_FINAL_AUDIT.md` section 2, in
-`docs/DEPLOYMENTS.md`, in `docs/CLAIMS.md` as a `REFUTED` row, and in the README's limitations.
+**The contracts were then redeployed from current `main` and the canonical covenant re-run
+against them**, which closes the gap the second round opened. `deployments/base-sepolia.json`
+records commit `b9f8722`, and `git diff b9f8722 -- packages/contracts/` is empty. The previous
+generation is archived in `deployments/historical/` and its transactions remain valid history.
 
 Two findings are accepted rather than fixed: a verifier that runs out of gas at any budget still
 has no exit, and nothing validates a verifier or an adapter at creation. Same root cause, named.
@@ -156,8 +156,8 @@ qualifier on rung 9 rather than claiming the rung whole.
 - CI has run once on a clean GitHub runner and passed on all four jobs. One observation, not a
   guarantee about future dependency or runner changes.
 - The Claude Code permission boundary is configuration checked by our own tests, not a sandbox.
-- The deployed bytecode was compiled from `2ccf02f` and does not contain the second audit round's
-  three fixes. `docs/phase-logs/PHASE_07_FINAL_AUDIT.md` section 2.
+- Five of six contracts are Sourcify-verified. `ResurvCovenantManager` answered `no_match` three
+  times and is not verified; its bytecode is checkable with `cast code` instead.
 - A verifier that runs out of gas at any budget has no exit, and creation validates neither the
   verifier nor the adapters. Accepted, named, not fixed.
 - `Retry-After`, `X-RateLimit-*` and `X-Poll-Interval-Hint` are parsed and recorded, never acted

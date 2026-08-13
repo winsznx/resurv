@@ -29,6 +29,7 @@ import {
   IDEMPOTENCY_IN_PROGRESS,
   type KeeperhubClient,
   type KeeperhubExchange,
+  parsePollIntervalHint,
   readBodyStatus,
   readExecutionId,
   readGasUsed,
@@ -102,6 +103,43 @@ export interface ExecuteOptions {
 
 const DEFAULT_MAX_ROUNDS = 12;
 const DEFAULT_ROUND_DELAY_MS = 5_000;
+
+/**
+ * Bounds on how long a round may wait, whatever the server asks for.
+ *
+ * The floor stops a `0` hint from turning reconciliation into a hot loop against an API that is
+ * already rate-limiting us. The ceiling is the one that matters: a server may legitimately answer
+ * `Retry-After: 3600`, and honouring that literally would spend the entire round budget asleep
+ * and return `RECONCILIATION_REQUIRED` on an attempt the chain could have settled in a minute.
+ * A hint is information about the server's load. It is not permission to stop looking at chain.
+ */
+const MIN_ROUND_DELAY_MS = 1_000;
+const MAX_ROUND_DELAY_MS = 60_000;
+
+/**
+ * How long to wait before the next reconciliation round, given what the server just said.
+ *
+ * `Retry-After` outranks `X-Poll-Interval-Hint`: the first is an instruction issued because we
+ * were throttled, the second is advice about when an answer is likely. Both are clamped. Exported
+ * because the clamping is the whole point and a rule nothing can test is a rule nothing enforces.
+ */
+export function nextRoundDelayMs(
+  exchange: KeeperhubExchange | undefined,
+  defaultMs: number = DEFAULT_ROUND_DELAY_MS,
+): number {
+  const clamp = (ms: number): number =>
+    Math.min(MAX_ROUND_DELAY_MS, Math.max(MIN_ROUND_DELAY_MS, ms));
+
+  const retryAfter = exchange?.rateLimit?.retryAfterSeconds;
+  if (retryAfter !== undefined && Number.isFinite(retryAfter) && retryAfter > 0) {
+    return clamp(retryAfter * 1_000);
+  }
+
+  const hint = parsePollIntervalHint(exchange?.rateLimit?.pollIntervalHint, defaultMs / 1_000);
+  // `terminal` means the server considers the execution settled. That is a reason to look at the
+  // chain sooner, never a reason to stop: only chain evidence ends an attempt.
+  return clamp(hint.terminal ? MIN_ROUND_DELAY_MS : hint.seconds * 1_000);
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -349,7 +387,7 @@ async function reconcile(
         });
       }
       context.log(`round ${round}: ${evidence.reason}`);
-      await context.wait(DEFAULT_ROUND_DELAY_MS);
+      await context.wait(nextRoundDelayMs(context.exchanges.at(-1)));
       continue;
     }
 
@@ -382,7 +420,7 @@ async function reconcile(
       });
     }
     context.log(`round ${round}: ${evidence.reason}`);
-    await context.wait(DEFAULT_ROUND_DELAY_MS);
+    await context.wait(nextRoundDelayMs(context.exchanges.at(-1)));
   }
 
   // Exhausted. The attempt stays ambiguous and the covenant does not advance. There is no

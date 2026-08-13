@@ -249,6 +249,41 @@ cast call 0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284 "statusOf(bytes32)(uint8)" 
 | Source verification | five of six on Sourcify at `match`; `ResurvCovenantManager` answered `no_match` three times and is **not** verified |
 | Gate | exit 0, locally and on a clean GitHub runner |
 
+## The release pass of 2026-08-13
+
+The contracts were redeployed from current source and the canonical covenant re-run against
+them, which closes the one gap the second audit round opened.
+
+| | |
+|---|---|
+| Deployed from | commit `b9f8722`, salt namespace `resurv/v4`. `git diff b9f8722 -- packages/contracts/` is empty |
+| Manager | [`0x8e4c71d6…`](https://sepolia.basescan.org/address/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284) |
+| Covenant | `0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0` |
+| Canonical transaction | [`0xef63ee11…`](https://sepolia.basescan.org/tx/0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22), block 45421180, gas 245,380 |
+| Independent check | identical receipt from `sepolia.base.org` and `base-sepolia-rpc.publicnode.com`; six logs in the promised order |
+| No second effect | paged `eth_getLogs` over the whole life of the new manager returns exactly one `AttemptSucceeded` and one `CovenantSatisfied`, both inside that transaction |
+| Source verification | five of six on Sourcify at `match`; `ResurvCovenantManager` **not verified**, `no_match` three times |
+| Previous generation | archived at `deployments/historical/base-sepolia-v3.json`; its transactions remain valid history |
+
+Three findings from the last review reproduced against current `main` and were fixed here:
+server rate-limit hints were parsed and then ignored, simulation and execution derived their
+bodies from two separate literals, and the demo silently started a new covenant over an existing
+run state. Six other findings were verified as already fixed before anything was changed.
+
+### What this pass did not finish
+
+- **`ResurvCovenantManager` is not source-verified.** Three Sourcify submissions, one from a
+  clean build, returned `no_match` while the other five contracts verified from the same build.
+  Unresolved. The `cast code` comparison in `docs/DEPLOYMENTS.md` is the check that works.
+- **The pre-deployment contracts audit did not report.** It was launched before the deployment
+  and stalled after running its proof-of-concept attacks, producing no findings. The deployment
+  proceeded on 122 contract tests including the fuzz and invariant campaigns, plus six mutation
+  regressions each verified to fail when its fix is reverted. That is a weaker gate than a
+  completed audit and is recorded as one.
+- **The four specialist reviews were not re-run against the post-deployment tree.**
+- **Cloudflare is not deployed**, because `wrangler deploy` is denied to the build agent and the
+  policy was not weakened to route around it.
+
 ## What the independent reviewer should attack first
 
 Rewritten after the second audit round, which found three more escrow traps and one false-positive
@@ -256,34 +291,36 @@ regression test. Read `docs/phase-logs/PHASE_07_FINAL_AUDIT.md` before this list
 
 In this order, because this is where I think it is weakest.
 
-1. **The verifier interface, still.** Two rounds of review have found four distinct ways a
+1. **The manager's Sourcify `no_match`.** Five contracts from the same build verify and this one
+   does not, three times. Either the verification input is wrong in a way specific to this
+   contract, or the deployed bytecode is not what we think it is. The `cast code` comparison says
+   it is right, but that check is ours and Sourcify's is independent. Resolve it before trusting
+   the deployment further than a testnet demo.
+2. **The verifier interface, still.** Two rounds of review have found four distinct ways a
    verifier the requester chose can trap that requester's own escrow: no code, a short return, a
    dirty boolean, and running out of gas at any budget. Three are fixed. The fourth is accepted
    and has no mitigation. Nothing validates a verifier or an adapter at covenant creation, which
    is the root cause of all four. That is the next real piece of engineering here and it is not
    done.
-2. **The gap between what is deployed and what is on `main`.** Three fixes are in this repository
-   and not on chain. I believe none of them affects the canonical covenant and I have said why,
-   in four places. Check that reasoning rather than taking it.
-3. **The fee policy, not the fee mechanics.** The mechanics are well tested. The policy is not
+4. **The fee policy, not the fee mechanics.** The mechanics are well tested. The policy is not
    settled: `executeAttempt` discards the `satisfied` flag from its pre-state read, so an
    executor can run an action against an already-safe covenant and take the full fee rather than
    the zero-fee `finalizeAlreadySatisfied` route. That is faithful to the PRD and the PRD is
    wrong. Decide whether it is a bug.
-4. **Whether a responder can be relied on at all.** A requester who can satisfy their own
+5. **Whether a responder can be relied on at all.** A requester who can satisfy their own
    declared outcome can finalize and reclaim; a pauser can block `executeAttempt` until the
    deadline and then let expiry refund. Both are inside the design. Neither has a mitigation.
-5. **The remaining 16 surviving mutants.** The second round ran 65 and killed 46. The three that
+6. **The remaining 16 surviving mutants.** The second round ran 65 and killed 46. The three that
    mattered most are closed and verified. The rest are listed in that round's report and are
    mostly `nonReentrant` modifiers whose removal is masked by a second layer — which is defence
    in depth working, and also means no test observes either layer alone.
-6. **The concurrency claim.** `InMemoryAttemptStore.reserve` is synchronous, so the test named
+7. **The concurrency claim.** `InMemoryAttemptStore.reserve` is synchronous, so the test named
    "gives two concurrent workers one attempt between them" cannot interleave and would pass
    against a store with a genuine check-then-write race. The design is right; the test asserts
    something it cannot observe.
-7. **`docs/CLAIMS.md` against the proof page, line by line.** The page is the thing a judge
+8. **`docs/CLAIMS.md` against the proof page, line by line.** The page is the thing a judge
    reads, and a page that says one word more than the ledger supports is the failure this whole
    apparatus exists to prevent.
-8. **Everything the demo did not exercise.** `finalizeAlreadySatisfied`, `expireCovenant` and
+9. **Everything the demo did not exercise.** `finalizeAlreadySatisfied`, `expireCovenant` and
    `cancelCovenant` have never run on chain. They are tested locally and deployed untested in
    production conditions.

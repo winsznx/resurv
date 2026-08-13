@@ -5,10 +5,16 @@ Draft. Nothing here has been submitted. Every factual statement below is at or u
 against.
 
 Two review rounds have run, six of the seven reviews returned FAIL, and every substantiated
-finding is either fixed or named. Read `docs/phase-logs/PHASE_07_FINAL_AUDIT.md` before saying
-anything about the contracts: three fixes from the second round are in the repository and not in
-the deployed bytecode, and that is a sentence to be able to say out loud rather than one to hope
-nobody asks about.
+finding is either fixed or named. The contracts were then **redeployed from current source** and
+the canonical covenant re-run against them, so what is on chain is what is in the repository:
+`deployments/base-sepolia.json` records commit `b9f8722` and `git diff b9f8722 --
+packages/contracts/` is empty.
+
+One thing to be able to say out loud rather than hope nobody asks: five of the six contracts are
+verified on Sourcify at `match` level and `ResurvCovenantManager` is not. Three submissions,
+including from a clean build, answered `no_match` while the other five verified from the same
+build with the same settings. It is unresolved, it is recorded as unresolved, and
+`docs/DEPLOYMENTS.md` carries the `cast code` comparison that works without Sourcify.
 
 Three assets are required and incomplete submissions are not judged:
 

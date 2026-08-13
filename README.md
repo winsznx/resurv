@@ -13,8 +13,8 @@ payment.
 | **Real KeeperHub transaction** | [`0xef63ee11…1f9c7e22`](https://sepolia.basescan.org/tx/0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22) — the successful attempt, block 45421180 |
 | **Public proof page** | `apps/web`. Serve it with `pnpm build && pnpm --filter @resurv/web preview`. The Cloudflare deploy is one command and a deliberate human step — see [Deployment](#13-deployment) |
 | **Covenant** | `0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0` |
-| **Covenant manager** | [`0x8e4c71d6…9d9d284`](https://sepolia.basescan.org/address/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284) · [verified source](https://repo.sourcify.dev/84532/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284) |
-| **Tests** | 727 TypeScript, 122 Foundry. CI green on a clean runner |
+| **Covenant manager** | [`0x8e4c71d6…9d9d284`](https://sepolia.basescan.org/address/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284), deployed from commit `b9f8722`. Not Sourcify-verified — see [Contracts](#7-contracts) |
+| **Tests** | 735 TypeScript, 122 Foundry. CI green on a clean runner, and in a clean-room clone of this repository |
 
 Check the headline yourself in one command:
 
@@ -159,12 +159,12 @@ storage before the first POST. Nothing to provision, no connection string, no cr
 
 ## 7. Contracts
 
-All six are verified on **Sourcify at `match` level** — creation *and* runtime bytecode reproduce
+Five of the six are verified on **Sourcify at `match` level** — creation *and* runtime bytecode reproduce
 exactly from this repository at the pinned compiler settings — and propagated to Blockscout.
 
 | Contract | Address | Verified source |
 |---|---|---|
-| `ResurvCovenantManager` | [`0x8e4c71d6…`](https://sepolia.basescan.org/address/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284) | [Sourcify](https://repo.sourcify.dev/84532/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284) · [Blockscout](https://base-sepolia.blockscout.com/address/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284?tab=contract) |
+| `ResurvCovenantManager` | [`0x8e4c71d6…`](https://sepolia.basescan.org/address/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284) | **not verified** — `no_match`, three attempts |
 | `PauseAction` | [`0x2bf292c9…`](https://sepolia.basescan.org/address/0x2bf292c9bceac8a2d0846a05b8b49917977c98e2) | [Sourcify](https://repo.sourcify.dev/84532/0x2bf292c9bceac8a2d0846a05b8b49917977c98e2) |
 | `EvacuateERC20Action` | [`0x196f0125…`](https://sepolia.basescan.org/address/0x196f0125e73a78438f1518e5eb46d9f03afd2197) | [Sourcify](https://repo.sourcify.dev/84532/0x196f0125e73a78438f1518e5eb46d9f03afd2197) |
 | `VaultSafeStateVerifier` | [`0xd71f1709…`](https://sepolia.basescan.org/address/0xd71f170915bf9204033b40746ee3c5f05de712f1) | [Sourcify](https://repo.sourcify.dev/84532/0xd71f170915bf9204033b40746ee3c5f05de712f1) |
@@ -248,8 +248,8 @@ Full version in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 | `@resurv/repo-policy` | 412 | Permission boundary, tracked secrets, auto-approved script graph |
 | `@resurv/seam-probe` | 71 | Phase 0.5 measurements, asserted against committed evidence |
 | `@resurv/domain` | 63 | Both state machines against reference models, exhaustively |
-| `@resurv/orchestrator` | 25 | Crash resume, concurrent workers, lost response, RPC disagreement, inner failure, bounded polling that converges |
-| everything else | 156 | Config redaction, chain constants, proof artifacts, Worker routes, the page, the timeline under adversarial receipts |
+| `@resurv/orchestrator` | 32 | Crash resume, concurrent workers, lost response, RPC disagreement, inner failure, bounded polling that converges |
+| everything else | 157 | Config redaction, chain constants, proof artifacts, Worker routes, the page, the timeline under adversarial receipts |
 
 Property tests are judged against reference models that never call the implementation.
 

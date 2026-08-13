@@ -61,13 +61,13 @@ Counted so the number cannot flatter itself.
 | `@resurv/domain` | 63 |
 | `@resurv/config` | 39 |
 | `@resurv/keeperhub-client` | 36 |
-| `@resurv/orchestrator` | 25 |
-| `@resurv/cli` | 17 |
+| `@resurv/orchestrator` | 32 |
+| `@resurv/cli` | 18 |
 | `apps/web` (page + timeline) | 16 |
 | `apps/worker` (8 unit + 6 integration) | 14 |
 | `@resurv/proof` | 13 |
 | `@resurv/chain`, `@resurv/db`, `@resurv/node-runtime` | 21 |
-| **TypeScript total** | **727** |
+| **TypeScript total** | **735** |
 | Foundry unit and fuzz | 109 |
 | Foundry invariants | 13 |
 | **Foundry total** | **122** |

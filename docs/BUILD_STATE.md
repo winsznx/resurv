@@ -62,12 +62,12 @@ Counted so the number cannot flatter itself.
 | `@resurv/config` | 39 |
 | `@resurv/keeperhub-client` | 36 |
 | `@resurv/orchestrator` | 33 |
-| `@resurv/cli` | 18 |
+| `@resurv/cli` | 32 |
 | `apps/web` (page + timeline) | 16 |
 | `apps/worker` (8 unit + 6 integration) | 14 |
 | `@resurv/proof` | 13 |
 | `@resurv/chain`, `@resurv/db`, `@resurv/node-runtime` | 21 |
-| **TypeScript total** | **736** |
+| **TypeScript total** | **750** |
 | Foundry unit and fuzz | 110 |
 | Foundry invariants | 13 |
 | **Foundry total** | **123** |

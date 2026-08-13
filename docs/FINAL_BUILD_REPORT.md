@@ -89,7 +89,7 @@ judged against an independent reference model, and executed by
 
 | | |
 |---|---|
-| TypeScript | **736** |
+| TypeScript | **750** |
 | Foundry unit and fuzz | **110** |
 | Foundry invariants | **13** |
 | `pnpm gate` | exit 0 |

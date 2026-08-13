@@ -14,7 +14,7 @@ payment.
 | **Public proof page** | `apps/web`. Serve it with `pnpm build && pnpm --filter @resurv/web preview`. The Cloudflare deploy is one command and a deliberate human step — see [Deployment](#13-deployment) |
 | **Covenant** | `0x1824fe778dfcc7ed43b79ec6887e762c04952a12763ec7481a05a7a257a23237` |
 | **Covenant manager** | [`0xdae116d1…e27fdcc`](https://sepolia.basescan.org/address/0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc) · [verified source](https://repo.sourcify.dev/84532/0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc) |
-| **Tests** | 736 TypeScript, 123 Foundry. CI green on a clean runner, and in a clean-room clone of this repository |
+| **Tests** | 750 TypeScript, 123 Foundry. CI green on a clean runner, and in a clean-room clone of this repository |
 
 Check the headline yourself in one command:
 
@@ -250,7 +250,7 @@ Full version in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 | `@resurv/seam-probe` | 71 | Phase 0.5 measurements, asserted against committed evidence |
 | `@resurv/domain` | 63 | Both state machines against reference models, exhaustively |
 | `@resurv/orchestrator` | 33 | Crash resume, concurrent workers, lost response, RPC disagreement, inner failure, bounded polling that converges |
-| everything else | 157 | Config redaction, chain constants, proof artifacts, Worker routes, the page, the timeline under adversarial receipts |
+| everything else | 171 | Config redaction, chain constants, proof artifacts, Worker routes, the page, the timeline under adversarial receipts |
 
 Property tests are judged against reference models that never call the implementation.
 

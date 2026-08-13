@@ -121,7 +121,7 @@ shipped.
 - **Proof surface**: a public page that reads committed artifacts for the past and two public RPC
   origins in the visitor's own browser for the present, so no RESURV server is in the trust path.
 - **Deployment**: Cloudflare Workers, one deployable serving `/api/*` and the SPA.
-- 736 TypeScript tests, 123 Foundry tests, one aggregate gate that exits 0, green on a clean
+- 750 TypeScript tests, 123 Foundry tests, one aggregate gate that exits 0, green on a clean
   GitHub runner.
 
 ## Real KeeperHub transaction

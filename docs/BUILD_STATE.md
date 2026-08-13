@@ -2,7 +2,7 @@
 
 Canonical handoff document. Read this first in a new session.
 
-Last updated: 2026-08-13, end of the release pass.
+Last updated: 2026-08-13, after the redeployment and the fresh canonical run.
 
 ## Where we are
 
@@ -28,7 +28,9 @@ wallet and no faucet.
 
 | | |
 |---|---|
-| Success transaction | `0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22` |
+| Success transaction | `0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22` (block 45421180) |
+| Deployed from | commit `b9f8722`, salt namespace `resurv/v4` |
+| Previous generation | `deployments/historical/base-sepolia-v3.json`, superseded |
 | Covenant | `0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0` |
 | Manager | `0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284` |
 | Receipt | `docs/proof/canonical-covenant.json` |

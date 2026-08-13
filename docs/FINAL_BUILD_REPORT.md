@@ -244,6 +244,9 @@ cast call 0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284 "statusOf(bytes32)(uint8)" 
 | Commit | see `git log -1` at the tip of `main` |
 | Working tree | clean |
 | Branch | `main`, pushed to https://github.com/winsznx/resurv |
+| Deployed source | commit `b9f8722`, recorded in `deployments/base-sepolia.json`. `git diff b9f8722 -- packages/contracts/` is empty |
+| Canonical transaction | [`0xef63ee11…`](https://sepolia.basescan.org/tx/0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22), block 45421180, two origins agree |
+| Source verification | five of six on Sourcify at `match`; `ResurvCovenantManager` answered `no_match` three times and is **not** verified |
 | Gate | exit 0, locally and on a clean GitHub runner |
 
 ## What the independent reviewer should attack first

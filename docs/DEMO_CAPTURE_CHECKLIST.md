@@ -21,14 +21,14 @@ for the two things that can fail on the day.
 |---|---|---|
 | 1 | Proof page, hero | the deployed Worker URL, or `http://localhost:4173` |
 | 2 | Proof page, timeline | same page, `#timeline` |
-| 3 | Trigger transaction | https://sepolia.basescan.org/tx/0x6a796dc3d3056d6d5a3a9de22bd0d5f506b91fb36c8ced640e74a340523afe66 |
+| 3 | Trigger transaction | https://sepolia.basescan.org/tx/0xd5cbea083b020f9ac90bd750f785491d5cfef3e291c653e3bade1d274b14e726 |
 | 4 | Proof page, refused primary | same page, timeline beat 07 — the only orange on the page |
-| 5 | **The successful attempt** | https://sepolia.basescan.org/tx/0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22 |
+| 5 | **The successful attempt** | https://sepolia.basescan.org/tx/0x7ac018850024cfd0e2d901840fd395fab852cf8cc23e5f7755c0b3eda8cc7d25 |
 | 6 | Its logs tab | the same URL, `#eventlog` |
 | 7 | Proof page, one transaction | same page, `#atomic` |
 | 8 | Proof page, duplicate protection | same page, timeline beats 09 and 10 |
 | 9 | Proof page, verify now | same page, `#verify` |
-| 10 | Covenant manager | https://sepolia.basescan.org/address/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284 |
+| 10 | Covenant manager | https://sepolia.basescan.org/address/0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc |
 
 ## If the public RPC origins are refusing
 
@@ -46,9 +46,9 @@ more directly.
 The status read, which is the one to run live:
 
 ```bash
-cast call 0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284 \
+cast call 0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc \
   "statusOf(bytes32)(uint8)" \
-  0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0 \
+  0x1824fe778dfcc7ed43b79ec6887e762c04952a12763ec7481a05a7a257a23237 \
   --rpc-url https://sepolia.base.org
 ```
 
@@ -57,7 +57,7 @@ Expected output: `5`
 The receipt, if there is time:
 
 ```bash
-cast receipt 0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22 \
+cast receipt 0x7ac018850024cfd0e2d901840fd395fab852cf8cc23e5f7755c0b3eda8cc7d25 \
   --rpc-url https://sepolia.base.org
 ```
 
@@ -66,9 +66,9 @@ Expected: `status 1 (success)`, six logs.
 The verifier, live, which is the strongest single read:
 
 ```bash
-cast call 0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284 \
+cast call 0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc \
   "readOutcome(bytes32,bytes)(bool,bytes32,uint256)" \
-  0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0 \
+  0x1824fe778dfcc7ed43b79ec6887e762c04952a12763ec7481a05a7a257a23237 \
   0x$(cat docs/proof/canonical-covenant.json | grep -o '"verifierContext": "0x[^"]*"' | head -1 | sed 's/.*0x//;s/"//') \
   --rpc-url https://sepolia.base.org
 ```
@@ -79,11 +79,11 @@ Expected: `true`, a state hash, `1000000`.
 
 | | |
 |---|---|
-| Covenant | `0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0` |
-| Success transaction | `0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22` |
-| Block | 45421180 |
-| Manager | `0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284` |
-| Demo vault | `0x291efc6f53559d8316761309e856772f10d0cdc4` |
+| Covenant | `0x1824fe778dfcc7ed43b79ec6887e762c04952a12763ec7481a05a7a257a23237` |
+| Success transaction | `0x7ac018850024cfd0e2d901840fd395fab852cf8cc23e5f7755c0b3eda8cc7d25` |
+| Block | 45423354 |
+| Manager | `0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc` |
+| Demo vault | `0x76af5accc7e75d68d9353a404ae897d7b4ec679a` |
 | Approved recipient | `0x5afe5afe5afe5afe5afe5afe5afe5afe5afe5afe` |
 | Responder | `0xb0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0` |
 | Organization wallet | `0xfd35ae935de7be93ffd585d6627268d833ed834c` |

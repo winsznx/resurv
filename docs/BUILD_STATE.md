@@ -28,11 +28,11 @@ wallet and no faucet.
 
 | | |
 |---|---|
-| Success transaction | `0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22` (block 45421180) |
-| Deployed from | commit `b9f8722`, salt namespace `resurv/v4` |
+| Success transaction | `0x7ac018850024cfd0e2d901840fd395fab852cf8cc23e5f7755c0b3eda8cc7d25` (block 45423354) |
+| Deployed from | commit `1d1eb9a`, salt namespace `resurv/v4` |
 | Previous generation | `deployments/historical/base-sepolia-v3.json`, superseded |
-| Covenant | `0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0` |
-| Manager | `0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284` |
+| Covenant | `0x1824fe778dfcc7ed43b79ec6887e762c04952a12763ec7481a05a7a257a23237` |
+| Manager | `0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc` |
 | Receipt | `docs/proof/canonical-covenant.json` |
 | Manifest | `deployments/base-sepolia.json` |
 
@@ -103,9 +103,10 @@ fund-loss guard it was named after deleted, plus an off-by-one in the reconcilia
 failed nothing because no test had ever counted a round. All fixed in source, each one verified
 by reverting the fix and confirming exactly one test fails.
 
-**The contracts were then redeployed from current `main` and the canonical covenant re-run
-against them**, which closes the gap the second round opened. `deployments/base-sepolia.json`
-records commit `b9f8722`, and `git diff b9f8722 -- packages/contracts/` is empty. The previous
+**The contracts were redeployed from current `main` and the canonical covenant re-run against
+them**, twice: the first attempt shipped a mutation-testing build of the manager and Sourcify
+caught it. The second is clean and all six contracts verify. `deployments/base-sepolia.json`
+records commit `1d1eb9a`, and `git diff b9f8722 -- packages/contracts/` is empty. The previous
 generation is archived in `deployments/historical/` and its transactions remain valid history.
 
 Two findings are accepted rather than fixed: a verifier that runs out of gas at any budget still
@@ -158,8 +159,6 @@ qualifier on rung 9 rather than claiming the rung whole.
 - CI has run once on a clean GitHub runner and passed on all four jobs. One observation, not a
   guarantee about future dependency or runner changes.
 - The Claude Code permission boundary is configuration checked by our own tests, not a sandbox.
-- Five of six contracts are Sourcify-verified. `ResurvCovenantManager` answered `no_match` three
-  times and is not verified; its bytecode is checkable with `cast code` instead.
 - A verifier that runs out of gas at any budget has no exit, and creation validates neither the
   verifier nor the adapters. Accepted, named, not fixed.
 - `Retry-After`, `X-RateLimit-*` and `X-Poll-Interval-Hint` are parsed and recorded, never acted
@@ -193,9 +192,12 @@ findings that reproduced against current `main` fixed with tests.
 
 **Not done, and why.**
 
-- **`ResurvCovenantManager` is not source-verified.** Three Sourcify submissions, one from a
-  clean build, answered `no_match`. The other five verify from the same build with the same
-  settings. Unresolved. `docs/DEPLOYMENTS.md` carries a `cast code` comparison instead.
+- **The first redeployment of this pass shipped a mutant** and had to be redone. A mutation
+  campaign restored the manager's source with a file copy and never rebuilt, so the artifact
+  cache still held the build with `maxTotalAttempts` deleted, and the deployment read it.
+  Sourcify's refusal to verify that one contract was the only signal. `rebuildContracts()` now
+  compiles before any artifact is read; the generation was redeployed as `resurv/v5`; all six
+  contracts now verify. Archived at `deployments/historical/base-sepolia-v4-MUTANT.json`.
 - **The pre-deployment contracts audit had not reported when the deployment ran.** It was
   launched first, and the deployment proceeded on the strength of 122 contract tests including
   the fuzz and invariant campaigns plus six mutation regressions each verified to fail when its

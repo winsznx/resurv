@@ -60,10 +60,17 @@ export const CONTRACT_CREATION_UNSALTED_TOPIC =
  * and without a new namespace they would collide with their own previous deployment and revert,
  * leaving a generation split across two sets of addresses. Bumping keeps one deployment coherent.
  *
+ * v5 exists for a worse reason than any of them. The v4 deployment read a stale artifact cache
+ * and put a *mutant* `ResurvCovenantManager` on chain: a mutation campaign had restored the
+ * source file without rebuilding, so `out/` still held the build with `maxTotalAttempts`
+ * deleted. The manifest recorded that mutant's hashes and was therefore self-consistent and
+ * wrong. Sourcify caught it, by refusing to verify that one contract while verifying the other
+ * five. `rebuildContracts()` now runs before any artifact is read.
+ *
  * Every earlier generation stays on chain. Nothing references it, and `deployments/historical/`
  * records it as what it is: the evidence a previous run produced, superseded rather than deleted.
  */
-export const SALT_NAMESPACE = 'resurv/v4';
+export const SALT_NAMESPACE = 'resurv/v5';
 
 export class SaltRejectedError extends Error {
   constructor(reason: string) {

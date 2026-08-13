@@ -8,12 +8,32 @@
  * ladder mean anything.
  */
 
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { REPO_ROOT } from '@resurv/node-runtime';
 import { type Abi, encodeDeployData, keccak256 } from 'viem';
 
 export const ARTIFACT_ROOT = join(REPO_ROOT, 'packages', 'contracts', 'out');
+export const CONTRACTS_ROOT = join(REPO_ROOT, 'packages', 'contracts');
+
+/**
+ * Rebuild before reading. Call this once before any deployment reads an artifact.
+ *
+ * `out/` is a cache, and nothing about reading a file tells you which source produced it. This
+ * was not a theoretical concern: a mutation campaign restored `ResurvCovenantManager.sol` with a
+ * plain file copy and never rebuilt, so `out/` held the artifact compiled from the *last mutant*
+ * — a manager with its `maxTotalAttempts` check deleted — and a deployment read it and put it on
+ * Base Sepolia. Nothing caught it at the time. The recorded `runtimeBytecodeHash` was the
+ * mutant's, so the manifest was self-consistent and wrong, and Sourcify was the only thing that
+ * noticed, by refusing to verify that one contract while verifying the other five.
+ *
+ * `forge build` is incremental, so this costs nothing when the cache is already correct, and it
+ * removes an entire class of "the bytes we shipped are not the bytes we tested".
+ */
+export function rebuildContracts(): void {
+  execFileSync('forge', ['build'], { cwd: CONTRACTS_ROOT, stdio: 'inherit' });
+}
 
 export interface Artifact {
   readonly name: string;

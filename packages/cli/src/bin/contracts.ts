@@ -21,7 +21,7 @@ import { readWalletAddress } from '@resurv/keeperhub-client';
 import { REPO_ROOT } from '@resurv/node-runtime';
 import { executeSemanticAttempt } from '@resurv/orchestrator';
 import { keccak256, toHex } from 'viem';
-import { initCodeFor, readArtifact } from '../artifacts.ts';
+import { initCodeFor, readArtifact, rebuildContracts } from '../artifacts.ts';
 import { prepareCall } from '../call.ts';
 import {
   addressFromCreationLog,
@@ -63,6 +63,11 @@ async function main(): Promise<void> {
   const dryRun = process.argv.includes('--dry-run');
   const runtime = liveRuntime(dryRun ? 'deploy-dry-run' : 'deploy');
   if (dryRun) step('dry run: no write will be sent');
+
+  // Compile before reading anything out of `out/`. See `rebuildContracts`: a deployment once
+  // shipped a mutant because the artifact cache outlived the source that produced it.
+  step('building contracts from source');
+  rebuildContracts();
   step(`credential ${runtime.credentialFingerprint}`);
   step(`journal ${runtime.store.path}`);
 

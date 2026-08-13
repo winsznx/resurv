@@ -516,6 +516,31 @@ describe('server hints about when to come back', () => {
   });
 });
 
+describe('a durable record that cannot be trusted', () => {
+  /**
+   * The settlement clock is anchored to `createdAt` precisely so a resumed process cannot restart
+   * it, because a clock that restarts on every invocation makes `PROVEN_NOT_BROADCAST`
+   * unreachable and turns a bounded resolution into an unbounded one. Falling back to `now()`
+   * when the field is unreadable would restore exactly that defect, quietly, on the one code
+   * path where nobody is looking. A mutation campaign found this branch had no test at all.
+   */
+  it('refuses to reconcile an attempt whose createdAt cannot be read, rather than restarting the clock', async () => {
+    // #given a journal entry whose timestamp is corrupt
+    const store = new InMemoryAttemptStore();
+    await store.reserve({ ...baseRecord(), createdAt: 'not-a-date' });
+    const keeperhub = new FakeKeeperhub().onExecute({
+      status: 202,
+      body: { executionId: 'exec-corrupt', status: 'completed' },
+    });
+    const rpc = new FakeRpc({ receipt: receiptWithExpectedEvent() });
+
+    // #when / #then it is an integrity failure, not a value to substitute around
+    await expect(executeSemanticAttempt(PLAN, runtime(keeperhub, rpc, store))).rejects.toThrow(
+      /unreadable createdAt/,
+    );
+  });
+});
+
 describe('crash and concurrency', () => {
   let store: InMemoryAttemptStore;
 

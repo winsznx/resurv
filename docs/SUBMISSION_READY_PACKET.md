@@ -7,14 +7,19 @@ against.
 Two review rounds have run, six of the seven reviews returned FAIL, and every substantiated
 finding is either fixed or named. The contracts were then **redeployed from current source** and
 the canonical covenant re-run against them, so what is on chain is what is in the repository:
-`deployments/base-sepolia.json` records commit `b9f8722` and `git diff b9f8722 --
+`deployments/base-sepolia.json` records commit `1d1eb9a` and `git diff b9f8722 --
 packages/contracts/` is empty.
 
-One thing to be able to say out loud rather than hope nobody asks: five of the six contracts are
-verified on Sourcify at `match` level and `ResurvCovenantManager` is not. Three submissions,
-including from a clean build, answered `no_match` while the other five verified from the same
-build with the same settings. It is unresolved, it is recorded as unresolved, and
-`docs/DEPLOYMENTS.md` carries the `cast code` comparison that works without Sourcify.
+The pre-deployment contracts audit had not reported when the first of those deployments ran: it
+was launched first and stalled after its proof-of-concept attacks, producing no findings. The
+deployment proceeded on 122 contract tests, including the fuzz and invariant campaigns, plus six
+mutation regressions each verified to fail when its fix is reverted — a weaker gate than a
+completed audit, recorded as one rather than described as one that passed. That first deployment
+then turned out to have shipped a mutation-testing build of the covenant manager, which Sourcify
+caught by refusing to verify it. It was redeployed and all six contracts now verify.
+
+One thing to be able to say out loud rather than hope nobody asks: the deployment had to be done
+twice, and the reason is in `docs/DEPLOYMENTS.md` and `docs/FINAL_BUILD_REPORT.md` in full.
 
 Three assets are required and incomplete submissions are not judged:
 
@@ -22,7 +27,7 @@ Three assets are required and incomplete submissions are not judged:
 |---|---|
 | GitHub repository link | **ready:** https://github.com/winsznx/resurv — public, full history, CI green |
 | Demo video | **needed.** Script in `docs/DEMO_SCRIPT.md`, checklist in `docs/DEMO_CAPTURE_CHECKLIST.md`. A human records it |
-| Link to a real transaction executed through KeeperHub | **ready:** https://sepolia.basescan.org/tx/0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22 |
+| Link to a real transaction executed through KeeperHub | **ready:** https://sepolia.basescan.org/tx/0x7ac018850024cfd0e2d901840fd395fab852cf8cc23e5f7755c0b3eda8cc7d25 |
 
 ---
 
@@ -121,9 +126,9 @@ shipped.
 
 ## Real KeeperHub transaction
 
-https://sepolia.basescan.org/tx/0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22
+https://sepolia.basescan.org/tx/0x7ac018850024cfd0e2d901840fd395fab852cf8cc23e5f7755c0b3eda8cc7d25
 
-Block 45421180, status `0x1`, 245,380 gas. Six logs in this order: `AttemptStarted`, the vault's
+Block 45423354, status `0x1`, 245,555 gas. Six logs in this order: `AttemptStarted`, the vault's
 `Transfer` to the approved recipient, `VaultEvacuated`, `AttemptSucceeded`, the escrow's
 `Transfer` to the responder, `CovenantSatisfied`.
 

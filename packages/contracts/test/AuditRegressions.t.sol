@@ -50,6 +50,19 @@ contract OverlongTrueVerifier {
     }
 }
 
+/// @dev Returns 64 bytes: enough to look like an answer to a length check that only rejects the
+///      obviously-empty, and not enough to be one. The first word reads `true`. Nothing in the
+///      suite exercised the 32-to-95-byte band, so weakening the guard to `< 32` survived it.
+contract PartialReturnVerifier {
+    fallback() external {
+        assembly {
+            mstore(0x00, 1)
+            mstore(0x20, 0x1234)
+            return(0x00, 0x40)
+        }
+    }
+}
+
 /// @dev Answers true, expensively. Used to prove a caller cannot starve a verifier into silence
 ///      and take a refund over an outcome that is actually satisfied.
 contract ExpensiveTrueVerifier is IOutcomeVerifier {
@@ -389,6 +402,33 @@ contract AuditRegressionsTest is CovenantFixture {
         // Same action, same world, same sequence: the same identity, and it is spent.
         vm.expectRevert(ResurvCovenantManager.AttemptAlreadyUsed.selector);
         harness.consumeAttemptWithoutVerifying(covenantId, 0, _pauseConfig(), _verifierContext(), 7);
+    }
+
+    /// @dev The `>= 96` floor, judged at its boundary. A verifier returning 64 bytes has not
+    ///      answered: the tuple is three words and two of them are missing. Reading the first
+    ///      word anyway would decode a stray value as the outcome, which on this path decides
+    ///      whether a refund is granted over a covenant that may actually be satisfied. The
+    ///      suite's other fixtures return 1, 96 or 128 bytes, so this band was never tested and
+    ///      weakening the guard from `< 96` to `< 32` passed all 122 tests.
+    function test_expiryTreatsAPartialReturnAsNotVerifiableRatherThanReadingIt() public {
+        ResurvCovenantManager.CovenantParams memory params = _defaultParams();
+        params.verifier = address(new PartialReturnVerifier());
+        params.verifierContext = hex"";
+
+        vm.prank(requester);
+        bytes32 covenantId = manager.createCovenant(params, _defaultActions());
+        _fundAndArm(covenantId, ONE_USD);
+        _trigger(covenantId, keccak256("alert"), 0);
+
+        uint256 before = token.balanceOf(requester);
+        vm.warp(deadline + 1);
+        manager.expireCovenant{gas: 30_000_000}(covenantId, hex"");
+
+        // Treated as silence, so the escrow comes back rather than being trapped, and the
+        // first word was never read as an outcome.
+        assertEq(token.balanceOf(requester) - before, ONE_USD, "escrow trapped by a short answer");
+        assertEq(uint8(manager.statusOf(covenantId)), uint8(CovenantStatus.EXPIRED));
+        assertEq(manager.escrowed(address(token)), 0);
     }
 
     // -------------------------------------------------------------------------------------

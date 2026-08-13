@@ -78,7 +78,7 @@ HTTP 400; AccessControlUnauthorizedAccount(0x345FdCFE…, 0xaf922051…)
 > the sender; the gas is sponsored; the wallet holds no ETH at all.
 
 **On screen:** the Basescan logs tab of
-`0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22`.
+`0x7ac018850024cfd0e2d901840fd395fab852cf8cc23e5f7755c0b3eda8cc7d25`.
 
 ---
 
@@ -123,9 +123,9 @@ HTTP 400; AccessControlUnauthorizedAccount(0x345FdCFE…, 0xaf922051…)
 **Type, live:**
 
 ```bash
-cast call 0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284 \
+cast call 0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc \
   "statusOf(bytes32)(uint8)" \
-  0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0 \
+  0x1824fe778dfcc7ed43b79ec6887e762c04952a12763ec7481a05a7a257a23237 \
   --rpc-url https://sepolia.base.org
 ```
 
@@ -159,8 +159,9 @@ Answer it directly. The answer is a strength in this build and hedging makes it 
 And the sentence to volunteer rather than wait to be caught on:
 
 > The contracts on screen were redeployed from the current source after that round, and this run
-> is against those. Five of the six are verified on Sourcify; the covenant manager answered
-> `no_match` three times and is not verified, so check it with `cast code` instead.
+> is against those. All six verify on Sourcify at match level. That check earned its keep: an
+> earlier redeployment shipped a mutation-testing build of the manager by reading a stale
+> artifact cache, and Sourcify refusing to verify it was the only thing that noticed.
 
 ## What not to say
 

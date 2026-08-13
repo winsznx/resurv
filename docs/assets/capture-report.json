@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-08-13T08:59:39.704Z",
+  "capturedAt": "2026-08-13T10:02:52.000Z",
   "base": "http://localhost:4173",
   "shots": [
     "hero",
@@ -10,17 +10,6 @@
     "mobile",
     "mobile-timeline"
   ],
-  "consoleErrors": [
-    "timeline: Access to fetch at 'https://sepolia.base.org/' from origin 'http://localhost:4173' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
-    "timeline: Failed to load resource: net::ERR_FAILED",
-    "full-page: Access to fetch at 'https://sepolia.base.org/' from origin 'http://localhost:4173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
-    "full-page: Failed to load resource: net::ERR_FAILED",
-    "mobile: Access to fetch at 'https://sepolia.base.org/' from origin 'http://localhost:4173' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
-    "mobile: Failed to load resource: net::ERR_FAILED"
-  ],
-  "failedRequests": [
-    "timeline: https://sepolia.base.org/ net::ERR_FAILED",
-    "full-page: https://sepolia.base.org/ net::ERR_FAILED",
-    "mobile: https://sepolia.base.org/ net::ERR_FAILED"
-  ]
+  "consoleErrors": [],
+  "failedRequests": []
 }

@@ -1,7 +1,7 @@
 {
   "chainId": 84532,
   "chainName": "Base Sepolia",
-  "deployedAt": "2026-08-13T08:38:01.461Z",
+  "deployedAt": "2026-08-13T09:55:19.696Z",
   "factory": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
   "deployerOrgWallet": "0xfd35ae935de7be93ffd585d6627268d833ed834c",
   "solcVersion": "0.8.36",
@@ -10,101 +10,101 @@
     "enabled": true,
     "runs": 200
   },
-  "gitCommit": "b9f872241253bbd99b4917dde8efab071b2eeae1",
+  "gitCommit": "1d1eb9a7536677b499708cf5c668db76980cf6a1",
   "contracts": {
     "TestUSD": {
       "name": "TestUSD",
-      "address": "0x42a48b758d36866ee18b117f101aafdbb49bc7c7",
-      "salt": "0x333da235965297170304c1619360125f7a8b007f4086c5f0dd5124203c3e95f6",
+      "address": "0x6783061982b95ee0d272ae70608ba72a4c6882a4",
+      "salt": "0x6603011f661e75fbfcdba66e18550238c988d09f15f45ada36a90bc392c19af9",
       "initCodeHash": "0x7a61a2a70a0067ac72db8dea871ceb17300dd9fa9b5974d74fb92e285c18b4c1",
       "runtimeBytecodeHash": "0x07569fabf75a785d38cd26cee4b1f80f3438c76923bcd0f82e8659bcd9ae823c",
       "constructorArgs": [],
-      "transactionHash": "0xddb98bc2e1e2c32d9fedc703f08890c17249b6537e3cfa8fcdd62c17a204dfa0",
-      "keeperhubExecutionId": "1pzvifzoyqw7hgp67bvjf",
-      "blockNumber": "0x2b511a1",
+      "transactionHash": "0xcbe16edbdf4c7297934577af7b83216d1d7949cf859d15cb189da01ea3a3bd4f",
+      "keeperhubExecutionId": "1ceiv51ji99a5mrcajfkf",
+      "blockNumber": "0x2b51ab6",
       "predictedAddressMatched": true
     },
     "ResurvCovenantManager": {
       "name": "ResurvCovenantManager",
-      "address": "0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284",
-      "salt": "0x0ba38e61d865ef82e43a92ea295ce4a61c3670cc79733b3e6214c04b4d5c58e6",
-      "initCodeHash": "0x2d55adbee1ffada3612d01a53e29cdcd3fab4d7d4ded540c27be42d2fb74435d",
-      "runtimeBytecodeHash": "0x573e2bb28a86326435274022f7a3b3e1e05e5e6e1093a2403fc4f5e31a1e2f35",
+      "address": "0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc",
+      "salt": "0x96c4daf070cb80b1902e4b55ed2548e5b957f714364a3426ef33b586383edb34",
+      "initCodeHash": "0x57e0e13fd954b54bc5c9e9027e3514c9641bcc0f86b3cbbe5ab2cc62bd26b764",
+      "runtimeBytecodeHash": "0x791ec256b697516be525f954dd5d6afcfa2507ef6bb2283d02b04b136b1fc3bc",
       "constructorArgs": [
         "0xfd35ae935de7be93ffd585d6627268d833ed834c",
         "0xfd35ae935de7be93ffd585d6627268d833ed834c",
         "0xfd35ae935de7be93ffd585d6627268d833ed834c",
-        "[0x42a48b758d36866ee18b117f101aafdbb49bc7c7]"
+        "[0x6783061982b95ee0d272ae70608ba72a4c6882a4]"
       ],
-      "transactionHash": "0xdcd769094c1788147fd6d92dbbe689e4331ddfbe0ae9352a17d720b91fcfbb5e",
-      "keeperhubExecutionId": "emmdodymnjn3hqqynwu7j",
-      "blockNumber": "0x2b511ab",
+      "transactionHash": "0xb7a4c1a071d766df2bc848171ea4a70f9d2675123629bec70199b7e1ba5a4aa4",
+      "keeperhubExecutionId": "q5jjjpxlqa9xa58d4x3bb",
+      "blockNumber": "0x2b51aba",
       "predictedAddressMatched": true
     },
     "PauseAction": {
       "name": "PauseAction",
-      "address": "0x2bf292c9bceac8a2d0846a05b8b49917977c98e2",
-      "salt": "0x1ebfbb47ca17056c817d3a110fe0ff74a3b91c96a694d530a1c5e55ed0225f7c",
-      "initCodeHash": "0xfaf663b7041f689e6eae06e955189921ae9c2866ff8021dd0e03a2ec6cf79e97",
+      "address": "0x4075360c09c929d01cc5b52463a14250f65d4ddc",
+      "salt": "0x820d7b2d5cc307c5c0eaf67fd7da07be7f7ef28caea994c33e900e37747ce194",
+      "initCodeHash": "0x9f931083dcdd3fec70cb3cda5e6bfd8ead2d03ca0f05d5af50cdc933ba2f4487",
       "runtimeBytecodeHash": "0x7b10f31b25c63a29007489c3731caa9426c5f62deac8d1fd6cde1373a2794a7d",
-      "constructorArgs": ["0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284"],
-      "transactionHash": "0xa7a4c564a33d2cb67b22b9ed25ae0943386183b16180f429d65eb556d79a4116",
-      "keeperhubExecutionId": "gdhex0t6pzxphrood2og3",
-      "blockNumber": "0x2b511ae",
+      "constructorArgs": ["0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc"],
+      "transactionHash": "0x95d44f49a1460426ed49cdbb010c965cbec3c1caa5953e9a2ab6d75250858bd3",
+      "keeperhubExecutionId": "03d73pakpfr23sc28axam",
+      "blockNumber": "0x2b51abd",
       "predictedAddressMatched": true
     },
     "EvacuateERC20Action": {
       "name": "EvacuateERC20Action",
-      "address": "0x196f0125e73a78438f1518e5eb46d9f03afd2197",
-      "salt": "0x41ef8f214ce667adb603313a77998d864821adeccb5abfd6ad445215fbef751d",
-      "initCodeHash": "0x281d6fad07d7b9ac511df68e7e00b020f58a0a99c6ff622dc835d7663acac374",
+      "address": "0xdb0a34921d863f151b0e0f37c62129344b5c34b4",
+      "salt": "0x52f965409cdc565a0abcf193779ce06c8ff4d320670741d92f78cec8b501494d",
+      "initCodeHash": "0x1361d689da4165a339a5a843e1a00631561b87f9baeda47840336b623d7a6510",
       "runtimeBytecodeHash": "0x07c06dbfb03cf67a08af0a7dfd6f073c6fe0b275038c2e51b9448fcde5cd0e37",
-      "constructorArgs": ["0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284"],
-      "transactionHash": "0x7f2a8b7aee2e3b925320b08d4d8deeb9118a8099bb0c13035229819717494cc3",
-      "keeperhubExecutionId": "qmfvtsy6ijjxyvkw05sgs",
-      "blockNumber": "0x2b511b2",
+      "constructorArgs": ["0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc"],
+      "transactionHash": "0xb309258565c09ec41da9b3f3a2da92c84befe3107e664cf0009932d6ccc8e2b0",
+      "keeperhubExecutionId": "f8oxd2t6n32wmowjdhudp",
+      "blockNumber": "0x2b51ac1",
       "predictedAddressMatched": true
     },
     "VaultSafeStateVerifier": {
       "name": "VaultSafeStateVerifier",
-      "address": "0xd71f170915bf9204033b40746ee3c5f05de712f1",
-      "salt": "0x630360ef1c62448d61a63f43d138f6801a82d76c1f703c58f33a47823e298cca",
+      "address": "0xd062df343d9d03523684b20bf1a902bef3d26907",
+      "salt": "0x976faa8a3497e399e0e7894f03bddef085747acbe50833c31a12c415aa1a5843",
       "initCodeHash": "0xf5345d1c9aabfb4b21247ea95b4dd147f57caaed6cae9e2f2e908b245b4a9f92",
       "runtimeBytecodeHash": "0x640aaf85250671f5d1392404f004bf91b1419db95b796a5007dfea4d2329e69c",
       "constructorArgs": [],
-      "transactionHash": "0x2db6ed7ae4a42462661555246f323aa38d795b581f7d76fd878d52bcdc3cb9e7",
-      "keeperhubExecutionId": "0v1mb7ukpmtbtmvi214x1",
-      "blockNumber": "0x2b511b5",
+      "transactionHash": "0x15e735d229b61bdb2421af4c8de766048cddfbaa75a6a18941b662224287de32",
+      "keeperhubExecutionId": "cdrfldhnr6r134weguqo4",
+      "blockNumber": "0x2b51ac4",
       "predictedAddressMatched": true
     },
     "DemoVault": {
       "name": "DemoVault",
-      "address": "0x291efc6f53559d8316761309e856772f10d0cdc4",
-      "salt": "0x1a8144d54a7d5b7b4e3820707b831599d6d199748991525eefb16e86064579a6",
+      "address": "0x76af5accc7e75d68d9353a404ae897d7b4ec679a",
+      "salt": "0xaf9febdbae9616074bee88425e9ebb6bcd0f875fba669d28febaaf9d14baab4f",
       "initCodeHash": "0x0b3c6b961b08fbd235220af116f3b8e549d9a45850f9e58aedbd805632b14668",
       "runtimeBytecodeHash": "0x3f68873c00bed4dfb38715913d392f3276b917daa0af74078bda708722ef5527",
       "constructorArgs": ["0xfd35ae935de7be93ffd585d6627268d833ed834c"],
-      "transactionHash": "0x672cca4c813af3192dd99b19496e4014b1e6133baf398d9b93d7cebeaf09c2c2",
-      "keeperhubExecutionId": "9xises2nbzrem5t9f5vwh",
-      "blockNumber": "0x2b511b9",
+      "transactionHash": "0x7c2998342a3abc802e55edab77f69e08a6c865408dc9d978cfd0b859d5488f2f",
+      "keeperhubExecutionId": "7nlqlwdhabmnxj8otpmr4",
+      "blockNumber": "0x2b51ac8",
       "predictedAddressMatched": true
     }
   },
   "configurationCalls": [
     {
       "label": "grant/pauser",
-      "transactionHash": "0x048e81eba9705d1432d9e6d4a8567c2091c17d5b9acb903327ccb9b0867a9a5d",
-      "executionId": "4gpfhiyjbsccysahjfa3g"
+      "transactionHash": "0xde0a3db6a1eada237d1539474acc633d738cf9d96b4fa1bd284f603d96bfca2e",
+      "executionId": "p5skknnoen1e17ytcp78h"
     },
     {
       "label": "grant/rescuer",
-      "transactionHash": "0x508e55baf051c8ce72e3477307d8dd764fb596b78427486796f38f6c65f43c39",
-      "executionId": "t23msfhbqg4axoezxexzp"
+      "transactionHash": "0xe81592004b3a8527d01f6c15d4a89d0ea88b492a06ded39989953fdb90db593e",
+      "executionId": "49npx66n2otzb98h1jivb"
     },
     {
       "label": "mint/vault",
-      "transactionHash": "0x83a0e3a3d353b5de47cce396f7a329792db66507cd67f85291a256e1bd54ccf6",
-      "executionId": "a49wg0a9s7s3zaiwnm80k"
+      "transactionHash": "0xeacfa96e2dac7748c8c1eeebbc47a1ea9418ae85886d8417cf9fe3cdc2545f68",
+      "executionId": "29dcsctf5itorsnwkdan4"
     }
   ]
 }

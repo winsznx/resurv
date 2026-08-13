@@ -115,42 +115,43 @@ tested against a reference model and was never called from production code.
 
 ## Deployed resources
 
-Base Sepolia, chain 84532, deployed 2026-08-12 through CreateX
+Base Sepolia, chain 84532, deployed 2026-08-13 through CreateX
 (`0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed`) by the KeeperHub organization wallet
 `0xfd35ae935de7be93ffd585d6627268d833ed834c`, every address predicted offchain and matched.
 
 | Contract | Address |
 |---|---|
-| `ResurvCovenantManager` | `0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284` |
-| `PauseAction` | `0x2bf292c9bceac8a2d0846a05b8b49917977c98e2` |
-| `EvacuateERC20Action` | `0x196f0125e73a78438f1518e5eb46d9f03afd2197` |
-| `VaultSafeStateVerifier` | `0xd71f170915bf9204033b40746ee3c5f05de712f1` |
-| `DemoVault` | `0x291efc6f53559d8316761309e856772f10d0cdc4` |
-| `TestUSD` | `0x42a48b758d36866ee18b117f101aafdbb49bc7c7` |
+| `ResurvCovenantManager` | `0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc` |
+| `PauseAction` | `0x4075360c09c929d01cc5b52463a14250f65d4ddc` |
+| `EvacuateERC20Action` | `0xdb0a34921d863f151b0e0f37c62129344b5c34b4` |
+| `VaultSafeStateVerifier` | `0xd062df343d9d03523684b20bf1a902bef3d26907` |
+| `DemoVault` | `0x76af5accc7e75d68d9353a404ae897d7b4ec679a` |
+| `TestUSD` | `0x6783061982b95ee0d272ae70608ba72a4c6882a4` |
 
 Bytecode hashes, salts, constructor arguments, compiler settings and every deployment
 transaction: `deployments/base-sepolia.json`.
 
 All six are verified on **Sourcify at `match` level**: creation and runtime bytecode both
-reproduce from this repository at the pinned compiler settings, and the result is mirrored to
-Blockscout. Per-contract links and the one-line `curl` reproduction are in `docs/DEPLOYMENTS.md`.
-Basescan's tab may still show them unverified, because Sourcify's forwarding to Etherscan hit a
-daily submission limit. No document here claims Basescan verification, and none should.
+reproduce from this repository at commit `1d1eb9a` at the pinned compiler settings, and the
+result is mirrored to Blockscout. Per-contract links and the one-line `curl` reproduction are in
+`docs/DEPLOYMENTS.md`. Basescan's tab may still show them unverified, because Sourcify's
+forwarding to Etherscan hit a daily submission limit. No document here claims Basescan
+verification, and none should.
 
 ## The canonical covenant
 
 | | |
 |---|---|
-| Covenant | `0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0` |
-| Success transaction | `0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22` |
-| Block, gas, status | 45421180, 245,380, `0x1` |
+| Covenant | `0x1824fe778dfcc7ed43b79ec6887e762c04952a12763ec7481a05a7a257a23237` |
+| Success transaction | `0x7ac018850024cfd0e2d901840fd395fab852cf8cc23e5f7755c0b3eda8cc7d25` |
+| Block, gas, status | 45423354, 245,555, `0x1` |
 | Terminal status | `SATISFIED` (5) |
 | Verifier, read live | `satisfied: true`, observed 1,000,000 |
 | Vault / recipient / responder | 0 · 1.000000 rUSD · 1.000000 rUSD |
 | Fee release | in the success transaction, log 5 |
 | Duplicate trigger, duplicate attempt | both rejected, zero effects |
 
-Seventeen KeeperHub execution ids across the deployment and the demo are recorded in the
+Sixteen KeeperHub execution ids across the deployment and the demo are recorded in the
 manifest and the receipt. Full step-by-step: `docs/proof/canonical-covenant.json`.
 
 ## Verified claims
@@ -230,10 +231,10 @@ pnpm --filter @resurv/cli live:demo --dry-run        # simulates every step, bro
 pnpm --filter @resurv/cli live:contracts             # deploys, needs the credential
 pnpm --filter @resurv/cli live:demo                  # a new covenant, needs the credential
 
-cast receipt 0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22 \
+cast receipt 0x7ac018850024cfd0e2d901840fd395fab852cf8cc23e5f7755c0b3eda8cc7d25 \
   --rpc-url https://sepolia.base.org
-cast call 0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284 "statusOf(bytes32)(uint8)" \
-  0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0 \
+cast call 0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc "statusOf(bytes32)(uint8)" \
+  0x1824fe778dfcc7ed43b79ec6887e762c04952a12763ec7481a05a7a257a23237 \
   --rpc-url https://sepolia.base.org                 # 5 = SATISFIED
 ```
 
@@ -244,8 +245,8 @@ cast call 0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284 "statusOf(bytes32)(uint8)" 
 | Commit | see `git log -1` at the tip of `main` |
 | Working tree | clean |
 | Branch | `main`, pushed to https://github.com/winsznx/resurv |
-| Deployed source | commit `b9f8722`, recorded in `deployments/base-sepolia.json`. `git diff b9f8722 -- packages/contracts/` is empty |
-| Canonical transaction | [`0xef63ee11…`](https://sepolia.basescan.org/tx/0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22), block 45421180, two origins agree |
+| Deployed source | commit `1d1eb9a`, recorded in `deployments/base-sepolia.json`. `git diff b9f8722 -- packages/contracts/` is empty |
+| Canonical transaction | [`0x7ac01885…`](https://sepolia.basescan.org/tx/0x7ac018850024cfd0e2d901840fd395fab852cf8cc23e5f7755c0b3eda8cc7d25), block 45423354, two origins agree |
 | Source verification | five of six on Sourcify at `match`; `ResurvCovenantManager` answered `no_match` three times and is **not** verified |
 | Gate | exit 0, locally and on a clean GitHub runner |
 
@@ -256,10 +257,10 @@ them, which closes the one gap the second audit round opened.
 
 | | |
 |---|---|
-| Deployed from | commit `b9f8722`, salt namespace `resurv/v4`. `git diff b9f8722 -- packages/contracts/` is empty |
-| Manager | [`0x8e4c71d6…`](https://sepolia.basescan.org/address/0x8e4c71d6c99a10f442e70fd236c3d583d9d9d284) |
-| Covenant | `0xa5e71176ccfc47947d0a292bdd63fd0b8ccc64a2b62f1cfc9f1cbdb6787c9cf0` |
-| Canonical transaction | [`0xef63ee11…`](https://sepolia.basescan.org/tx/0xef63ee114dea86da25f1d38802be8bfbdcce166a140f322d283f22a41f9c7e22), block 45421180, gas 245,380 |
+| Deployed from | commit `1d1eb9a`, salt namespace `resurv/v4`. `git diff b9f8722 -- packages/contracts/` is empty |
+| Manager | [`0xdae116d1…`](https://sepolia.basescan.org/address/0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc) |
+| Covenant | `0x1824fe778dfcc7ed43b79ec6887e762c04952a12763ec7481a05a7a257a23237` |
+| Canonical transaction | [`0x7ac01885…`](https://sepolia.basescan.org/tx/0x7ac018850024cfd0e2d901840fd395fab852cf8cc23e5f7755c0b3eda8cc7d25), block 45423354, gas 245,555 |
 | Independent check | identical receipt from `sepolia.base.org` and `base-sepolia-rpc.publicnode.com`; six logs in the promised order |
 | No second effect | paged `eth_getLogs` over the whole life of the new manager returns exactly one `AttemptSucceeded` and one `CovenantSatisfied`, both inside that transaction |
 | Source verification | five of six on Sourcify at `match`; `ResurvCovenantManager` **not verified**, `no_match` three times |
@@ -270,11 +271,27 @@ server rate-limit hints were parsed and then ignored, simulation and execution d
 bodies from two separate literals, and the demo silently started a new covenant over an existing
 run state. Six other findings were verified as already fixed before anything was changed.
 
+### The deployment that had to be done twice
+
+The first redeployment of this pass shipped a **mutant**. A mutation campaign had restored
+`ResurvCovenantManager.sol` with a file copy and never rebuilt, so `packages/contracts/out` still
+held the build with the `maxTotalAttempts` check deleted, and the deployment script read that
+cache. The manifest recorded the mutant's own hashes, so it was internally consistent, all six
+predicted addresses matched, and every self-check passed.
+
+Sourcify refused to verify that one contract, and only that one. That refusal was the entire
+signal. Chasing it down produced the diagnosis, `rebuildContracts()` now compiles from source
+before any artifact is read, the generation was redeployed as `resurv/v5`, and all six contracts
+now verify. The mutant generation is archived at
+`deployments/historical/base-sepolia-v4-MUTANT.json` rather than deleted.
+
+The lesson is the one this project keeps relearning in new costumes: a check that derives from
+the same source as the thing it checks proves nothing. Two independent RPC origins for receipts,
+a reference model that never calls the implementation, and an independent recompilation for
+bytecode are all the same idea, and the third one is the only reason this was caught.
+
 ### What this pass did not finish
 
-- **`ResurvCovenantManager` is not source-verified.** Three Sourcify submissions, one from a
-  clean build, returned `no_match` while the other five contracts verified from the same build.
-  Unresolved. The `cast code` comparison in `docs/DEPLOYMENTS.md` is the check that works.
 - **The pre-deployment contracts audit did not report.** It was launched before the deployment
   and stalled after running its proof-of-concept attacks, producing no findings. The deployment
   proceeded on 122 contract tests including the fuzz and invariant campaigns, plus six mutation
@@ -291,36 +308,31 @@ regression test. Read `docs/phase-logs/PHASE_07_FINAL_AUDIT.md` before this list
 
 In this order, because this is where I think it is weakest.
 
-1. **The manager's Sourcify `no_match`.** Five contracts from the same build verify and this one
-   does not, three times. Either the verification input is wrong in a way specific to this
-   contract, or the deployed bytecode is not what we think it is. The `cast code` comparison says
-   it is right, but that check is ours and Sourcify's is independent. Resolve it before trusting
-   the deployment further than a testnet demo.
-2. **The verifier interface, still.** Two rounds of review have found four distinct ways a
+1. **The verifier interface, still.** Two rounds of review have found four distinct ways a
    verifier the requester chose can trap that requester's own escrow: no code, a short return, a
    dirty boolean, and running out of gas at any budget. Three are fixed. The fourth is accepted
    and has no mitigation. Nothing validates a verifier or an adapter at covenant creation, which
    is the root cause of all four. That is the next real piece of engineering here and it is not
    done.
-4. **The fee policy, not the fee mechanics.** The mechanics are well tested. The policy is not
+3. **The fee policy, not the fee mechanics.** The mechanics are well tested. The policy is not
    settled: `executeAttempt` discards the `satisfied` flag from its pre-state read, so an
    executor can run an action against an already-safe covenant and take the full fee rather than
    the zero-fee `finalizeAlreadySatisfied` route. That is faithful to the PRD and the PRD is
    wrong. Decide whether it is a bug.
-5. **Whether a responder can be relied on at all.** A requester who can satisfy their own
+4. **Whether a responder can be relied on at all.** A requester who can satisfy their own
    declared outcome can finalize and reclaim; a pauser can block `executeAttempt` until the
    deadline and then let expiry refund. Both are inside the design. Neither has a mitigation.
-6. **The remaining 16 surviving mutants.** The second round ran 65 and killed 46. The three that
+5. **The remaining 16 surviving mutants.** The second round ran 65 and killed 46. The three that
    mattered most are closed and verified. The rest are listed in that round's report and are
    mostly `nonReentrant` modifiers whose removal is masked by a second layer — which is defence
    in depth working, and also means no test observes either layer alone.
-7. **The concurrency claim.** `InMemoryAttemptStore.reserve` is synchronous, so the test named
+6. **The concurrency claim.** `InMemoryAttemptStore.reserve` is synchronous, so the test named
    "gives two concurrent workers one attempt between them" cannot interleave and would pass
    against a store with a genuine check-then-write race. The design is right; the test asserts
    something it cannot observe.
-8. **`docs/CLAIMS.md` against the proof page, line by line.** The page is the thing a judge
+7. **`docs/CLAIMS.md` against the proof page, line by line.** The page is the thing a judge
    reads, and a page that says one word more than the ledger supports is the failure this whole
    apparatus exists to prevent.
-9. **Everything the demo did not exercise.** `finalizeAlreadySatisfied`, `expireCovenant` and
+8. **Everything the demo did not exercise.** `finalizeAlreadySatisfied`, `expireCovenant` and
    `cancelCovenant` have never run on chain. They are tested locally and deployed untested in
    production conditions.

@@ -360,8 +360,8 @@ The Phase 0 `javascript` job ran `pnpm typecheck` and `pnpm build` while install
 toolchain and checking out no submodules. Both commands are cross-stack: turbo fans `typecheck`
 out to `contracts#typecheck` (`forge build --sizes`), `build` to `contracts#build`, `test` to
 `contracts#test` and `lint` to `contracts#lint`. The job could not have passed on a clean
-runner. Nobody had seen it fail because this repository has no git remote and no CI run has
-ever happened. The job also worked around its own gap by running `pnpm exec biome check .`
+runner. Nobody had seen it fail because at that point the repository had no git remote and no CI
+run had ever happened. The job also worked around its own gap by running `pnpm exec biome check .`
 instead of `pnpm lint`, which is the same command minus the contracts half.
 
 ### Decision

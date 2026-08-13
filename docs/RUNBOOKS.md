@@ -196,9 +196,13 @@ Phase 0.5 needs exactly one, and this is the whole path.
 | Who creates it | a human, in an ordinary terminal, before the session starts |
 | Who reads it | the test or Worker process, at runtime |
 
-`KEEPERHUB_API_KEY` is the only required one. `DATABASE_URL`, `SUPABASE_URL` and
-`SUPABASE_SERVICE_ROLE_KEY` are optional in `serverSecretsSchema` and Phase 0.5 needs none of
-them.
+`KEEPERHUB_API_KEY` is the only one a live command needs. `DATABASE_URL`, `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY` are optional, unread, and declared only so redaction covers them
+(ADR-016).
+
+The Worker is a separate case: `workerEnvSchema` makes `KEEPERHUB_API_KEY` optional too, so a
+deployed Worker holds no credential. Its shape is still enforced when someone sets one, so a
+`wfb_` key is named as wrong rather than quietly accepted.
 
 ```bash
 cp .env.example .env    # then paste the kh_ key with an editor

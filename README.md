@@ -1,44 +1,50 @@
 # RESURV
 
-**An outcome covenant. Recovery actions execute through KeeperHub until a declared onchain safe
-state is true, and the responder is paid inside the transaction that made it true.**
+**Outcome-gated recovery execution for onchain agents.** RESURV keeps executing pre-authorized
+recovery actions through KeeperHub until the promised onchain state is verified, then releases
+payment.
+
+[![CI](https://github.com/winsznx/resurv/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/winsznx/resurv/actions/workflows/ci.yml)
+[![contracts: Sourcify match](https://img.shields.io/badge/contracts-Sourcify%20match-09090b)](https://repo.sourcify.dev/84532/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21)
+[![chain: Base Sepolia](https://img.shields.io/badge/chain-Base%20Sepolia-09090b)](https://sepolia.basescan.org/address/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21)
 
 | | |
 |---|---|
 | **Real KeeperHub transaction** | [`0xf7f9aace…29d86ab`](https://sepolia.basescan.org/tx/0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab) — the successful attempt, block 45398879 |
-| **Public proof page** | `apps/web`, deployed to Cloudflare. Needs no login, no credential, no RESURV server in the trust path |
-| **Covenant** | `0xd7250d1fd4c0f996475b78a00489ce0668bad187b342ca61d88983bf0ec7e14f` on Base Sepolia |
-| **Covenant manager** | [`0xfcafbc81f253e62a3818ecda7a7a71e557c65b21`](https://sepolia.basescan.org/address/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21) |
-| **Tests** | 705 TypeScript, 114 Foundry, all green. `pnpm gate` exits 0 |
+| **Public proof page** | `apps/web`. Serve it with `pnpm build && pnpm --filter @resurv/web preview`. The Cloudflare deploy is one command and a deliberate human step — see [Deployment](#13-deployment) |
+| **Covenant** | `0xd7250d1fd4c0f996475b78a00489ce0668bad187b342ca61d88983bf0ec7e14f` |
+| **Covenant manager** | [`0xfcafbc81…7c65b21`](https://sepolia.basescan.org/address/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21) · [verified source](https://repo.sourcify.dev/84532/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21) |
+| **Tests** | 727 TypeScript, 122 Foundry. CI green on a clean runner |
 
-Check the headline for yourself in one command:
+Check the headline yourself in one command:
 
 ```bash
 cast receipt 0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab \
   --rpc-url https://sepolia.base.org
 ```
 
-That receipt carries six logs, in this order: `AttemptStarted`, the vault's `Transfer` to the
-approved recipient, `VaultEvacuated`, `AttemptSucceeded`, the escrow's `Transfer` to the
-responder, `CovenantSatisfied`. The recovery action, the outcome check, the covenant's state
-transition and the success fee are one transaction. Had the verifier returned false, none of
-those six logs would exist.
+Six logs, in this order: `AttemptStarted`, the vault's `Transfer` to the approved recipient,
+`VaultEvacuated`, `AttemptSucceeded`, the escrow's `Transfer` to the responder,
+`CovenantSatisfied`. The recovery action, the outcome check, the covenant's state transition and
+the success fee are **one transaction**. Had the verifier returned false, none of those six logs
+would exist.
 
 ---
 
-## The problem
+## 1. The problem
 
 Most onchain automation treats a confirmed transaction as success. A protocol operator does not
-need a transaction. They need a state: the vault is empty and the approved Safe has the funds,
-the protocol is paused, the dangerous approval is gone.
+need a transaction. They need a state: the vault is empty and the approved Safe has the funds, the
+protocol is paused, the dangerous approval is gone.
 
-Those come apart in two directions, and both are ordinary rather than exotic:
+Those come apart in two directions, and both are ordinary rather than exotic.
 
 - A transaction can confirm while the outcome stays false.
-- The emergency action you planned for can have stopped working. A role was revoked six months
-  ago, the target upgraded, an assumption drifted. Nobody notices until the incident.
+- The emergency action you planned for can have stopped working. A role revoked six months ago, a
+  target upgraded, an assumption drifted. Nobody finds out until the incident, which is the worst
+  possible moment to discover that step one of your runbook reverts.
 
-## The mechanism
+## 2. The mechanism
 
 A requester commits, before any incident, to four things that cannot change afterwards: a
 deterministic **outcome verifier**, an ordered set of **approved recovery actions** with their
@@ -53,78 +59,132 @@ The agent never gets to invent anything. It selects among adapters whose address
 configuration hashes were fixed before the covenant was armed. There is no path from a model's
 output to a target, a selector, a recipient or an amount.
 
-### What the live run demonstrates
-
-```text
-covenant created and funded          the outcome, the plan and the authority are committed
-signed risk trigger accepted         ARMED -> TRIGGERED, nonce consumed
-attempt 1: pause                     SIMULATION REJECTED — the adapter's vault role was revoked
-                                     no transaction was sent, nothing on chain moved
-attempt 2: evacuate to the Safe      simulated clean, executed, confirmed on two RPC origins
-outcome verified inside that tx      vault 0, recipient 1.000000 rUSD, covenant SATISFIED
-success fee released in that tx      1.000000 rUSD to the responder
-the same trigger, replayed           rejected
-the same attempt, replayed           rejected
+```mermaid
+flowchart LR
+    R([requester]) -->|commits verifier,<br/>plan, authority, fee| CM[ResurvCovenantManager]
+    TA([trigger authority]) -->|EIP-712 signal| CM
+    CM -->|simulate first| KH{{KeeperHub<br/>Direct Execution}}
+    KH -->|would revert| REF[refused<br/>nothing broadcast]
+    KH -->|clean| EX[execute<br/>sponsored gas]
+    EX --> TX[[one transaction]]
+    TX --> A[committed adapter runs]
+    A --> V{verifier · view}
+    V -->|false| RV[revert everything]
+    V -->|true| S[SATISFIED<br/>fee released]
+    TX -.->|receipt + expected event| Q[two RPC origins<br/>must agree]
+    Q -.->|only then advance| CM
 ```
 
-The refused primary action is the point. RESURV did not retry it, did not widen its authority,
-and did not guess. It moved to the next action its covenant had already approved, and only
-because a simulation said the first one could not safely complete.
+## 3. What the canonical demo does
 
-## Why KeeperHub is load-bearing
+<p align="center">
+  <img src="docs/assets/timeline.png" alt="The RESURV execution timeline: ten beats from the quietly revoked role, through the refused primary action, to the confirmed fallback and both rejected replays" width="900">
+</p>
 
-Not a wrapper. Three specific things, each of which changed the architecture:
+```text
+before the incident   the vault role the primary action depends on is quietly revoked
+the covenant          created and funded: verifier, two ordered actions, authority, deadline
+the incident          a signed risk trigger is accepted, ARMED → TRIGGERED, nonce consumed
+attempt 1  pause      SIMULATION REJECTED — the adapter lost the role. No transaction sent.
+                      RESURV does not retry, does not widen its authority, does not guess.
+attempt 2  evacuate   simulated clean, executed through KeeperHub, confirmed on two RPC origins
+in that transaction   vault 0 · recipient 1.000000 rUSD · verifier true · covenant SATISFIED
+                      · 1.000000 rUSD released to the responder
+replay                the same trigger: rejected. The same attempt: rejected. Zero effects.
+```
+
+The refused primary action is the point. On chain, exactly one `AttemptSucceeded` and one
+`CovenantSatisfied` have ever been emitted by that manager — check with `eth_getLogs` and you will
+find no second economic effect.
+
+## 4. Why KeeperHub is load-bearing
+
+Not a wrapper. Three specific things, each of which changed the architecture.
 
 1. **It is the execution path.** Simulation before broadcast is what refuses the primary action
-   without spending gas or touching state. Every RESURV write in this repository — including the
-   contract deployments — goes through the Direct Execution API.
+   without spending gas or touching state. That refusal is the demo's turning point and it is a
+   KeeperHub response. Every RESURV write — including the contract deployments — goes through the
+   Direct Execution API.
 2. **Gas sponsorship is what made the deployment possible at all.** The organization wallet holds
-   zero native currency. There is no deployment endpoint, so the contracts were deployed by a
+   zero native currency and there is no deployment endpoint, so the contracts were deployed by a
    sponsored contract call to a public CREATE2 factory. **RESURV deployed itself with no funded
-   deployer and no faucet.** Six contracts, six addresses predicted offchain before sending, six
-   matches. See [ADR-014](docs/DECISIONS.md).
-3. **Its seam semantics dictated the state machine.** A day of measurement before any product
-   code (`docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md`) falsified the lifecycle
-   this project was about to build. The measured rules are now the implementation, and the
-   engineering insight is one sentence: **an HTTP status never advances a covenant; a chain read
-   does.**
+   deployer and no faucet:** six contracts, six addresses predicted offchain before sending, six
+   matches. [ADR-014](docs/DECISIONS.md).
+3. **Its seam semantics dictated the state machine.** A day of measurement before any product code
+   falsified the attempt lifecycle this project was about to build.
 
-## Architecture
+## 5. Measured KeeperHub semantics
+
+Full report: [`PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md`](docs/phase-logs/PHASE_00_5_KEEPERHUB_ATTEMPT_SEMANTICS.md).
+16 scenarios run live, evidence committed, 42 offline tests asserting the findings against that
+evidence so a claim cannot drift away from its artifact.
+
+The five that changed the design:
+
+| Measured | Consequence |
+|---|---|
+| **HTTP 202 does not mean broadcast.** A refused attempt and a successful one both answer 202 with an `executionId` | There is no `ACCEPTED` state in RESURV. Read the body's `status`, then confirm on chain |
+| **The POST is synchronous** | There is no `PENDING` state and no polling on the happy path |
+| **A new idempotency key repeats the economic action** | Transport idempotency is not semantic idempotency. The onchain attempt id is what makes it permanent |
+| **A lost response is genuinely ambiguous and genuinely resolvable** | `RECONCILIATION_REQUIRED` is a state, not an error, and nothing leaves it on a timer |
+| **`safe_inner_failure` exists** | An outer receipt of `0x1` is not proof. Confirmation requires the expected event |
+
+One sentence carries all of it:
+
+> **An HTTP status never advances a covenant. A chain read does.**
+
+## 6. Architecture
 
 ```text
-                      signed trigger
-                            │
-  requester ──create/fund──►│                      ┌──────────── KeeperHub ────────────┐
-                            ▼                      │  simulate → refuse or broadcast   │
-                   ResurvCovenantManager ◄─────────┤  gas sponsorship, org wallet      │
-                    │        │        │            │  idempotency, execution status    │
-       committed────┘        │        └────escrow  └───────────────────────────────────┘
-        adapters             │           + fee                    ▲
-            │           IOutcomeVerifier                          │
-            ▼            (view, fails closed)         @resurv/orchestrator
-      DemoVault ────────────► chain state             persist key → send → reconcile
-                                  ▲                              │
-                                  └────── two independent RPC origins must agree
+apps/web              the public proof page (React 19, Vite, tokens from design.md)
+apps/worker           one Cloudflare Worker: /api/* plus the SPA as static assets
+packages/contracts    Foundry. Manager, two capability adapters, verifier, demo protocol
+packages/domain       reference models: covenant state machine + measured attempt lifecycle
+packages/keeperhub-client  typed transport. Parses and records; decides nothing
+packages/orchestrator the attempt lifecycle executed: durable claim → send → reconcile
+packages/chain        two-origin RPC quorum, receipt projection, CreateX constants
+packages/proof        the committed evidence, typed. Imported by the page and the Worker
+packages/cli          live:contracts, live:demo, screenshots
+packages/repo-policy  executable repository policy. Tests only; ships nothing
+packages/config       environment validation and secret redaction
+packages/node-runtime host-process concerns: the repository root, the credential loader
+packages/db           Drizzle schema. A design artifact; nothing imports it at runtime
+packages/seam-probe   the Phase 0.5 measurement harness
 ```
 
-| Package | What it is |
-|---|---|
-| `packages/contracts` | Foundry. The covenant manager, two action adapters, the verifier, the demo protocol |
-| `packages/domain` | Pure reference models: the covenant state machine and the measured attempt lifecycle |
-| `packages/keeperhub-client` | Typed transport. Parses and records; never decides what a response means |
-| `packages/orchestrator` | The attempt lifecycle executed for real: durable claim, send, reconcile against chain |
-| `packages/chain` | Two-origin RPC quorum, receipt projection, CreateX constants |
-| `packages/proof` | The committed evidence, typed. Imported by the page and the Worker, never copied |
-| `packages/cli` | The live entry points: deploy the contracts, run the covenant |
-| `packages/repo-policy` | Executable repository policy. Tests only; ships nothing |
-| `packages/db`, `packages/config`, `packages/node-runtime` | Schema, environment validation, host-process concerns |
-| `apps/web` | The public proof page |
-| `apps/worker` | One Cloudflare Worker: `/api/*` plus the built SPA as static assets |
+**There is no database.** The orchestrator persists to an `fsync`'d append-only journal, which is
+what the durability argument actually requires: the idempotency key and canonical body on stable
+storage before the first POST. Nothing to provision, no connection string, no credential.
+[ADR-016](docs/DECISIONS.md).
 
-## The state machine
+## 7. Contracts
 
-Two of them, both with independent reference models the implementation is judged against
-([ADR-009](docs/DECISIONS.md)).
+All six are verified on **Sourcify at `match` level** — creation *and* runtime bytecode reproduce
+exactly from this repository at the pinned compiler settings — and propagated to Blockscout.
+
+| Contract | Address | Verified source |
+|---|---|---|
+| `ResurvCovenantManager` | [`0xfcafbc81…`](https://sepolia.basescan.org/address/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21) | [Sourcify](https://repo.sourcify.dev/84532/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21) · [Blockscout](https://base-sepolia.blockscout.com/address/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21?tab=contract) |
+| `PauseAction` | [`0x84c21e26…`](https://sepolia.basescan.org/address/0x84c21e26ed405f6959b53a577afc677854f35fb6) | [Sourcify](https://repo.sourcify.dev/84532/0x84c21e26ed405f6959b53a577afc677854f35fb6) |
+| `EvacuateERC20Action` | [`0x498bd80e…`](https://sepolia.basescan.org/address/0x498bd80ebc30d51de9764a20abc96b50d6840416) | [Sourcify](https://repo.sourcify.dev/84532/0x498bd80ebc30d51de9764a20abc96b50d6840416) |
+| `VaultSafeStateVerifier` | [`0xde41aab7…`](https://sepolia.basescan.org/address/0xde41aab7341db6ef25f513df51a264faf23ca737) | [Sourcify](https://repo.sourcify.dev/84532/0xde41aab7341db6ef25f513df51a264faf23ca737) |
+| `DemoVault` | [`0x60ff59ea…`](https://sepolia.basescan.org/address/0x60ff59ea3eac52fd0c02dd8e31a368b4bd2f1cb8) | [Sourcify](https://repo.sourcify.dev/84532/0x60ff59ea3eac52fd0c02dd8e31a368b4bd2f1cb8) |
+| `TestUSD` | [`0x96981488…`](https://sepolia.basescan.org/address/0x96981488e239142e340bf32679059baa56bae2b1) | [Sourcify](https://repo.sourcify.dev/84532/0x96981488e239142e340bf32679059baa56bae2b1) |
+
+```bash
+curl -s https://sourcify.dev/server/v2/contract/84532/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21 \
+  | jq '{match, creationMatch, runtimeMatch}'
+```
+
+Two qualifiers, both load-bearing. Basescan may still list them as unverified, because Sourcify's
+forwarding to Etherscan hit a daily submission limit, and nothing here claims Basescan
+verification. And the source those addresses match is commit `2ccf02f`, not `main` — see
+[Known limitations](#14-known-limitations).
+
+## 8. The state machines
+
+Two, both judged against independent reference models transcribed from the specification that
+never call the implementation ([ADR-009](docs/DECISIONS.md)).
 
 **Onchain covenant** (PRD 9.1), enforced by `ResurvCovenantManager`:
 
@@ -135,8 +195,7 @@ NONE → DRAFT → ARMED → TRIGGERED → EXECUTING → SATISFIED
                  └──────────────────────────→ CANCELLED
 ```
 
-**Offchain attempt lifecycle**, measured in Phase 0.5 and specified by
-[ADR-013](docs/DECISIONS.md):
+**Offchain attempt lifecycle**, measured in Phase 0.5, specified by [ADR-013](docs/DECISIONS.md):
 
 ```text
 PLANNED ─► REJECTED_LOCALLY | SIMULATION_REJECTED | SIMULATED_OK
@@ -145,77 +204,85 @@ KEY_COMMITTED ─► EXECUTED_NO_EFFECT | RECONCILIATION_REQUIRED
 RECONCILIATION_REQUIRED ─► CONFIRMED | REVERTED | PROVEN_NOT_BROADCAST | itself
 ```
 
-There is no `ACCEPTED` and no `PENDING`. Measurement removed both: a 2xx carrying an
-`executionId` is returned by an attempt that never reached the chain, and the POST is
-synchronous so there is no pending phase to poll. From `KEY_COMMITTED` or
-`RECONCILIATION_REQUIRED` RESURV may only replay the *same* idempotency key with a
-byte-identical body. It may not rotate the key, may not try a different action, and may not
-advance on elapsed time.
+From `KEY_COMMITTED` or `RECONCILIATION_REQUIRED`, RESURV may only replay the **same** idempotency
+key with a byte-identical body. It may not rotate the key, may not try a different action, and may
+not advance on elapsed time.
 
-## Threat model, in five lines
+## 9. Live proof
+
+- **Receipt**: [`docs/proof/canonical-covenant.json`](docs/proof/canonical-covenant.json)
+- **Manifest**: [`deployments/base-sepolia.json`](deployments/base-sepolia.json)
+- **Page**: `pnpm build && pnpm --filter @resurv/web preview`
+- **JSON**: `GET /api/proof`, `GET /api/proof/summary`, `GET /api/deployment`
+
+`/api/proof/summary` is the endpoint an independent verifier is meant to disagree with: nine
+booleans, each reproducible with one `cast` command.
+
+<p align="center">
+  <img src="docs/assets/atomic.png" alt="One transaction, six logs in order, beside the note that a false verifier result would have reverted all of them" width="900">
+</p>
+
+## 10. Security model
 
 Full version in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
-- **A false outcome reported as success.** The verifier is `view`, called by STATICCALL inside
-  the attempt, and a false result reverts everything. A verifier that tries to write reverts.
+- **A false outcome reported as success.** The verifier is `view`, reached by STATICCALL inside the
+  attempt, and a false result reverts everything. A verifier that tries to write reverts.
 - **Paying twice.** Terminal states are absorbing, escrow settles once per covenant behind an
   explicit flag, and the onchain attempt id is burned permanently.
-- **A duplicate economic effect from a retried request.** KeeperHub's idempotency bounds effects
-  per *key*; a new key for the same action was measured executing it a second time. The onchain
-  attempt id is what actually stops that, forever.
+- **A duplicate economic effect from a retried request.** KeeperHub bounds effects per *key*; a new
+  key for the same action was measured executing it a second time. The onchain attempt id is what
+  actually stops that.
 - **An agent inventing calldata.** Adapters are capabilities with committed addresses and config
   hashes. There is no raw-calldata path anywhere.
 - **A single node deciding a proof.** Every terminal chain state requires two independent origins
   to agree on the material projection of the receipt.
 
-## Setup
-
-```bash
-git clone --recurse-submodules <url> resurv
-cd resurv
-pnpm install
-pnpm gate          # every required check, in order. Exits 0.
-```
-
-Node 24+, pnpm 11+, Foundry. Exact pins in [`docs/VERSIONS.md`](docs/VERSIONS.md). No credential
-is needed to build or to run the gate: nothing in it makes a network call.
-
-## Development
-
-```bash
-pnpm --filter @resurv/web dev       # the proof page on :5173
-pnpm --filter @resurv/worker dev    # the Worker on :8787
-pnpm --filter contracts test        # Foundry unit, fuzz and invariant
-```
-
-## Testing
+## 11. Testing
 
 | Suite | Count | What it holds up |
 |---|---|---|
-| Foundry unit and fuzz | 101 | Every covenant path, both adapters, the verifier, adversarial fixtures, and the regressions from the review below |
-| Foundry invariants | 13 at 256 runs × depth 128 | Fee moves once, terminal blocks attempts, escrow conserved, admin cannot rewrite an armed covenant |
-| `@resurv/domain` | 63 | Both state machines against independent reference models, exhaustively |
-| `@resurv/orchestrator` | 22 | Crash resume, concurrent workers, lost response, RPC disagreement, inner failure |
-| `@resurv/repo-policy` | 412 | The permission boundary, tracked secrets, the auto-approved script graph |
-| `@resurv/seam-probe` | 71 | The Phase 0.5 measurements, asserted against their committed evidence |
-| everything else | 139 | Config redaction, chain constants, the proof artifacts, the Worker, the page |
+| Foundry unit and fuzz | 109 | Every covenant path, both adapters, the verifier, adversarial fixtures, audit regressions |
+| Foundry invariants | 13 | Fee moves once, terminal blocks attempts, escrow conserved, admin cannot rewrite an armed covenant, every transition legal |
+| `@resurv/repo-policy` | 412 | Permission boundary, tracked secrets, auto-approved script graph |
+| `@resurv/seam-probe` | 71 | Phase 0.5 measurements, asserted against committed evidence |
+| `@resurv/domain` | 63 | Both state machines against reference models, exhaustively |
+| `@resurv/orchestrator` | 25 | Crash resume, concurrent workers, lost response, RPC disagreement, inner failure, bounded polling that converges |
+| everything else | 156 | Config redaction, chain constants, proof artifacts, Worker routes, the page, the timeline under adversarial receipts |
 
-Property tests are judged against reference models transcribed from the PRD that never call the
-implementation. The suite was checked by mutation rather than by pass count, twice: eight
-deliberate defects during Phase 1 and three more found by an independent audit. Four survived
-and every one is now caught, including a mutation permitting an `ARMED -> EXPIRED` transition
-that the reference state machine forbids and that nothing noticed, because `canTransition` was
-exhaustively tested and never actually called from production code.
+Property tests are judged against reference models that never call the implementation.
 
-Three independent reviews ran against this build — contracts, KeeperHub integration, and test
-coverage. They are in-repo reviewers with no write access, not a third-party security audit, and
-all three returned FAIL with specific findings. Two were fund-loss defects in
-the covenant, both fixed and both now pinned by regression tests in
-[`packages/contracts/test/AuditRegressions.t.sol`](packages/contracts/test/AuditRegressions.t.sol).
-The full list, including what was deferred and why, is in
-[`docs/phase-logs/PHASE_06_REVIEW.md`](docs/phase-logs/PHASE_06_REVIEW.md).
+The suite was checked by **mutation**, three times, and the third campaign is the one worth
+reading. It found that a regression test named after a fund-loss guard passed with that guard
+deleted, against the entire suite including a 256-run fee invariant, because every public path
+into it is stopped one layer earlier. It found an off-by-one in the reconciliation loop that
+failed nothing, because no test had ever asserted a round count. Both are now caught, and every
+test added since was checked by reverting its fix and confirming exactly that test fails.
 
-## Deployment
+Four in-repo reviewers — contracts, KeeperHub, tests, claims — ran against the finished build.
+**Three returned FAIL.** The contracts round found three more ways to trap a covenant's escrow
+permanently, each with a working proof, including two shapes of the same defect a previous round
+had claimed to close. All three are fixed in source and pinned by
+[`AuditRegressions.t.sol`](packages/contracts/test/AuditRegressions.t.sol). Two findings are
+accepted rather than fixed and named. These are agents in this repository, **not a third-party
+security audit**. The full account, including what the deployed contracts do and do not contain:
+[`PHASE_07_FINAL_AUDIT.md`](docs/phase-logs/PHASE_07_FINAL_AUDIT.md).
+
+## 12. Clean-room reproduction
+
+```bash
+git clone --recurse-submodules https://github.com/winsznx/resurv && cd resurv
+pnpm install --frozen-lockfile
+pnpm gate
+```
+
+Node 24+, pnpm 11+, Foundry. Exact pins in [`docs/VERSIONS.md`](docs/VERSIONS.md). No credential is
+needed: nothing in the gate makes a network call. Every path is repo-relative.
+
+Reproducing the **live** half needs a KeeperHub organization key beginning `kh_` in a repository
+root `.env`, and lands real Base Sepolia transactions. See [`docs/RUNBOOKS.md`](docs/RUNBOOKS.md).
+
+## 13. Deployment
 
 Contracts and the live covenant, both of which spend the organization credential:
 
@@ -223,12 +290,11 @@ Contracts and the live covenant, both of which spend the organization credential
 pnpm --filter @resurv/cli live:contracts --dry-run   # predicts every address, sends nothing
 pnpm --filter @resurv/cli live:contracts             # deploys through CreateX
 pnpm --filter @resurv/cli live:demo --dry-run        # simulates every step, broadcasts nothing
-pnpm --filter @resurv/cli live:demo                  # runs the canonical covenant
+pnpm --filter @resurv/cli live:demo                  # runs a new canonical covenant
 ```
 
 Both resume rather than repeat: every write is journalled with its idempotency key before it is
-sent. Neither is reachable from an auto-approved Claude Code command, and
-`packages/repo-policy` fails if anyone allow-lists a path to one.
+sent. Neither is reachable from an auto-approved Claude Code command.
 
 The web application deploys to Cloudflare and nowhere else:
 
@@ -237,77 +303,66 @@ pnpm build
 pnpm --filter @resurv/worker deploy
 ```
 
-Addresses, bytecode hashes, constructor arguments and compiler settings:
-[`deployments/base-sepolia.json`](deployments/base-sepolia.json) and
-[`docs/DEPLOYMENTS.md`](docs/DEPLOYMENTS.md).
+`wrangler deploy` is in this repository's own Claude Code deny list, in every wrapper form, and
+`packages/repo-policy` has tests that fail if anyone allow-lists a path to it. That control backs a
+`VERIFIED` row in the claim ledger, so the deploy stays a deliberate human step rather than
+something an agent talks itself into.
 
-## Live proof
-
-- **Receipt**: [`docs/proof/canonical-covenant.json`](docs/proof/canonical-covenant.json)
-- **Page**: the deployed Worker, or `pnpm --filter @resurv/web dev`
-- **JSON**: `GET /api/proof`, `GET /api/proof/summary`, `GET /api/deployment`
-
-`/api/proof/summary` is the endpoint an independent verifier is meant to disagree with: nine
-booleans, each reproducible with `cast`.
-
-## Claim discipline
-
-Every public statement carries an evidence level, and
-[`docs/CLAIMS.md`](docs/CLAIMS.md) is the ledger. Levels used here: **VERIFIED (Base Sepolia)**
-for things that happened on chain, **VERIFIED (local EVM)** for Foundry results,
-**VERIFIED** for measurements reproduced from this repository, **DOCUMENTED** for vendor
-statements nobody here has reproduced, **ASSUMED** for what the design needs and nobody has
-checked, and **REFUTED** for what turned out false.
-
-RESURV does not claim, anywhere: trustlessness, multi-transaction rollback, MEV protection or
-private routing, exactly-once execution from KeeperHub idempotency alone, atomic x402 coupling,
-or production readiness.
-
-## Limitations
+## 14. Known limitations
 
 - **Testnet.** Base Sepolia. No mainnet deployment and no external audit, so nothing here is
   production-ready by this project's own definition.
+- **The deployed contracts predate the last audit round.** The bytecode at those six addresses
+  was compiled from commit `2ccf02f`. Three escrow-trapping defects found afterwards are fixed in
+  this repository and still present on chain; redeploying invalidates the canonical receipt every
+  surface here cites, so it was not done hours before a deadline. None of the three affects the
+  canonical covenant, which uses the honest shipped verifier and was never paused, and all three
+  require a verifier the requester chose to be malformed or the admin to pause. Sourcify's `match`
+  attests that the deployed bytecode reproduces from `2ccf02f`, which it does, and has never
+  attested anything about `main`.
+- **A verifier that runs out of gas at any budget still has no exit**, and nothing validates a
+  verifier or an adapter at covenant creation. Same root cause, named and not fixed: the remedy is
+  a conformance probe that needs its own design and its own review.
 - **Trusted parties.** The KeeperHub organization wallet and the RESURV admin are trusted. In the
-  demo the requester, the admin and the executor are the same address; in production they are
-  three parties.
-- **One reverted-broadcast case was never observed.** Phase 0.5 tried twice to produce a
-  transaction that broadcasts and then reverts, and could not: KeeperHub refuses to broadcast a
-  call whose gas estimation reverts. `REVERTED` is implemented and tested anyway. Nothing is
-  claimed about how a reverted broadcast presents.
-- **`safe_inner_failure` is documented and never observed.** It is handled conservatively and
-  tested; the evidence level stays DOCUMENTED.
-- **No database, by decision.** The orchestrator persists to an `fsync`'d append-only journal,
-  which is what ADR-004's durability argument actually requires. There is nothing to provision
-  and no connection string. A store two processes could share does not exist and is not needed
-  by anything that ships today. [ADR-016](docs/DECISIONS.md).
-- **The bounded planner is deterministic.** The model-assisted ranking path in PRD 13 is not
-  built; action order is the covenant's committed order. No model is in the safety path, which
-  was always the requirement.
+  demo the requester, the admin and the executor are the same address; in production they are three
+  parties.
+- **A reverted broadcast was never observed.** Two routes were tried and both failed, because
+  KeeperHub refuses to broadcast a call whose gas estimation reverts. `REVERTED` is implemented and
+  tested anyway. Nothing is claimed about how it presents.
+- **`safe_inner_failure` is documented and never observed**, handled conservatively.
+- **A covenant already satisfied at trigger time can still pay a full fee** if an executor runs an
+  action against it. Faithful to the PRD's own `executeAttempt`; the PRD is what is wrong. Accepted
+  for v1 and recorded.
+- **The planner is deterministic.** Action order is the covenant's committed order. The
+  model-assisted ranking in PRD 13 is not built, which removes a component from the demo and
+  nothing from the safety argument: no model was ever in the safety path.
+- **The concurrency test cannot interleave**, because the in-memory store's `reserve` is
+  synchronous. The design is right; that specific test asserts something it cannot observe.
 
-## Repository structure
+## 15. Repository structure
 
 ```text
-apps/web            the public proof page
-apps/worker         one Cloudflare Worker: /api/* plus the SPA
-packages/           contracts, domain, keeperhub-client, orchestrator, chain, proof,
-                    cli, db, config, node-runtime, repo-policy, seam-probe
-deployments/        the deployment manifest, written by the deployment itself
-docs/               claims, decisions, threat model, runbooks, proof ladder, phase logs
-docs/proof/         the canonical outcome receipt
-docs/phase-logs/    what each phase did, what it refuted, and what it could not measure
+apps/             web (proof page), worker (Cloudflare)
+packages/         contracts, domain, keeperhub-client, orchestrator, chain, proof,
+                  cli, db, config, node-runtime, repo-policy, seam-probe
+deployments/      the deployment manifest, written by the deployment itself
+docs/             claims, decisions, threat model, runbooks, proof ladder, phase logs
+docs/proof/       the canonical outcome receipt
+docs/assets/      screenshots, captured from the production bundle
+docs/bounty/      the KeeperHub onboarding-bounty artifact
+docs/phase-logs/  what each phase did, what it refuted, what it could not measure
 ```
 
-## Clean-room reproduction
+Start with [`docs/FINAL_BUILD_REPORT.md`](docs/FINAL_BUILD_REPORT.md) — it ends with the seven
+things I think are weakest, in the order I would attack them.
 
-```bash
-git clone --recurse-submodules <url> resurv && cd resurv
-pnpm install --frozen-lockfile
-pnpm gate
-```
+## Claim discipline
 
-No credential, no network beyond the package registry and the Foundry submodules, no
-developer-specific state. Every path in this repository is repo-relative.
+[`docs/CLAIMS.md`](docs/CLAIMS.md) is the ledger and no public surface may exceed it. RESURV does
+not claim, anywhere: trustlessness, multi-transaction rollback, MEV protection or private routing,
+exactly-once execution from KeeperHub idempotency alone, atomic x402 coupling, an external audit,
+or production readiness.
 
-Reproducing the *live* half needs a KeeperHub organization key beginning `kh_` in a repository
-root `.env`, and it lands real Base Sepolia transactions. See
-[`docs/RUNBOOKS.md`](docs/RUNBOOKS.md).
+## License
+
+MIT. See [LICENSE](LICENSE).

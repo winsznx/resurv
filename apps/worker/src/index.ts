@@ -17,8 +17,11 @@ import { Hono } from 'hono';
  *
  * Only `fetch` exists, and that is a deliberate architectural line rather than an unfinished
  * one: PRD 14.4 forbids a long-running execution loop in the request path, and the orchestrator
- * that runs covenants is `@resurv/orchestrator`, driven by the CLI. Nothing served here holds a
- * KeeperHub credential, and nothing served here can execute anything.
+ * that runs covenants is `@resurv/orchestrator`, driven by the CLI.
+ *
+ * Nothing served here can execute anything, and the deployment is provisioned with no KeeperHub
+ * credential at all: `workerEnvSchema` makes the key optional precisely so a public origin never
+ * has to hold a write-capable organization key to answer a health check.
  */
 
 type Bindings = Record<string, unknown>;

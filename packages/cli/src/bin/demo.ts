@@ -134,6 +134,12 @@ async function main(): Promise<void> {
     [vault as `0x${string}`, APPROVED_SAFE, token as `0x${string}`, 0n, ONE_TEST_DOLLAR],
   );
   const pauseConfig = encodeAbiParameters([{ type: 'address' }], [vault as `0x${string}`]);
+  // The bound is a range, not an equality. `TestUSD.mint` is permissionless, which is what let a
+  // zero-balance wallet fund the first demo at all, and it means anyone can add a unit to the
+  // vault for the cost of gas. With `min == max` that one unit puts the evacuation permanently
+  // outside its committed bounds and bricks the covenant with no role and no privilege. The
+  // minimum is what the covenant actually promises to deliver; the maximum only has to bound the
+  // adapter's authority, so it is generous.
   const evacuateConfig = encodeAbiParameters(
     [
       { type: 'address' },
@@ -147,7 +153,7 @@ async function main(): Promise<void> {
       token as `0x${string}`,
       APPROVED_SAFE,
       ONE_TEST_DOLLAR,
-      ONE_TEST_DOLLAR,
+      ONE_TEST_DOLLAR * 1_000n,
     ],
   );
 

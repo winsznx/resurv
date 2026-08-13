@@ -80,7 +80,7 @@ judged against an independent reference model, and executed by
 | 3, orchestrator and reconciliation | complete |
 | 4, bounded agent | **not built**, deliberately |
 | 5, product surface and receipt | complete, minus the signature and the CLI |
-| 6, hardening | partial. Three reviews run, findings acted on; scanning tools not run |
+| 6, hardening | partial. Two review rounds, seven reviews, six FAILs, findings acted on; scanning tools not run |
 | 7, public Base Sepolia proof | complete |
 | 8, onboarding bounty | complete |
 | 9, submission material | complete as drafts. Three human steps remain |
@@ -89,11 +89,12 @@ judged against an independent reference model, and executed by
 
 | | |
 |---|---|
-| TypeScript | **705** |
-| Foundry unit and fuzz | **101** |
+| TypeScript | **727** |
+| Foundry unit and fuzz | **109** |
 | Foundry invariants | **13** |
 | `pnpm gate` | exit 0 |
-| Clean room, `TURBO_FORCE=true pnpm gate` | exit 0, `Cached: 0` |
+| Clean room from the GitHub clone, `TURBO_FORCE=true pnpm gate` | exit 0, `Cached: 0` |
+| GitHub Actions, clean runner | four jobs green, [run 31642439279](https://github.com/winsznx/resurv/actions/runs/31642439279) |
 
 Fuzz 512 runs per test. Invariants 256 runs at depth 128, `fail_on_revert = true`. The
 `afterInvariant` coverage figures describe one run, not the campaign, and say so.
@@ -130,8 +131,11 @@ Base Sepolia, chain 84532, deployed 2026-08-12 through CreateX
 Bytecode hashes, salts, constructor arguments, compiler settings and every deployment
 transaction: `deployments/base-sepolia.json`.
 
-**Contract source is not verified on an explorer.** Sourcify or Basescan verification is a
-documented command in `docs/DEPLOYMENTS.md` and was not run. This is an open item.
+All six are verified on **Sourcify at `match` level**: creation and runtime bytecode both
+reproduce from this repository at the pinned compiler settings, and the result is mirrored to
+Blockscout. Per-contract links and the one-line `curl` reproduction are in `docs/DEPLOYMENTS.md`.
+Basescan's tab may still show them unverified, because Sourcify's forwarding to Etherscan hit a
+daily submission limit. No document here claims Basescan verification, and none should.
 
 ## The canonical covenant
 
@@ -210,7 +214,7 @@ pnpm install --frozen-lockfile      # exit 0
 TURBO_FORCE=true pnpm gate          # exit 0, Cached: 0 across 15 + 2 + 2 + 3 tasks
 ```
 
-114 Foundry tests and every TypeScript suite pass in the clone. No path in the repository depends
+122 Foundry tests and every TypeScript suite pass in the clone. No path in the repository depends
 on `/Users/mac`, on a sibling repository, or on a credential, outside two threat-model
 documents that quote a path as an example and one permission test that uses one as a fixture.
 
@@ -218,7 +222,7 @@ documents that quote a path as an example and one permission test that uses one 
 
 ```bash
 pnpm gate                                            # everything, no credential needed
-pnpm --filter contracts test                         # 114 Foundry tests
+pnpm --filter contracts test                         # 122 Foundry tests
 pnpm --filter @resurv/seam-probe test                # the Phase 0.5 findings vs their evidence
 
 pnpm --filter @resurv/cli live:contracts --dry-run   # predicts every address, sends nothing
@@ -239,34 +243,44 @@ cast call 0xfcafbc81f253e62a3818ecda7a7a71e557c65b21 "statusOf(bytes32)(uint8)" 
 |---|---|
 | Commit | see `git log -1` at the tip of `main` |
 | Working tree | clean |
-| Branch | `main`, no remote |
-| Gate | exit 0 |
+| Branch | `main`, pushed to https://github.com/winsznx/resurv |
+| Gate | exit 0, locally and on a clean GitHub runner |
 
 ## What the independent reviewer should attack first
 
+Rewritten after the second audit round, which found three more escrow traps and one false-positive
+regression test. Read `docs/phase-logs/PHASE_07_FINAL_AUDIT.md` before this list.
+
 In this order, because this is where I think it is weakest.
 
-1. **The fee policy, not the fee mechanics.** The mechanics are well tested. The policy is not
+1. **The verifier interface, still.** Two rounds of review have found four distinct ways a
+   verifier the requester chose can trap that requester's own escrow: no code, a short return, a
+   dirty boolean, and running out of gas at any budget. Three are fixed. The fourth is accepted
+   and has no mitigation. Nothing validates a verifier or an adapter at covenant creation, which
+   is the root cause of all four. That is the next real piece of engineering here and it is not
+   done.
+2. **The gap between what is deployed and what is on `main`.** Three fixes are in this repository
+   and not on chain. I believe none of them affects the canonical covenant and I have said why,
+   in four places. Check that reasoning rather than taking it.
+3. **The fee policy, not the fee mechanics.** The mechanics are well tested. The policy is not
    settled: `executeAttempt` discards the `satisfied` flag from its pre-state read, so an
    executor can run an action against an already-safe covenant and take the full fee rather than
    the zero-fee `finalizeAlreadySatisfied` route. That is faithful to the PRD and the PRD is
    wrong. Decide whether it is a bug.
-2. **Whether a responder can be relied on at all.** A requester who can satisfy their own
+4. **Whether a responder can be relied on at all.** A requester who can satisfy their own
    declared outcome can finalize and reclaim; a pauser can block `executeAttempt` until the
    deadline and then let expiry refund. Both are inside the design. Neither has a mitigation.
-3. **The concurrency claim.** `InMemoryAttemptStore.reserve` is synchronous, so the test named
+5. **The remaining 16 surviving mutants.** The second round ran 65 and killed 46. The three that
+   mattered most are closed and verified. The rest are listed in that round's report and are
+   mostly `nonReentrant` modifiers whose removal is masked by a second layer — which is defence
+   in depth working, and also means no test observes either layer alone.
+6. **The concurrency claim.** `InMemoryAttemptStore.reserve` is synchronous, so the test named
    "gives two concurrent workers one attempt between them" cannot interleave and would pass
    against a store with a genuine check-then-write race. The design is right; the test asserts
    something it cannot observe.
-4. **The `EXECUTING` status.** It is written and overwritten inside one transaction and never
-   persists, so both branches that mention it are dead code and a mutation removing one survives.
-   Decide whether it should exist.
-5. **`docs/CLAIMS.md` against the proof page, line by line.** The page is the thing a judge
+7. **`docs/CLAIMS.md` against the proof page, line by line.** The page is the thing a judge
    reads, and a page that says one word more than the ledger supports is the failure this whole
    apparatus exists to prevent.
-6. **The seam probe's `rpc.ts` against `packages/chain`'s.** They implement the same idea twice.
-   A divergence between them would mean the measurements and the product disagree about what
-   "the origins agree" means.
-7. **Everything the demo did not exercise.** `finalizeAlreadySatisfied`, `expireCovenant` and
+8. **Everything the demo did not exercise.** `finalizeAlreadySatisfied`, `expireCovenant` and
    `cancelCovenant` have never run on chain. They are tested locally and deployed untested in
    production conditions.

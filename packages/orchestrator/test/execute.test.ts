@@ -329,6 +329,115 @@ describe('evidence that is not good enough', () => {
   });
 });
 
+/**
+ * The reconciliation loop's own mechanics, which every test above happened to skip.
+ *
+ * Each of those scripted a single static answer, so the loop resolved on round one or never, and
+ * a mutation changing `round <= maxRounds` to `round < maxRounds` survived the entire suite.
+ * Bounded polling that converges as evidence arrives is the loop's whole job, and until these it
+ * had never been exercised.
+ */
+describe('the reconciliation loop itself', () => {
+  const MATCHING_LOG = {
+    address: TARGET,
+    topics: [EXPECTED_TOPIC],
+    data: '0x',
+    blockNumber: '0x11',
+    transactionHash: '0xabc',
+    logIndex: '0x0',
+  };
+
+  /** Nothing to see: an execution id, a status body with no hash, and an empty chain. */
+  function silentUntilEvidenceArrives() {
+    const keeperhub = new FakeKeeperhub()
+      .onExecute({ status: 202, body: { executionId: 'exec-slow', status: 'pending' } })
+      .onStatus({ status: 200, body: { status: 'pending' } });
+    const rpc = new FakeRpc({ logs: [], blockNumber: '0x3000' });
+    return { keeperhub, rpc };
+  }
+
+  it('keeps polling until evidence arrives, then confirms on the round that saw it', async () => {
+    // #given evidence that appears only after the third wait
+    const { keeperhub, rpc } = silentUntilEvidenceArrives();
+    let waits = 0;
+
+    // #when
+    const outcome = await executeSemanticAttempt(PLAN, {
+      ...runtime(keeperhub, rpc),
+      maxReconciliationRounds: 8,
+      settlementWindowMs: 10 ** 9,
+      waitMs: async () => {
+        waits += 1;
+        if (waits === 3) {
+          rpc.state.logs = [MATCHING_LOG];
+          rpc.state.receipt = receiptWithExpectedEvent();
+        }
+      },
+    });
+
+    // #then it resolved on round four, having waited once per inconclusive round and no more
+    expect(outcome.state).toBe('CONFIRMED');
+    expect(outcome.transactionHash).toBe('0xabc');
+    expect(waits).toBe(3);
+  });
+
+  it('runs exactly the configured number of rounds before it gives up', async () => {
+    // #given evidence that never arrives
+    const { keeperhub, rpc } = silentUntilEvidenceArrives();
+    const store = new InMemoryAttemptStore();
+    let waits = 0;
+
+    // #when
+    const outcome = await executeSemanticAttempt(PLAN, {
+      ...runtime(keeperhub, rpc, store),
+      maxReconciliationRounds: 3,
+      settlementWindowMs: 10 ** 9,
+      waitMs: async () => {
+        waits += 1;
+      },
+    });
+
+    // #then three rounds, not two and not four, and the record says so
+    expect(waits).toBe(3);
+    expect(outcome.state).toBe('RECONCILIATION_REQUIRED');
+    expect(outcome.reason).toContain('after 3 rounds');
+    expect((await store.find(PLAN.semanticAttemptId))?.reconciliationRounds).toBe(3);
+  });
+
+  it('does not let an elapsed settlement window over a failed search prove a non-broadcast', async () => {
+    // #given a chain that answers the head and then refuses every log query, and a window that
+    // has long since elapsed. An absence nobody could observe is not an absence.
+    const keeperhub = new FakeKeeperhub().onExecute({
+      status: 202,
+      body: { executionId: undefined, status: 'failed', transactionHash: null, receipts: [] },
+    });
+    const failingLogSearch: typeof fetch = async (_input, init) => {
+      const request = JSON.parse(String(init?.body ?? '{}')) as { method: string };
+      const result = request.method === 'eth_blockNumber' ? '0x3000' : undefined;
+      return new Response(
+        JSON.stringify(
+          request.method === 'eth_getLogs'
+            ? { jsonrpc: '2.0', id: 1, error: { code: -32005, message: 'query returned too much' } }
+            : { jsonrpc: '2.0', id: 1, result },
+        ),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    };
+
+    // #when
+    const outcome = await executeSemanticAttempt(PLAN, {
+      ...runtime(keeperhub, new FakeRpc({})),
+      rpc: { fetchImpl: failingLogSearch, origins: ['https://a.test', 'https://b.test'] },
+      maxReconciliationRounds: 2,
+      settlementWindowMs: 0,
+      waitMs: async () => {},
+    });
+
+    // #then the attempt stays ambiguous rather than being declared never broadcast
+    expect(outcome.state).toBe('RECONCILIATION_REQUIRED');
+  });
+});
+
 describe('crash and concurrency', () => {
   let store: InMemoryAttemptStore;
 

@@ -16,7 +16,8 @@
       "!packages/contracts/lib",
       "!packages/contracts/broadcast",
       "!packages/db/migrations",
-      "!pnpm-lock.yaml"
+      "!pnpm-lock.yaml",
+      "!docs/assets/capture-report.json"
     ]
   },
   "formatter": {

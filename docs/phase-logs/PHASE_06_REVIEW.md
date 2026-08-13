@@ -131,7 +131,7 @@ suite was good.
 | Mutation | Why it survived | Now caught by |
 |---|---|---|
 | Remove `EXECUTING` from the attempt status check | `EXECUTING` is written and overwritten inside one transaction and never persists, so both branches are dead code | Documented rather than tested. See "accepted" below |
-| Remove the `feeSettled` guard from `_settleEscrow` | The terminal-state rule always got there first, so the second layer was never reached | `test_theFeeSettledGuardIsReachableAndHolds` |
+| Remove the `feeSettled` guard from `_settleEscrow` | The terminal-state rule always got there first, so the second layer was never reached | ~~`test_theFeeSettledGuardIsReachableAndHolds`~~ — **this was wrong, and a later campaign proved it.** That test passes with the guard deleted, against all 114 tests including the fee invariant. Its own comment admitted it drives only status-gated paths. Now genuinely caught by `test_theFeeSettledFlagBlocksASecondSettlementWithNoStatusCheckInFrontOfIt`, via `ManagerHarness`. See `PHASE_07_FINAL_AUDIT.md` |
 | Permit `ARMED -> EXPIRED` in `expireCovenant` | **`CovenantStatusLib.canTransition` was never called from production code.** The library was exhaustively tested against a reference model, and nothing tied the manager's actual status writes to it | `test_anArmedCovenantCannotBeExpired` and `test_everyStatusTransitionTheManagerPerformsIsOneTheLibraryPermits` |
 
 The third is the one that matters. Two hundred tests of a state machine prove nothing about a

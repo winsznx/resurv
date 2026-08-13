@@ -16,14 +16,19 @@ const hexAddress = z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'must be a 20-byte he
 
 const secret = z.string().min(1, 'must not be empty');
 
+const keeperhubApiKey = secret.refine(
+  (value) => value.startsWith('kh_'),
+  'must be an organization key starting with kh_ (a wfb_ webhook key cannot execute)',
+);
+
 /**
  * Secrets. Never logged, never returned by an API, never rendered in the browser bundle.
+ *
+ * This is the *executing* process's contract: the CLI holds an organization key or it cannot
+ * write. The Worker's contract is different and narrower. See `workerEnvSchema`.
  */
 export const serverSecretsSchema = z.object({
-  KEEPERHUB_API_KEY: secret.refine(
-    (value) => value.startsWith('kh_'),
-    'must be an organization key starting with kh_ (a wfb_ webhook key cannot execute)',
-  ),
+  KEEPERHUB_API_KEY: keeperhubApiKey,
   /**
    * The three below are optional and **nothing in RESURV reads them**. No database is wired: the
    * orchestrator persists to an `fsync`'d journal (`FileAttemptStore`) and the Worker serves
@@ -51,7 +56,20 @@ export const runtimeConfigSchema = z.object({
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 });
 
-export const workerEnvSchema = serverSecretsSchema.extend(runtimeConfigSchema.shape);
+/**
+ * The Worker's environment, and it deliberately requires no credential.
+ *
+ * Nothing the Worker serves executes anything: every route answers from artifacts imported at
+ * build time or from public RPC. Requiring `KEEPERHUB_API_KEY` would mean provisioning a live,
+ * write-capable organization key on a public deployment so that one health route could report
+ * its presence, which buys a readiness signal at the price of a much larger blast radius. It
+ * stays declared, and its shape is still enforced when someone sets it, because a `wfb_` key
+ * pasted into the Worker should be named as wrong rather than silently accepted.
+ */
+export const workerEnvSchema = z
+  .object({ KEEPERHUB_API_KEY: keeperhubApiKey.optional() })
+  .extend(serverSecretsSchema.omit({ KEEPERHUB_API_KEY: true }).shape)
+  .extend(runtimeConfigSchema.shape);
 
 export type ServerSecrets = z.infer<typeof serverSecretsSchema>;
 export type RuntimeConfig = z.infer<typeof runtimeConfigSchema>;

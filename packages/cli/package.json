@@ -13,7 +13,8 @@
     "clean": "rm -rf dist .turbo",
     "live:contracts": "node --experimental-strip-types src/bin/contracts.ts",
     "live:demo": "node --experimental-strip-types src/bin/demo.ts",
-    "verify": "node --experimental-strip-types src/bin/verify.ts"
+    "verify": "node --experimental-strip-types src/bin/verify.ts",
+    "screenshots": "node --experimental-strip-types src/bin/screenshots.ts"
   },
   "dependencies": {
     "@resurv/chain": "workspace:*",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@types/node": "26.2.0",
+    "playwright": "1.62.1",
     "typescript": "7.0.2",
     "vitest": "4.1.10"
   }

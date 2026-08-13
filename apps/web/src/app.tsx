@@ -137,10 +137,10 @@ export function App() {
                   live === undefined
                     ? liveError === undefined
                       ? 'reading…'
-                      : `${formatUsd(BigInt(RECEIPT.outcome.responderBalance))} rUSD`
-                    : `${formatUsd(live.responderBalance)} rUSD`
+                      : formatUsd(BigInt(RECEIPT.outcome.responderBalance))
+                    : formatUsd(live.responderBalance)
                 }
-                hint="in the same transaction"
+                hint="rUSD, in the same transaction"
               />
             </Card>
             <Card>

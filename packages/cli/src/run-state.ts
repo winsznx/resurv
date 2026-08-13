@@ -44,14 +44,30 @@ export function openRunState(dryRun: boolean): RunState {
   mkdirSync(directory, { recursive: true });
 
   const wantsResume = process.argv.includes('--resume');
-  let persisted: Persisted | undefined;
-  if (wantsResume) {
-    try {
-      persisted = JSON.parse(readFileSync(path, 'utf8')) as Persisted;
-    } catch {
-      persisted = undefined;
-    }
+  let onDisk: Persisted | undefined;
+  try {
+    onDisk = JSON.parse(readFileSync(path, 'utf8')) as Persisted;
+  } catch {
+    onDisk = undefined;
   }
+
+  // Starting fresh over an existing run is legitimate — a covenant is a one-shot object and a
+  // second demo is a second covenant — but it is also exactly what a forgotten `--resume` looks
+  // like, and the cost of the mistake is a half-funded covenant abandoned on chain. Say so
+  // before spending anything, rather than after.
+  if (onDisk !== undefined && !wantsResume) {
+    process.stderr.write(
+      [
+        `note: ${path} already records run ${onDisk.runLabel}.`,
+        '      Starting a NEW covenant with a new idempotency namespace. The recorded run is not',
+        '      resumed and anything it left on chain stays there.',
+        '      Pass --resume to continue that run instead.',
+        '',
+      ].join('\n'),
+    );
+  }
+
+  const persisted = wantsResume ? onDisk : undefined;
 
   const state: Persisted = persisted ?? {
     runLabel: dryRun ? 'dry' : new Date().toISOString().replace(/[:.]/g, '-'),

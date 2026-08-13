@@ -4,6 +4,7 @@ pragma solidity 0.8.36;
 import {CovenantStatus, CovenantStatusLib} from "../src/CovenantStatus.sol";
 import {ResurvCovenantManager} from "../src/ResurvCovenantManager.sol";
 import {IOutcomeVerifier} from "../src/interfaces/IOutcomeVerifier.sol";
+import {DemoVault} from "../src/demo/DemoVault.sol";
 import {CovenantFixture} from "./support/CovenantFixture.sol";
 
 /// @notice A verifier with no code at all. Solidity's `extcodesize` guard raises in the caller's
@@ -20,6 +21,35 @@ contract ShortReturnVerifier {
     }
 }
 
+/// @dev Returns exactly 96 conforming-looking bytes whose first word is neither 0 nor 1.
+///      Solidity's decoder validates booleans and raises in the *caller's* frame on anything
+///      else, so this passed a length check and then reverted the expiry anyway.
+contract DirtyBoolVerifier {
+    fallback() external {
+        assembly {
+            mstore(0x00, 2)
+            mstore(0x20, 0)
+            mstore(0x40, 0)
+            return(0x00, 0x60)
+        }
+    }
+}
+
+/// @dev Answers `true` in four words instead of three. Solidity's typed decoder accepts a
+///      trailing tail for static types, so every typed path reads `true` from this — while an
+///      exact-length check on the expiry path read "not conforming" and refunded.
+contract OverlongTrueVerifier {
+    fallback() external {
+        assembly {
+            mstore(0x00, 1)
+            mstore(0x20, 0x1234)
+            mstore(0x40, 7)
+            mstore(0x60, 0xdead)
+            return(0x00, 0x80)
+        }
+    }
+}
+
 /// @dev Answers true, expensively. Used to prove a caller cannot starve a verifier into silence
 ///      and take a refund over an outcome that is actually satisfied.
 contract ExpensiveTrueVerifier is IOutcomeVerifier {
@@ -31,6 +61,56 @@ contract ExpensiveTrueVerifier is IOutcomeVerifier {
             churn = keccak256(abi.encode(churn, i));
         }
         return (true, churn, 1);
+    }
+}
+
+/// @notice Reaches two internal guards that atomicity itself puts out of reach of every public
+///         path, so they can be judged on their own rather than through the checks in front of
+///         them. It adds no state, overrides nothing, and changes no logic.
+///
+/// @dev Both guards are unreachable for the same structural reason. An attempt that does not
+///      satisfy the outcome reverts in full, which rolls back the attempt counters it just
+///      incremented; and an attempt that does satisfy it settles the fee and ends the covenant.
+///      So a test driving public entry points can only ever observe the *first* layer, and a
+///      mutation campaign proved it: deleting `if (covenant.feeSettled) revert` left all 114
+///      tests green, fee invariant included.
+///
+///      Reaching past the first layer is not a claim that the guards are reachable in
+///      production. It is the opposite. They are defence in depth against a future change that
+///      lets a non-satisfying attempt commit, and this harness is how that defence gets tested
+///      at all instead of being asserted in a comment.
+contract ManagerHarness is ResurvCovenantManager {
+    constructor(address admin_, address pauser_, address executor_, address[] memory feeTokens_)
+        ResurvCovenantManager(admin_, pauser_, executor_, feeTokens_)
+    {}
+
+    function settleEscrowDirectly(bytes32 covenantId, address recipient)
+        external
+        returns (uint256)
+    {
+        return _settleEscrow(_covenants[covenantId], recipient);
+    }
+
+    /// @dev Everything `executeAttempt` does up to and including the counter increments, without
+    ///      running the action or evaluating the postcondition. The commitment checks, the
+    ///      attempt-id burn and both limits are exactly the production ones.
+    function consumeAttemptWithoutVerifying(
+        bytes32 covenantId,
+        uint256 actionIndex,
+        bytes calldata actionConfig,
+        bytes calldata verifierContext,
+        uint64 attemptSequence
+    ) external returns (bytes32 attemptId) {
+        (attemptId,,) = _consumeAttempt(
+            AttemptRequest({
+                covenantId: covenantId,
+                actionIndex: actionIndex,
+                expectedStateHash: bytes32(0),
+                attemptSequence: attemptSequence
+            }),
+            actionConfig,
+            verifierContext
+        );
     }
 }
 
@@ -150,6 +230,167 @@ contract AuditRegressionsTest is CovenantFixture {
         );
     }
 
+    /// @dev H-2 came back in a third shape. Replacing the `try/catch` with a low-level
+    ///      `staticcall` and an exact length check was supposed to make "cannot answer" an
+    ///      answer, and it did for a codeless verifier and a short return. It did not for a
+    ///      well-formed 96-byte return whose bool word is neither 0 nor 1: `abi.decode` validates
+    ///      booleans and raised in the manager's own frame, past the length check, outside
+    ///      anything. Every exit shut on an immutable contract, again.
+    function test_aVerifierReturningADirtyBooleanDoesNotTrapTheEscrow() public {
+        ResurvCovenantManager.CovenantParams memory params = _defaultParams();
+        params.verifier = address(new DirtyBoolVerifier());
+        params.verifierContext = hex"";
+
+        vm.prank(requester);
+        bytes32 covenantId = manager.createCovenant(params, _defaultActions());
+        _fundAndArm(covenantId, ONE_USD);
+        _trigger(covenantId, keccak256("alert"), 0);
+
+        uint256 before = token.balanceOf(requester);
+        vm.warp(deadline + 1);
+        manager.expireCovenant{gas: 30_000_000}(covenantId, hex"");
+
+        assertEq(
+            token.balanceOf(requester) - before, ONE_USD, "escrow trapped by a non-boolean answer"
+        );
+        assertEq(uint8(manager.statusOf(covenantId)), uint8(CovenantStatus.EXPIRED));
+        assertEq(manager.escrowed(address(token)), 0);
+    }
+
+    /// @dev PRD invariant 10.14.8 from the other side. The typed paths use Solidity's decoder,
+    ///      which ignores a trailing tail on static types, so a four-word verifier answers `true`
+    ///      to `executeAttempt` and `finalizeAlreadySatisfied`. The expiry's exact-length check
+    ///      called the same verifier "not conforming" and refunded over a true outcome. Two
+    ///      readings of one verifier inside one contract is a defect regardless of which is
+    ///      right; the decoder's reading is the one every other path uses.
+    function test_expiryRefusesATrueOutcomeReturnedWithATrailingTail() public {
+        ResurvCovenantManager.CovenantParams memory params = _defaultParams();
+        params.verifier = address(new OverlongTrueVerifier());
+        params.verifierContext = hex"";
+
+        vm.prank(requester);
+        bytes32 covenantId = manager.createCovenant(params, _defaultActions());
+        _fundAndArm(covenantId, ONE_USD);
+        _trigger(covenantId, keccak256("alert"), 0);
+        vm.warp(deadline + 1);
+
+        vm.expectRevert(ResurvCovenantManager.OutcomeAlreadySatisfied.selector);
+        manager.expireCovenant{gas: 30_000_000}(covenantId, hex"");
+
+        // And the covenant is not stranded by that refusal: the path that agrees the outcome is
+        // true closes it and returns the escrow.
+        uint256 before = token.balanceOf(requester);
+        manager.finalizeAlreadySatisfied(covenantId, hex"");
+        assertEq(uint8(manager.statusOf(covenantId)), uint8(CovenantStatus.SATISFIED));
+        assertEq(token.balanceOf(requester) - before, ONE_USD);
+    }
+
+    /// @dev H-1 restored one role away. `finalizeAlreadySatisfied` carried `whenNotPaused`, so a
+    ///      covenant whose outcome became true past its deadline had expiry refusing because the
+    ///      outcome is true, this path refusing because of the pause, and both other exits closed
+    ///      by status. PRD 10.11: a pause must not stop refunds for expired covenants.
+    function test_aGlobalPauseCannotStrandEscrowOnACovenantWhoseOutcomeCameTrue() public {
+        bytes32 covenantId = _armedCovenant();
+        _trigger(covenantId, keccak256("alert"), 0);
+
+        bytes32 pauserRole = vault.PAUSER_ROLE();
+        vm.startPrank(admin);
+        vault.grantRole(pauserRole, admin);
+        vault.pause();
+        vm.stopPrank();
+
+        vm.warp(deadline + 1);
+        vm.prank(pauser);
+        manager.setPaused(true);
+
+        // Expiry still refuses, correctly: the outcome is true.
+        vm.expectRevert(ResurvCovenantManager.OutcomeAlreadySatisfied.selector);
+        manager.expireCovenant(covenantId, _verifierContext());
+
+        // The refund path is open despite the pause, because it is a refund.
+        uint256 before = token.balanceOf(requester);
+        manager.finalizeAlreadySatisfied(covenantId, _verifierContext());
+
+        assertEq(token.balanceOf(requester) - before, ONE_USD, "a pause stranded the escrow");
+        assertEq(uint8(manager.statusOf(covenantId)), uint8(CovenantStatus.SATISFIED));
+        assertEq(token.balanceOf(responder), 0, "a refund path paid a fee");
+    }
+
+    // -------------------------------------------------------------------------------------
+    // Guards a second mutation campaign found nothing was testing
+    // -------------------------------------------------------------------------------------
+
+    /// @dev The expiry reads the verifier with a context the *caller* supplies. Without the
+    ///      commitment check an expirer could hand over a context the verifier answers false to
+    ///      and take the refund over an outcome that is actually true, which is PRD invariant
+    ///      10.14.8 again, through the door nobody was watching. Dropping this check survived
+    ///      the entire suite.
+    function test_expiryRefusesAVerifierContextTheCovenantDidNotCommitTo() public {
+        bytes32 covenantId = _armedCovenant();
+        _trigger(covenantId, keccak256("alert"), 0);
+
+        bytes32 pauserRole = vault.PAUSER_ROLE();
+        vm.startPrank(admin);
+        vault.grantRole(pauserRole, admin);
+        vault.pause();
+        vm.stopPrank();
+        vm.warp(deadline + 1);
+
+        // A different vault, unpaused and holding a balance, so the verifier answers false. The
+        // committed context is the only one this covenant is about.
+        DemoVault decoy = new DemoVault(admin);
+        token.mint(address(decoy), ONE_USD);
+        bytes memory forged = abi.encode(address(decoy), safe, address(token), uint256(0), ONE_USD);
+
+        vm.expectRevert(ResurvCovenantManager.InvalidVerifierContext.selector);
+        manager.expireCovenant(covenantId, forged);
+
+        assertEq(manager.escrowed(address(token)), ONE_USD, "escrow left on a forged context");
+        assertEq(uint8(manager.statusOf(covenantId)), uint8(CovenantStatus.TRIGGERED));
+    }
+
+    /// @dev `finalizeAlreadySatisfied` moves escrow and stamps SATISFIED. Admitting an ARMED
+    ///      covenant would be an `ARMED -> SATISFIED` edge `CovenantStatusLib` explicitly
+    ///      forbids, and would close a covenant nobody ever triggered. Nothing tested it.
+    function test_finalizationRefusesACovenantThatWasNeverTriggered() public {
+        bytes32 covenantId = _armedCovenant();
+
+        bytes32 pauserRole = vault.PAUSER_ROLE();
+        vm.startPrank(admin);
+        vault.grantRole(pauserRole, admin);
+        vault.pause();
+        vm.stopPrank();
+
+        vm.expectRevert(ResurvCovenantManager.InvalidStatus.selector);
+        manager.finalizeAlreadySatisfied(covenantId, _verifierContext());
+
+        assertEq(uint8(manager.statusOf(covenantId)), uint8(CovenantStatus.ARMED));
+        assertEq(manager.escrowed(address(token)), ONE_USD);
+    }
+
+    /// @dev The attempt-id burn is the mechanism the whole replay story rests on, and its refusal
+    ///      branch was never reached: an attempt either reverts whole, unburning the id, or
+    ///      satisfies the covenant and ends it. `test_attemptIdBurnBlocksAReplayOnAnOpenCovenant`
+    ///      asserts the burn happened and never issues the call the guard would refuse. Deleting
+    ///      the guard survived the suite. The harness issues that second call.
+    function test_aBurnedAttemptIdIsRefusedOnASecondUse() public {
+        address[] memory feeTokens = new address[](1);
+        feeTokens[0] = address(token);
+        ManagerHarness harness = new ManagerHarness(admin, pauser, executor, feeTokens);
+
+        bytes32 covenantId = _armHarnessCovenant(harness, bytes32(uint256(1)));
+        _triggerOn(harness, covenantId);
+
+        bytes32 attemptId = harness.consumeAttemptWithoutVerifying(
+            covenantId, 0, _pauseConfig(), _verifierContext(), 7
+        );
+        assertTrue(harness.usedAttemptIds(attemptId), "the id was not burned");
+
+        // Same action, same world, same sequence: the same identity, and it is spent.
+        vm.expectRevert(ResurvCovenantManager.AttemptAlreadyUsed.selector);
+        harness.consumeAttemptWithoutVerifying(covenantId, 0, _pauseConfig(), _verifierContext(), 7);
+    }
+
     // -------------------------------------------------------------------------------------
     // M-1: the caller chooses the gas
     // -------------------------------------------------------------------------------------
@@ -221,6 +462,111 @@ contract AuditRegressionsTest is CovenantFixture {
         assertEq(token.balanceOf(responder), responderBalance);
         assertEq(token.balanceOf(requester), requesterBalance);
         assertEq(manager.escrowed(address(token)), 0);
+    }
+
+    /// @dev The test above passes with the `feeSettled` guard deleted, because every path it
+    ///      drives is stopped one layer earlier by the status check. A mutation campaign
+    ///      confirmed that against the whole suite, fee invariant included. This is the test that
+    ///      actually judges the flag: it reaches `_settleEscrow` twice on one covenant with the
+    ///      status gate out of the way, while a *second* funded covenant's fee is still pooled in
+    ///      the same escrow balance. Without the guard the second call does not underflow and
+    ///      revert. It succeeds, and pays the second covenant's money out against the first.
+    function test_theFeeSettledFlagBlocksASecondSettlementWithNoStatusCheckInFrontOfIt() public {
+        address[] memory feeTokens = new address[](1);
+        feeTokens[0] = address(token);
+        ManagerHarness harness = new ManagerHarness(admin, pauser, executor, feeTokens);
+
+        bytes32 first = _armHarnessCovenant(harness, bytes32(uint256(1)));
+        bytes32 second = _armHarnessCovenant(harness, bytes32(uint256(2)));
+        assertEq(harness.escrowed(address(token)), 2 * ONE_USD, "both fees should be pooled");
+
+        assertEq(harness.settleEscrowDirectly(first, responder), ONE_USD, "first settlement");
+        assertEq(token.balanceOf(responder), ONE_USD);
+        assertEq(harness.escrowed(address(token)), ONE_USD, "only the second fee should remain");
+
+        vm.expectRevert(ResurvCovenantManager.FeeTransferFailed.selector);
+        harness.settleEscrowDirectly(first, responder);
+
+        // The other covenant's money is still there, which is the property the flag exists for.
+        assertEq(token.balanceOf(responder), ONE_USD, "responder paid twice");
+        assertEq(harness.escrowed(address(token)), ONE_USD, "second covenant's fee was drained");
+        assertFalse(harness.getCovenant(second).feeSettled, "second covenant wrongly settled");
+    }
+
+    /// @dev `CovenantLifecycle.t.sol` had a comment promising this test by name for months while
+    ///      it did not exist, and its sibling could not stand in: every attempt there reverts on
+    ///      the postcondition, which rolls the counters back, so it asserts `attemptsUsed == 0`
+    ///      and proves nothing about either limit. Both limits are real checks on a real hot
+    ///      path, so they get judged on a committed attempt, which is what the harness provides.
+    function test_perActionAttemptLimitBindsBeforeTheTotalAttemptLimitDoes() public {
+        address[] memory feeTokens = new address[](1);
+        feeTokens[0] = address(token);
+        ManagerHarness harness = new ManagerHarness(admin, pauser, executor, feeTokens);
+
+        ResurvCovenantManager.CovenantParams memory params = _defaultParams();
+        params.maxTotalAttempts = 2;
+        ResurvCovenantManager.ActionInput[] memory actions = _defaultActions();
+        actions[0].maxAttempts = 2;
+        actions[1].maxAttempts = 1;
+
+        vm.prank(requester);
+        bytes32 covenantId = harness.createCovenant(params, actions);
+        token.mint(requester, ONE_USD);
+        vm.startPrank(requester);
+        token.approve(address(harness), ONE_USD);
+        harness.fundAndArm(covenantId);
+        vm.stopPrank();
+        _triggerOn(harness, covenantId);
+
+        harness.consumeAttemptWithoutVerifying(
+            covenantId, 1, _evacuateConfig(), _verifierContext(), 0
+        );
+        assertEq(harness.getCovenant(covenantId).attemptsUsed, 1, "total counter did not rise");
+
+        // The per-action limit, on an action the total limit still has room for.
+        vm.expectRevert(ResurvCovenantManager.ActionUnavailable.selector);
+        harness.consumeAttemptWithoutVerifying(
+            covenantId, 1, _evacuateConfig(), _verifierContext(), 1
+        );
+
+        // The other action is still available, which is what makes the refusal above per-action
+        // rather than the total limit arriving early.
+        harness.consumeAttemptWithoutVerifying(covenantId, 0, _pauseConfig(), _verifierContext(), 2);
+        assertEq(harness.getCovenant(covenantId).attemptsUsed, 2);
+
+        // And now the total limit binds, on an action whose own budget is not exhausted.
+        vm.expectRevert(ResurvCovenantManager.AttemptLimitReached.selector);
+        harness.consumeAttemptWithoutVerifying(covenantId, 0, _pauseConfig(), _verifierContext(), 3);
+    }
+
+    function _armHarnessCovenant(ManagerHarness harness, bytes32 salt)
+        private
+        returns (bytes32 covenantId)
+    {
+        ResurvCovenantManager.CovenantParams memory params = _defaultParams();
+        params.salt = salt;
+
+        vm.prank(requester);
+        covenantId = harness.createCovenant(params, _defaultActions());
+
+        token.mint(requester, ONE_USD);
+        vm.startPrank(requester);
+        token.approve(address(harness), ONE_USD);
+        harness.fundAndArm(covenantId);
+        vm.stopPrank();
+    }
+
+    /// @dev The fixture's `_trigger` signs against `manager`. EIP-712 binds the domain to the
+    ///      verifying contract, so a harness needs its own digest and its own signature.
+    function _triggerOn(ManagerHarness harness, bytes32 covenantId) private {
+        uint64 validAfter = uint64(block.timestamp);
+        uint64 validUntil = uint64(block.timestamp + 1 hours);
+        bytes32 digest =
+            harness.triggerDigest(covenantId, keccak256("alert"), 0, validAfter, validUntil);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(triggerAuthorityKey, digest);
+        harness.trigger(
+            covenantId, keccak256("alert"), 0, validAfter, validUntil, abi.encodePacked(r, s, v)
+        );
     }
 
     // -------------------------------------------------------------------------------------

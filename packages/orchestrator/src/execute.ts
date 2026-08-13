@@ -120,7 +120,6 @@ export async function executeSemanticAttempt(
 ): Promise<AttemptOutcome> {
   const log = options.log ?? (() => {});
   const wait = options.waitMs ?? sleep;
-  const now = options.now ?? (() => Date.now());
   const exchanges: KeeperhubExchange[] = [];
   const record = (exchange: KeeperhubExchange): void => {
     exchanges.push(exchange);
@@ -189,14 +188,26 @@ export async function executeSemanticAttempt(
   //    not restart the clock and can actually reach `PROVEN_NOT_BROADCAST`; and the log search
   //    starts at the head this attempt started from, so a resumed process cannot skip over the
   //    block its own transaction landed in.
+  //
+  //    An unreadable `createdAt` is an integrity failure, not a value to substitute around.
+  //    Falling back to `now()` would silently restore the defect this anchoring removed: every
+  //    resumed process would restart the settlement clock and no attempt could ever prove a
+  //    non-broadcast. Refusing is the only answer that keeps the guarantee honest.
   const committedAt = Date.parse(reserved.record.createdAt);
+  if (!Number.isFinite(committedAt)) {
+    throw new Error(
+      `attempt ${plan.semanticAttemptId} has an unreadable createdAt (${reserved.record.createdAt}); ` +
+        'the settlement window has no anchor and the journal needs repair before it can resume.',
+    );
+  }
+
   return reconcile(plan, options, {
     exchanges,
     executionId,
     hintedTransactionHash: readTransactionHash(response.body) ?? undefined,
     candidate: classification.candidate,
     inFlightReported: false,
-    start: Number.isFinite(committedAt) ? committedAt : now(),
+    start: committedAt,
     searchFromBlock: reserved.record.fromBlock,
     wait,
     log,
@@ -294,11 +305,15 @@ async function reconcile(
 
     // Step 2: ask the chain. This is the only route that survives an API change, and the only
     // one that can prove an absence.
+    let chainAnswered = true;
     if (context.hintedTransactionHash === null || context.hintedTransactionHash === undefined) {
-      const found = await findEffectOnChain(plan, options, context.searchFromBlock);
-      if (found !== undefined) {
-        context.hintedTransactionHash = found;
-        context.log(`recovered transaction ${found} from chain logs alone`);
+      const search = await findEffectOnChain(plan, options, context.searchFromBlock);
+      chainAnswered = search.searched;
+      if (!search.searched) {
+        context.log('chain search failed: no RPC origin answered, so this round proves nothing');
+      } else if (search.transactionHash !== undefined) {
+        context.hintedTransactionHash = search.transactionHash;
+        context.log(`recovered transaction ${search.transactionHash} from chain logs alone`);
       }
     }
 
@@ -338,7 +353,8 @@ async function reconcile(
       continue;
     }
 
-    // No hash and no effect. Only the settlement window turns that into proof.
+    // No hash and no effect. Only the settlement window turns that into proof, and only when the
+    // chain actually answered: an elapsed clock over a failed search is a timeout, not evidence.
     const evidence = classifyChainEvidence({
       originsAgreed: true,
       receiptStatus: undefined,
@@ -346,7 +362,7 @@ async function reconcile(
       innerFailureSignalled: innerFailure,
       attributableEffectFound: false,
       settlementWindowElapsed:
-        !context.inFlightReported && now() - context.start >= settlementWindowMs,
+        chainAnswered && !context.inFlightReported && now() - context.start >= settlementWindowMs,
     });
     lastReason = evidence.reason;
     if (evidence.state === 'PROVEN_NOT_BROADCAST') {
@@ -421,12 +437,23 @@ export function receiptCarriesEffect(
   });
 }
 
+/**
+ * The outcome of one chain search, with the distinction that matters kept explicit.
+ *
+ * A search that no origin answered and a search that every origin answered with an empty set are
+ * not the same fact. The first is ignorance; the second is evidence of absence. Collapsing them
+ * into `undefined` is how an RPC outage becomes a proof that nothing was broadcast.
+ */
+type ChainSearch =
+  | { readonly searched: true; readonly transactionHash: string | undefined }
+  | { readonly searched: false };
+
 /** Search the chain for this attempt's own marker. The recovery route that survives an outage. */
 async function findEffectOnChain(
   plan: AttemptPlan,
   options: ExecuteOptions,
   fromBlock: number,
-): Promise<string | undefined> {
+): Promise<ChainSearch> {
   const head = await getBlockNumber(options.rpc ?? {});
   const query = {
     ...(plan.expectedEffect.address === undefined ? {} : { address: plan.expectedEffect.address }),
@@ -436,10 +463,11 @@ async function findEffectOnChain(
     toBlock: (head ?? 'latest') as number | 'latest',
   };
   const logs = await getLogs(query, options.rpc ?? {});
-  const match = (logs.value ?? []).find((entry) =>
+  if (logs.value === undefined) return { searched: false };
+  const match = logs.value.find((entry) =>
     plan.expectedEffect.matches === undefined ? true : plan.expectedEffect.matches(entry),
   );
-  return match?.transactionHash;
+  return { searched: true, transactionHash: match?.transactionHash };
 }
 
 function finish(

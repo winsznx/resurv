@@ -327,9 +327,11 @@ contract CovenantLifecycleTest is CovenantFixture {
         _fundAndArm(covenantId, ONE_USD);
         _trigger(covenantId, keccak256("alert"), 0);
 
-        // Every attempt reverts on the postcondition, so the counters never actually rise.
-        // The limits are proven on a covenant whose attempts commit instead: see
-        // test_perActionAttemptLimit.
+        // Every attempt reverts on the postcondition, so the counters never actually rise. That
+        // is atomicity working, and it means this test says nothing about either limit: it only
+        // shows that a failed attempt leaves no trace. The limits themselves are judged on a
+        // committed attempt in AuditRegressions.t.sol, by
+        // test_perActionAttemptLimitBindsBeforeTheTotalAttemptLimitDoes.
         vm.prank(executor);
         vm.expectPartialRevert(ResurvCovenantManager.OutcomeNotSatisfied.selector);
         manager.executeAttempt(

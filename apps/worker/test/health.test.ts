@@ -19,11 +19,24 @@ describe('GET /api/health', () => {
     expect(body['chainName']).toBe('Base Sepolia');
   });
 
-  it('returns 503 and names the missing variables when configuration is invalid', async () => {
+  it('reports ok on an environment with no credential at all', async () => {
+    // The deployed Worker is provisioned with no KeeperHub key, deliberately: nothing it serves
+    // executes, so requiring one would put a live write-capable credential on a public origin to
+    // buy nothing. A bare environment is the supported production shape, not a misconfiguration.
     const response = await worker.fetch(request('/api/health'), {}, ctx);
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as { status: string }).status).toBe('ok');
+  });
+
+  it('returns 503 and names the failing variable when configuration is invalid', async () => {
+    const response = await worker.fetch(
+      request('/api/health'),
+      { RPC_URL_PRIMARY: 'not-a-url' },
+      ctx,
+    );
     expect(response.status).toBe(503);
     const body = (await response.json()) as { issues: string[] };
-    expect(body.issues.join(' ')).toContain('KEEPERHUB_API_KEY');
+    expect(body.issues.join(' ')).toContain('RPC_URL_PRIMARY');
   });
 
   it('never echoes a secret value in the health response', async () => {

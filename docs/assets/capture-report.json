@@ -1,0 +1,35 @@
+{
+  "capturedAt": "2026-08-12T23:50:46.808Z",
+  "base": "http://localhost:4173",
+  "shots": [
+    "hero",
+    "timeline",
+    "atomic",
+    "verify",
+    "full-page",
+    "mobile",
+    "mobile-timeline"
+  ],
+  "consoleErrors": [
+    "mobile: Access to fetch at 'https://sepolia.base.org/' from origin 'http://localhost:4173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+    "mobile: Failed to load resource: net::ERR_FAILED",
+    "mobile-timeline: Failed to load resource: the server responded with a status of 404 ()",
+    "mobile-timeline: Access to fetch at 'https://sepolia.base.org/' from origin 'http://localhost:4173' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+    "mobile-timeline: Failed to load resource: net::ERR_FAILED",
+    "mobile-timeline: Failed to load resource: net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile-timeline: Failed to load resource: net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile-timeline: Failed to load resource: net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile-timeline: Failed to load resource: net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile-timeline: Failed to load resource: net::ERR_SSL_BAD_RECORD_MAC_ALERT"
+  ],
+  "failedRequests": [
+    "mobile: https://sepolia.base.org/ net::ERR_FAILED",
+    "mobile-timeline: https://fonts.gstatic.com/s/dmsans/v17/rP2tp2ywxg089UriI5-g7M8btVsD8Ck0q-m40F9JadbnoEwARZtRSW32RmAJpw.woff2 net::ERR_ABORTED",
+    "mobile-timeline: https://sepolia.base.org/ net::ERR_FAILED",
+    "mobile-timeline: https://base-sepolia-rpc.publicnode.com/ net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile-timeline: https://base-sepolia-rpc.publicnode.com/ net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile-timeline: https://base-sepolia-rpc.publicnode.com/ net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile-timeline: https://base-sepolia-rpc.publicnode.com/ net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile-timeline: https://base-sepolia-rpc.publicnode.com/ net::ERR_SSL_BAD_RECORD_MAC_ALERT"
+  ]
+}

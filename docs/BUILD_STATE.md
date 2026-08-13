@@ -2,18 +2,19 @@
 
 Canonical handoff document. Read this first in a new session.
 
-Last updated: 2026-08-12, end of the autonomous build.
+Last updated: 2026-08-13, end of the release pass.
 
 ## Where we are
 
-**`BUILD COMPLETE — AWAITING INDEPENDENT FINAL REVIEW`**
+**`HACKATHON RELEASE READY — HUMAN VIDEO/SUBMISSION ONLY`**
 
 | | |
 |---|---|
 | Completed | Phases 0, 0.5, 1, 2, 3, 5, 6 (review), 7, 8, 9 |
 | Deliberately not built | Phase 4, the model-assisted planner. See below |
 | Submission deadline | 2026-08-13 12:00 UTC+2 |
-| Blocking for submission | a git remote, a recorded video, and a Cloudflare deploy. All three are human steps |
+| Public repository | https://github.com/winsznx/resurv — full history, CI green on a clean runner |
+| Blocking for submission | a recorded video, `wrangler deploy`, and the DoraHacks form. All three are human steps |
 
 ## What exists, in one paragraph
 
@@ -41,9 +42,11 @@ wallet and no faucet.
 3. `docs/DECISIONS.md` ADR-013, ADR-014, ADR-015 — the three decisions that shaped the build
 4. `docs/phase-logs/PHASE_01.md` — contracts, and the mutation campaign
 5. `docs/phase-logs/PHASE_02_TO_05.md` — the live build
-6. **`docs/phase-logs/PHASE_06_REVIEW.md`** — three reviews, all FAIL, what was fixed and what
-   was accepted. Read this before believing anything else in this repository
-7. `docs/FINAL_BUILD_REPORT.md` — what an independent reviewer should attack first
+6. `docs/phase-logs/PHASE_06_REVIEW.md` — the first review round, three FAILs
+7. **`docs/phase-logs/PHASE_07_FINAL_AUDIT.md`** — the second round. Three more escrow traps, a
+   regression test that was a false positive, and the fact that the deployed bytecode does not
+   contain the fixes. Read this before believing anything else in this repository
+8. `docs/FINAL_BUILD_REPORT.md` — what an independent reviewer should attack first
 
 ## Tests
 
@@ -54,18 +57,18 @@ Counted so the number cannot flatter itself.
 | `@resurv/repo-policy` | 412 |
 | `@resurv/seam-probe` (offline half) | 71 |
 | `@resurv/domain` | 63 |
-| `@resurv/config` | 38 |
+| `@resurv/config` | 39 |
 | `@resurv/keeperhub-client` | 36 |
-| `@resurv/orchestrator` | 22 |
+| `@resurv/orchestrator` | 25 |
+| `@resurv/cli` | 17 |
+| `apps/web` (page + timeline) | 16 |
+| `apps/worker` (8 unit + 6 integration) | 14 |
 | `@resurv/proof` | 13 |
-| `apps/worker` (7 unit + 6 integration) | 13 |
-| `apps/web` (e2e) | 8 |
-| `@resurv/cli` | 8 |
 | `@resurv/chain`, `@resurv/db`, `@resurv/node-runtime` | 21 |
-| **TypeScript total** | **705** |
-| Foundry unit and fuzz | 101 |
+| **TypeScript total** | **727** |
+| Foundry unit and fuzz | 109 |
 | Foundry invariants | 13 |
-| **Foundry total** | **114** |
+| **Foundry total** | **122** |
 
 Fuzz: 512 runs per test. Invariants: 256 runs at depth 128. The `afterInvariant` block reports
 the **last run only**, not the campaign, and now says so in its first line.
@@ -78,14 +81,25 @@ defect for two phases; they now carry 14 specs between them.
 
 ## What the reviews found
 
-Three in-repo specialist reviewers ran against the finished build. **All three returned FAIL.**
-Six findings were fixed, five accepted with reasons, three deferred. Two of the fixed ones were
-permanent-escrow-loss defects on an immutable contract, both reachable through ordinary
-operation, both found with working proofs. The contracts were redeployed and the covenant re-run
-against the fixed code.
+Two rounds. **Six FAILs across seven reviews.**
 
-The full list is `docs/phase-logs/PHASE_06_REVIEW.md`. The three worth attacking next are named
-at the end of it.
+The first round (`PHASE_06_REVIEW.md`) found two permanent-escrow-loss defects on an immutable
+contract, both with working proofs. Fixed, redeployed, and the covenant re-run against the fixed
+code.
+
+The second round (`PHASE_07_FINAL_AUDIT.md`) found three more, including two shapes of the same
+defect the first round had claimed to close, plus a regression test that passed with the
+fund-loss guard it was named after deleted, plus an off-by-one in the reconciliation loop that
+failed nothing because no test had ever counted a round. All fixed in source, each one verified
+by reverting the fix and confirming exactly one test fails.
+
+**The deployed contracts do not contain the second round's fixes.** Redeploying invalidates the
+canonical receipt every public surface cites and it was not done. None of the three affects the
+canonical covenant. That is written out in full in `PHASE_07_FINAL_AUDIT.md` section 2, in
+`docs/DEPLOYMENTS.md`, in `docs/CLAIMS.md` as a `REFUTED` row, and in the README's limitations.
+
+Two findings are accepted rather than fixed: a verifier that runs out of gas at any budget still
+has no exit, and nothing validates a verifier or an adapter at creation. Same root cause, named.
 
 These reviewers are agents in this repository with no write access. **RESURV has had no external
 audit** and says so everywhere it says anything.
@@ -131,8 +145,15 @@ qualifier on rung 9 rather than claiming the rung whole.
   wrong. Accepted for v1 and recorded.
 - `TestUSD.mint` is permissionless on the live deployment. It is a test token and the open mint
   is what let a zero-balance wallet fund the demo.
-- No CI run has ever happened: this repository has no git remote.
+- CI has run once on a clean GitHub runner and passed on all four jobs. One observation, not a
+  guarantee about future dependency or runner changes.
 - The Claude Code permission boundary is configuration checked by our own tests, not a sandbox.
+- The deployed bytecode was compiled from `2ccf02f` and does not contain the second audit round's
+  three fixes. `docs/phase-logs/PHASE_07_FINAL_AUDIT.md` section 2.
+- A verifier that runs out of gas at any budget has no exit, and creation validates neither the
+  verifier nor the adapters. Accepted, named, not fixed.
+- `Retry-After`, `X-RateLimit-*` and `X-Poll-Interval-Hint` are parsed and recorded, never acted
+  on. The reconciler sleeps a fixed interval. The 429 branch was never triggered.
 
 ## The credential
 
@@ -151,6 +172,15 @@ auto-approved Claude Code command. `--dry-run` neutralizes both.
 
 ## Next exact task
 
-An adversarial independent review in a fresh session, against
-`docs/FINAL_BUILD_REPORT.md`. Then, if it passes: a git remote, `wrangler deploy`, the video, and
-submission. None of those four is an agent's to do.
+Three human steps, in any order, none of them an agent's to do:
+
+1. `pnpm build && pnpm --filter @resurv/worker deploy` — `wrangler deploy` is denied to Claude
+   Code in every wrapper form, and `packages/repo-policy` fails if anyone allow-lists a path to
+   it. That control backs a `VERIFIED (policy level)` row in `docs/CLAIMS.md`.
+2. Record the demo video from `docs/DEMO_SCRIPT.md`, roughly 2:45, legible with the sound off.
+   Checklist in `docs/DEMO_CAPTURE_CHECKLIST.md`.
+3. Submit on DoraHacks with `docs/SUBMISSION_READY_PACKET.md`. Deadline 2026-08-13 12:00 UTC+2.
+
+Optional, and a real improvement if there is time: redeploy the contracts from `main` and re-run
+`live:demo`, which closes the deployed-versus-source gap at the cost of a new canonical receipt
+and new screenshots.

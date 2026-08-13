@@ -1,14 +1,20 @@
 # Submission-ready packet
 
-Draft. Nothing here has been submitted, and nothing should be until the independent review has
-run. Every factual statement below is at or under the level `docs/CLAIMS.md` supports; the
-"never say" list at the end is the one to check a final edit against.
+Draft. Nothing here has been submitted. Every factual statement below is at or under the level
+`docs/CLAIMS.md` supports; the "never say" list at the end is the one to check a final edit
+against.
+
+Two review rounds have run, six of the seven reviews returned FAIL, and every substantiated
+finding is either fixed or named. Read `docs/phase-logs/PHASE_07_FINAL_AUDIT.md` before saying
+anything about the contracts: three fixes from the second round are in the repository and not in
+the deployed bytecode, and that is a sentence to be able to say out loud rather than one to hope
+nobody asks about.
 
 Three assets are required and incomplete submissions are not judged:
 
 | Asset | Status |
 |---|---|
-| GitHub repository link | **needed.** This repository has no git remote yet |
+| GitHub repository link | **ready:** https://github.com/winsznx/resurv — public, full history, CI green |
 | Demo video | **needed.** Script in `docs/DEMO_SCRIPT.md`, checklist in `docs/DEMO_CAPTURE_CHECKLIST.md`. A human records it |
 | Link to a real transaction executed through KeeperHub | **ready:** https://sepolia.basescan.org/tx/0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab |
 
@@ -93,7 +99,7 @@ shipped.
 ## Technical implementation
 
 - **Contracts** (Solidity 0.8.36, Foundry, no proxy): `ResurvCovenantManager` plus two capability
-  adapters, a verifier, and a demo protocol. 114 tests including 8 stateful invariants at 256
+  adapters, a verifier, and a demo protocol. 122 tests including 8 stateful invariants at 256
   runs × depth 128.
 - **Domain** (`@resurv/domain`): two state machines, each judged against an independent reference
   model transcribed from the specification that never calls the implementation.
@@ -104,7 +110,8 @@ shipped.
 - **Proof surface**: a public page that reads committed artifacts for the past and two public RPC
   origins in the visitor's own browser for the present, so no RESURV server is in the trust path.
 - **Deployment**: Cloudflare Workers, one deployable serving `/api/*` and the SPA.
-- 705 TypeScript tests, 114 Foundry tests, one aggregate gate that exits 0.
+- 727 TypeScript tests, 122 Foundry tests, one aggregate gate that exits 0, green on a clean
+  GitHub runner.
 
 ## Real KeeperHub transaction
 
@@ -126,7 +133,8 @@ JSON, for anyone who prefers it: `/api/proof`, `/api/proof/summary`, `/api/deplo
 
 ## GitHub
 
-**Fill in after pushing.** No remote is configured yet.
+https://github.com/winsznx/resurv — public, full history, MIT. CI green on a clean runner:
+[run 31642439279](https://github.com/winsznx/resurv/actions/runs/31642439279).
 
 ## Demo video
 

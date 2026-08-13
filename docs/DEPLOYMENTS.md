@@ -151,20 +151,47 @@ pnpm --filter @resurv/worker deploy         # wrangler deploy
 step. `wrangler deploy --dry-run --outdir dist` is the build step, touches no account, and is
 what `pnpm build` runs.
 
-Secrets are set out of band and never committed:
+**The deployed Worker is provisioned with no secret at all.** `workerEnvSchema` makes
+`KEEPERHUB_API_KEY` optional, and `apps/worker/test/health.test.ts` pins that a bare environment
+answers `200 ok`. Every route serves either an artifact imported at build time or a public RPC
+read, so nothing there executes and nothing there needs a credential. Requiring one would put a
+live, write-capable organization key on a public origin to buy a readiness signal, which is a bad
+trade. If the Worker is ever given the orchestration loop it does not have today, the key is set
+out of band and never committed:
 
 ```bash
 cd apps/worker
 wrangler secret put KEEPERHUB_API_KEY
 ```
 
-The deployed Worker needs no KeeperHub credential to serve the proof page: the page reads chain
-and the committed receipt. The credential is only needed if the Worker is ever given the
-orchestration loop, which it does not have today.
+## What is deployed is not what is on `main`
+
+The six addresses hold bytecode compiled from commit **`2ccf02f`**. The second `contracts-auditor`
+round ran after that and found three ways to trap a covenant's escrow permanently, each with a
+working proof-of-concept. All three are fixed in this repository and **still present on chain**:
+
+| Finding | Shape | Fixed in source by |
+|---|---|---|
+| H-A | A verifier returning 96 bytes with a non-boolean first word reverted the expiry in the manager's own frame | assembly read of the bool word |
+| M-B | A verifier returning a trailing tail answered `true` to every typed path while the expiry called it "not conforming" and refunded | `< 96` instead of `!= 96` |
+| M-A | A global pause closed the last exit for a covenant whose outcome came true past its deadline | dropped `whenNotPaused` from `finalizeAlreadySatisfied` |
+
+Redeploying is a human step, and it would invalidate the canonical receipt every public surface
+cites. It was not done. What that means precisely:
+
+- The canonical covenant is unaffected. It uses the shipped `VaultSafeStateVerifier`, which answers
+  in exactly 96 bytes with a clean boolean, and the manager was never paused. All three defects
+  need a malformed verifier the requester chose, or the admin to pause.
+- Anyone arming a covenant against the deployed manager with their own verifier is exposed to all
+  three. This is a testnet demo and nothing invites that.
+- The Sourcify `match` below is still accurate: it attests the deployed bytecode reproduces from
+  `2ccf02f`, and it has never attested anything about `main`.
+
+Full account: `docs/phase-logs/PHASE_07_FINAL_AUDIT.md`.
 
 ## Contract source verification
 
-Sourcify, because it needs no API key and Basescan's v2 API does:
+Sourcify, because it needs no API key and Basescan's v2 API does. Run from commit `2ccf02f`:
 
 ```bash
 cd packages/contracts

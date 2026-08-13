@@ -65,7 +65,18 @@ export async function prepareCall(spec: ContractCallSpec): Promise<PreparedCall>
     semanticAttemptId,
   });
 
+  // `fromBlock` anchors every later log search for this attempt, so it has to be a real head.
+  // Substituting genesis when the read fails would ask a public node for a range it will refuse,
+  // and `getLogs` reports a refusal and an empty result the same way: the reconciler would then
+  // read a search failure as proof that nothing landed. Refuse to plan instead.
   const head = await getBlockNumber();
+  if (head === undefined) {
+    throw new Error(
+      `cannot prepare ${spec.label}: no RPC origin returned a block height, so the attempt has no ` +
+        'anchor to search from. Retry when an origin is reachable.',
+    );
+  }
+
   return {
     body,
     plan: {
@@ -80,7 +91,7 @@ export async function prepareCall(spec: ContractCallSpec): Promise<PreparedCall>
       expectedEffect: spec.expectedEffect,
       // One block of slack, so a log search cannot miss an effect that landed in the block the
       // head was read from.
-      fromBlock: Math.max(0, (head ?? 0) - 1),
+      fromBlock: Math.max(0, head - 1),
     },
   };
 }

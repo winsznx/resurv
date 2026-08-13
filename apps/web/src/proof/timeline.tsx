@@ -114,10 +114,23 @@ const STATE_LABEL: Record<string, string> = {
 };
 
 export function Timeline({ steps }: { steps: readonly ReceiptStep[] }) {
-  const byLabel = new Map(steps.map((step) => [step.label, step]));
-  // Anything the receipt records that this page has no beat for is still shown, rather than
-  // silently dropped: a page that hides a step it did not expect is not a proof surface.
-  const extra = steps.filter((step) => !BEATS.some((beat) => beat.label === step.label));
+  // First occurrence per label carries the narrative. A keyed lookup over every step would have
+  // kept the *last* one and silently dropped the rest, so a receipt that recorded the same label
+  // twice would show one node and no sign that anything was missing.
+  const byLabel = new Map<string, ReceiptStep>();
+  for (const step of steps) {
+    if (!byLabel.has(step.label)) byLabel.set(step.label, step);
+  }
+
+  // Everything the receipt records that the rail above does not already show: labels this page
+  // has no beat for, and repeats of a label it does. A page that hides a step it did not expect
+  // is not a proof surface.
+  const narrated = new Set(
+    BEATS.map((beat) => byLabel.get(beat.label)).filter(
+      (step): step is ReceiptStep => step !== undefined,
+    ),
+  );
+  const extra = steps.filter((step) => !narrated.has(step));
 
   let lastPhase = '';
 

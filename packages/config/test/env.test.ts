@@ -31,6 +31,12 @@ describe('parseWorkerEnv', () => {
     }
   });
 
+  it('does not require a KeeperHub credential, because nothing the Worker serves executes', () => {
+    const env = parseWorkerEnv({ ENVIRONMENT: 'production' });
+    expect(env.KEEPERHUB_API_KEY).toBeUndefined();
+    expect(env.CHAIN_ID).toBe(84532);
+  });
+
   it('rejects a malformed contract address', () => {
     expect(() => parseWorkerEnv({ ...valid, RESURV_CONTRACT_ADDRESS: '0x1234' })).toThrow(
       ConfigError,

@@ -603,10 +603,18 @@ contract ResurvCovenantManager is AccessControl, EIP712, ReentrancyGuard {
     ///      its escrow unrecoverable, forever, on an immutable contract. The precondition that
     ///      matters here is that the outcome is true, and that does not stop being true at a
     ///      deadline.
+    ///
+    ///      Deliberately **not** gated on the global pause either, for the same reason
+    ///      `expireCovenant` is not. This function moves escrow to the requester and cannot pay a
+    ///      fee, so it is a refund. Gating it recreated the trapped-escrow shape one role away: a
+    ///      covenant whose outcome became true, past its deadline, with the pause on, had
+    ///      `expireCovenant` refusing because the outcome is true, this function refusing because
+    ///      of the pause, and both other exits closed by status. PRD 10.11 says a pause must not
+    ///      stop refunds for expired covenants, and this is the refund path for a covenant that
+    ///      would otherwise expire.
     function finalizeAlreadySatisfied(bytes32 covenantId, bytes calldata verifierContext)
         external
         nonReentrant
-        whenNotPaused
     {
         Covenant storage covenant = _covenants[covenantId];
         if (covenant.status != CovenantStatus.TRIGGERED) revert InvalidStatus();
@@ -800,10 +808,24 @@ contract ResurvCovenantManager is AccessControl, EIP712, ReentrancyGuard {
             if (gasleft() < before / 64) revert VerifierStarved();
             return; // genuinely not verifiable
         }
-        if (returned.length != 96) return; // not conforming, so not verifiable
+        // Two lengths, two different mistakes. Under 96 bytes cannot be an answer at all. Over 96
+        // is what Solidity's own typed decoder silently accepts, so `!= 96` here made the expiry
+        // path read "not verifiable" from a verifier that answered `true` to every other path,
+        // and refund over a true outcome. The over-long tail is ignored, exactly as the decoder
+        // ignores it.
+        if (returned.length < 96) return; // too short to conform, so not verifiable
 
-        (bool satisfied,,) = abi.decode(returned, (bool, bytes32, uint256));
-        if (satisfied) revert OutcomeAlreadySatisfied();
+        // Read the word rather than `abi.decode` it. The decoder validates booleans and raises in
+        // *this* frame on any value but 0 or 1, which is the same trap as the `extcodesize` guard
+        // and the malformed-return case above: a verifier returning a dirty bool reverted the
+        // expiry outright and stranded the escrow. A value that is not a boolean is not an
+        // answer, and gets treated like every other kind of silence.
+        uint256 flag;
+        assembly ("memory-safe") {
+            flag := mload(add(returned, 0x20))
+        }
+        if (flag > 1) return; // not a boolean, so not verifiable
+        if (flag == 1) revert OutcomeAlreadySatisfied();
     }
 
     /// @dev The single exit for escrowed value. Marks the covenant settled before transferring,

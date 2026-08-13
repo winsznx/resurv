@@ -79,9 +79,10 @@ A clean-room clone **from the public GitHub repository**, with `git clone --recu
 `pnpm install --frozen-lockfile` and `TURBO_FORCE=true pnpm gate`, also exits 0 with `Cached: 0`.
 Run against `fe01c43`.
 
-GitHub Actions has run twice on clean runners and both were green on all four jobs:
-[31642439279](https://github.com/winsznx/resurv/actions/runs/31642439279) and
-[31653312589](https://github.com/winsznx/resurv/actions/runs/31653312589).
+GitHub Actions has run three times on clean runners and all three were green on all four jobs:
+[31642439279](https://github.com/winsznx/resurv/actions/runs/31642439279),
+[31653312589](https://github.com/winsznx/resurv/actions/runs/31653312589) and
+[31653764278](https://github.com/winsznx/resurv/actions/runs/31653764278) on the tip.
 
 `pnpm test:integration` and `pnpm test:e2e` are no longer empty. They were listed here as a known
 defect for two phases; they now carry 14 specs between them.

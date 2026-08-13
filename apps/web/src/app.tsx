@@ -20,6 +20,49 @@ import {
  * own browser, so nothing here depends on a RESURV server telling the truth.
  */
 
+/**
+ * The mark, drawn once and used in both places it appears.
+ *
+ * It is the product as a glyph: a path that steps down through levels and terminates in a single
+ * accent square. `--color-ember` is the same `#FF5A00` the brand pack uses, and it appears in
+ * exactly two places on this page — here, and on the one timeline beat that was refused before
+ * broadcast. That scarcity is the reason the refusal reads as the loudest thing on the rail.
+ */
+function Mark({ size = 22 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      aria-hidden="true"
+      focusable="false"
+      style={{ display: 'block', flexShrink: 0 }}
+    >
+      <path
+        d="M 10 14 H 50 V 26 H 24 V 38 H 46 V 50 H 52"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <rect x="48" y="46" width="10" height="10" rx="2.5" fill="var(--color-ember)" />
+    </svg>
+  );
+}
+
+/** Mark plus wordmark. The wordmark carries the accessible name, so the mark stays decorative. */
+function Lockup({ size = 20, tone = 'text-obsidian' }: { size?: number; tone?: string }) {
+  return (
+    <span className={`flex items-center gap-2.5 ${tone}`}>
+      <Mark size={size} />
+      <span className="font-semibold tracking-tight" style={{ fontSize: size - 2 }}>
+        RESURV
+      </span>
+    </span>
+  );
+}
+
 export function App() {
   const [live, setLive] = useState<LiveVerification | undefined>(undefined);
   const [liveError, setLiveError] = useState<string | undefined>(undefined);
@@ -54,9 +97,7 @@ export function App() {
       </a>
       <header className="sticky top-0 z-10 border-cloud/70 border-b bg-paper/85 backdrop-blur">
         <div className="mx-auto flex max-w-[var(--page-max-width)] items-center justify-between px-6 py-4">
-          <span className="font-semibold text-obsidian tracking-tight" style={{ fontSize: 18 }}>
-            RESURV
-          </span>
+          <Lockup />
           <nav
             aria-label="Sections of this proof"
             className="flex items-center gap-4 sm:gap-5"
@@ -452,12 +493,20 @@ cast receipt ${success.hash ?? ''} \\
 
       <footer className="border-cloud border-t">
         <div
-          className="mx-auto max-w-[var(--page-max-width)] px-6 py-10 text-fog"
+          className="mx-auto flex max-w-[var(--page-max-width)] flex-col gap-4 px-6 py-10 text-fog sm:flex-row sm:items-center sm:justify-between"
           style={{ fontSize: 'var(--text-caption)' }}
         >
-          RESURV · outcome-gated execution covenants · receipt generated{' '}
-          {RECEIPT.generatedAt.slice(0, 19).replace('T', ' ')} UTC · chain {RECEIPT.chain.name} (
-          {RECEIPT.chain.chainId})
+          {/*
+            The lockup closes the page the way the mark opens it. Quiet: the footer's job is the
+            provenance line beside it, which is the last thing a judge reads and the only place
+            the receipt's own timestamp appears.
+          */}
+          <Lockup size={18} tone="text-iron" />
+          <p className="text-balance">
+            Outcome-gated execution covenants · receipt generated{' '}
+            {RECEIPT.generatedAt.slice(0, 19).replace('T', ' ')} UTC · chain {RECEIPT.chain.name} (
+            {RECEIPT.chain.chainId})
+          </p>
         </div>
       </footer>
     </div>

@@ -10,6 +10,14 @@
     />
     <meta name="color-scheme" content="light" />
     <!--
+      The symbol is the product drawn once: a path that steps down and terminates in a single
+      accent square. `#FF5A00` appears exactly twice on this whole site — here, and on the one
+      timeline beat that was refused before broadcast.
+    -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/og.png" />
+    <meta name="theme-color" content="#F4F4F5" />
+    <!--
       design.md names Cosmica with DM Sans as the substitute. Cosmica is not licensed to this
       project, so DM Sans is the face that actually ships. Loaded with `display=swap` and a
       preconnect: if fonts.googleapis.com is unreachable the page renders in the system stack
@@ -28,16 +36,17 @@
     />
     <meta property="og:type" content="website" />
     <!--
-      A capture of this page's own hero, taken from the production bundle by
-      `pnpm --filter @resurv/cli screenshots`, not a designed card. An unfurl that shows something
-      the page does not say would be the same defect this page exists to avoid.
-
-      Relative, because the deploy domain is not known at build time and every major crawler
-      resolves a relative og:image against the page URL.
+      Absolute, not relative. X and several other crawlers refuse to resolve a relative
+      `og:image`, and a card that silently fails to unfurl is worse than no card. The domain is
+      known now that the Worker is published.
     -->
-    <meta property="og:image" content="/og.png" />
+    <meta property="og:url" content="https://resurv-production.timjosh507.workers.dev" />
+    <meta property="og:image" content="https://resurv-production.timjosh507.workers.dev/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="RESURV. Outcome, not attempt. Pre-authorized recovery execution that advances only on chain evidence." />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="/og.png" />
+    <meta name="twitter:image" content="https://resurv-production.timjosh507.workers.dev/og.png" />
   </head>
   <body>
     <div id="root"></div>

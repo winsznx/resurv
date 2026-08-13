@@ -11,7 +11,7 @@ payment.
 | | |
 |---|---|
 | **Real KeeperHub transaction** | [`0x7ac01885…a8cc7d25`](https://sepolia.basescan.org/tx/0x7ac018850024cfd0e2d901840fd395fab852cf8cc23e5f7755c0b3eda8cc7d25) — the successful attempt, block 45423354 |
-| **Public proof page** | `apps/web`. Serve it with `pnpm build && pnpm --filter @resurv/web preview`. The Cloudflare deploy is one command and a deliberate human step — see [Deployment](#13-deployment) |
+| **Live application** | **https://resurv-production.timjosh507.workers.dev** — the proof page, and `/api/proof`, `/api/proof/summary`, `/api/deployment` as JSON |
 | **Covenant** | `0x1824fe778dfcc7ed43b79ec6887e762c04952a12763ec7481a05a7a257a23237` |
 | **Covenant manager** | [`0xdae116d1…e27fdcc`](https://sepolia.basescan.org/address/0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc) · [verified source](https://repo.sourcify.dev/84532/0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc) |
 | **Tests** | 750 TypeScript, 123 Foundry. CI green on a clean runner, and in a clean-room clone of this repository |
@@ -214,7 +214,7 @@ not advance on elapsed time.
 
 - **Receipt**: [`docs/proof/canonical-covenant.json`](docs/proof/canonical-covenant.json)
 - **Manifest**: [`deployments/base-sepolia.json`](deployments/base-sepolia.json)
-- **Page**: `pnpm build && pnpm --filter @resurv/web preview`
+- **Page**: https://resurv-production.timjosh507.workers.dev
 - **JSON**: `GET /api/proof`, `GET /api/proof/summary`, `GET /api/deployment`
 
 `/api/proof/summary` is the endpoint an independent verifier is meant to disagree with: nine
@@ -298,12 +298,17 @@ pnpm --filter @resurv/cli live:demo                  # runs a new canonical cove
 Both resume rather than repeat: every write is journalled with its idempotency key before it is
 sent. Neither is reachable from an auto-approved Claude Code command.
 
-The web application deploys to Cloudflare and nowhere else:
+The web application runs on Cloudflare Workers at **https://resurv-production.timjosh507.workers.dev**,
+one deployable serving `/api/*` and the SPA. Republish with:
 
 ```bash
 pnpm build
-pnpm --filter @resurv/worker run deploy
+pnpm --filter @resurv/worker run deploy   # `run` matters: pnpm shadows a script named deploy
 ```
+
+The Worker is provisioned with **no secret at all**. `/api/health` on the live origin returns
+`{"status":"ok","environment":"production",...}` from an environment that holds no KeeperHub
+credential, because nothing it serves executes anything.
 
 `wrangler deploy` is in this repository's own Claude Code deny list, in every wrapper form, and
 `packages/repo-policy` has tests that fail if anyone allow-lists a path to it. That control backs a

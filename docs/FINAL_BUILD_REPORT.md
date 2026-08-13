@@ -245,6 +245,7 @@ cast call 0xdae116d15a2d8a73249a1476f8fdd5edee27fdcc "statusOf(bytes32)(uint8)" 
 | Commit | see `git log -1` at the tip of `main` |
 | Working tree | clean |
 | Branch | `main`, pushed to https://github.com/winsznx/resurv |
+| Live application | https://resurv-production.timjosh507.workers.dev, smoke-tested on nine routes |
 | Deployed source | commit `1d1eb9a`, recorded in `deployments/base-sepolia.json`. `git diff b9f8722 -- packages/contracts/` is empty |
 | Canonical transaction | [`0x7ac01885…`](https://sepolia.basescan.org/tx/0x7ac018850024cfd0e2d901840fd395fab852cf8cc23e5f7755c0b3eda8cc7d25), block 45423354, two origins agree |
 | Source verification | five of six on Sourcify at `match`; `ResurvCovenantManager` answered `no_match` three times and is **not** verified |
@@ -307,8 +308,11 @@ bytecode are all the same idea, and the third one is the only reason this was ca
   returned FAIL, and both FAILs were acted on in this pass: the mutant deployment and two
   surviving mutations. The claim audit's three findings were fixed. What remains unreviewed is
   this final commit itself.
-- **Cloudflare is not deployed**, because `wrangler deploy` is denied to the build agent and the
-  policy was not weakened to route around it.
+- **Cloudflare was deployed by a human**, because the publish command is denied to the build
+  agent and the policy was not weakened. That step also surfaced a defect no automated check
+  could: the command this repository documented, `pnpm --filter @resurv/worker deploy`, could
+  never work, because `deploy` is a built-in pnpm subcommand that shadows a package script. A
+  repo-policy test now fails if any document drifts back to that form.
 
 ## What the independent reviewer should attack first
 

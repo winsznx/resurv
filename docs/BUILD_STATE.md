@@ -14,7 +14,8 @@ Last updated: 2026-08-13, after the redeployment and the fresh canonical run.
 | Deliberately not built | Phase 4, the model-assisted planner. See below |
 | Submission deadline | 2026-08-13 12:00 UTC+2 |
 | Public repository | https://github.com/winsznx/resurv — full history, CI green on a clean runner |
-| Blocking for submission | a recorded video, `wrangler deploy`, and the DoraHacks form. All three are human steps |
+| Live application | https://resurv-production.timjosh507.workers.dev — deployed, smoke-tested, health exposes no credential |
+| Blocking for submission | a recorded video and the DoraHacks form. Both are human steps |
 
 ## What exists, in one paragraph
 
@@ -207,8 +208,9 @@ findings that reproduced against current `main` fixed with tests.
   contract source is byte-identical to what the second round reviewed and then had fixed, so the
   review surface for the contracts is unchanged; the orchestrator and CLI changes in this pass
   are covered by new tests but not by a reviewer.
-- **Cloudflare is not deployed.** `wrangler deploy` is denied to Claude Code in every wrapper
-  form and the policy was not weakened to work around it.
+- **Cloudflare is deployed** at https://resurv-production.timjosh507.workers.dev, by a human, because the
+  publish command is denied to the build agent and the policy was not weakened to route around
+  it. Republishing is `pnpm build && pnpm --filter @resurv/worker run deploy`.
 
 ## Next exact task
 

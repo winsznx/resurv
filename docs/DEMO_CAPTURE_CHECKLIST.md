@@ -6,8 +6,7 @@ for the two things that can fail on the day.
 ## Before you start recording
 
 - [ ] `pnpm gate` exits 0
-- [ ] `pnpm build && pnpm --filter @resurv/web preview` is serving on :4173, or the deployed
-      Cloudflare URL loads. Prefer the production bundle over `dev`: it is what the screenshots
+- [ ] https://resurv-production.timjosh507.workers.dev loads. Prefer the production bundle over `dev`: it is what the screenshots
       in the README were taken from and what a judge will actually see
 - [ ] the "Verify now" card on the page shows `SATISFIED` and `agree`, which means both public
       RPC origins are answering right now
@@ -19,7 +18,7 @@ for the two things that can fail on the day.
 
 | # | What | URL |
 |---|---|---|
-| 1 | Proof page, hero | the deployed Worker URL, or `http://localhost:4173` |
+| 1 | Proof page, hero | https://resurv-production.timjosh507.workers.dev |
 | 2 | Proof page, timeline | same page, `#timeline` |
 | 3 | Trigger transaction | https://sepolia.basescan.org/tx/0xd5cbea083b020f9ac90bd750f785491d5cfef3e291c653e3bade1d274b14e726 |
 | 4 | Proof page, refused primary | same page, timeline beat 07 — the only orange on the page |

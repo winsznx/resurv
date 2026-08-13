@@ -26,6 +26,7 @@ Three assets are required and incomplete submissions are not judged:
 | Asset | Status |
 |---|---|
 | GitHub repository link | **ready:** https://github.com/winsznx/resurv — public, full history, CI green |
+| Live application | **ready:** https://resurv-production.timjosh507.workers.dev |
 | Demo video | **needed.** Script in `docs/DEMO_SCRIPT.md`, checklist in `docs/DEMO_CAPTURE_CHECKLIST.md`. A human records it |
 | Link to a real transaction executed through KeeperHub | **ready:** https://sepolia.basescan.org/tx/0x7ac018850024cfd0e2d901840fd395fab852cf8cc23e5f7755c0b3eda8cc7d25 |
 
@@ -137,8 +138,10 @@ Sixteen further KeeperHub-executed transactions from the same build are listed i
 
 ## Live app and proof page
 
-The deployed Cloudflare Worker URL. **Fill this in after the deploy**, which is a human step:
-`wrangler deploy` is denied to the build agent in every wrapper form.
+**https://resurv-production.timjosh507.workers.dev**
+
+Deployed by a human, because the publish command is denied to the build agent in every wrapper
+form and that control backs a claim in the ledger.
 
 JSON, for anyone who prefers it: `/api/proof`, `/api/proof/summary`, `/api/deployment`.
 

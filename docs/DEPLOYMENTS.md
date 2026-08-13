@@ -173,6 +173,8 @@ pnpm --filter @resurv/worker run deploy         # wrangler deploy
 step. `wrangler deploy --dry-run --outdir dist` is the build step, touches no account, and is
 what `pnpm build` runs.
 
+The application is live at **https://resurv-production.timjosh507.workers.dev**.
+
 **The deployed Worker is provisioned with no secret at all.** `workerEnvSchema` makes
 `KEEPERHUB_API_KEY` optional, and `apps/worker/test/health.test.ts` pins that a bare environment
 answers `200 ok`. Every route serves either an artifact imported at build time or a public RPC

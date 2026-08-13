@@ -1,6 +1,6 @@
 {
-  "capturedAt": "2026-08-13T10:02:52.000Z",
-  "base": "http://localhost:4173",
+  "capturedAt": "2026-08-13T11:00:55.299Z",
+  "base": "https://resurv-production.timjosh507.workers.dev",
   "shots": [
     "hero",
     "timeline",
@@ -10,6 +10,18 @@
     "mobile",
     "mobile-timeline"
   ],
-  "consoleErrors": [],
-  "failedRequests": []
+  "consoleErrors": [
+    "mobile: Failed to load resource: net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile: Failed to load resource: net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile: Failed to load resource: net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile: Failed to load resource: net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile: Failed to load resource: net::ERR_SSL_BAD_RECORD_MAC_ALERT"
+  ],
+  "failedRequests": [
+    "mobile: https://base-sepolia-rpc.publicnode.com/ net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile: https://base-sepolia-rpc.publicnode.com/ net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile: https://base-sepolia-rpc.publicnode.com/ net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile: https://base-sepolia-rpc.publicnode.com/ net::ERR_SSL_BAD_RECORD_MAC_ALERT",
+    "mobile: https://base-sepolia-rpc.publicnode.com/ net::ERR_SSL_BAD_RECORD_MAC_ALERT"
+  ]
 }

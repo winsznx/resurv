@@ -31,7 +31,9 @@ SUCCESS FEE     1.000000 rUSD, escrowed
 
 ## 0:20 – 0:45 · The trigger
 
-**On screen:** the timeline, steps 1 through 6, scrolling to `Signed risk trigger accepted`.
+**On screen:** the timeline, beats 01 through 06, scrolling to `A signed risk trigger is accepted`.
+The phase labels down the left — before the incident, the covenant, the incident — carry the
+structure without narration, which is what makes this legible with the sound off.
 
 **Say:**
 
@@ -44,7 +46,8 @@ SUCCESS FEE     1.000000 rUSD, escrowed
 
 ## 0:45 – 1:15 · The primary action cannot proceed
 
-**On screen:** timeline step 7, with the orange `simulation rejected` chip.
+**On screen:** timeline beat 07, with the orange marker and the `refused, not broadcast` chip.
+It is the loudest thing on the rail and the only orange on the page, which is deliberate.
 
 **Say:**
 
@@ -67,7 +70,7 @@ HTTP 400; AccessControlUnauthorizedAccount(0x345FdCFE…, 0xaf922051…)
 
 ## 1:15 – 1:55 · The fallback executes
 
-**On screen:** timeline step 8, `confirmed`, then click through to Basescan.
+**On screen:** timeline beat 08, `confirmed on chain`, then click through to Basescan.
 
 **Say:**
 
@@ -97,7 +100,7 @@ HTTP 400; AccessControlUnauthorizedAccount(0x345FdCFE…, 0xaf922051…)
 
 ## 2:20 – 2:35 · Duplicate protection
 
-**On screen:** timeline steps 9 and 10, both `rejected`.
+**On screen:** timeline beats 09 and 10, both `rejected`.
 
 **Say:**
 
@@ -142,6 +145,22 @@ The one detail worth adding, because it is the least expected thing in the build
 > factory. The organization wallet has no native currency and there is no deployment endpoint, so
 > RESURV deployed itself with no funded deployer and no faucet. Six contracts, six addresses
 > computed before sending, six matches.
+
+## If someone asks about security
+
+Answer it directly. The answer is a strength in this build and hedging makes it a weakness.
+
+> No external audit. Four in-repo reviewers ran against the finished build and three returned
+> FAIL. Two rounds of that found five distinct ways a covenant's escrow could be trapped
+> permanently, each with a working proof-of-concept. They are fixed and every fix is pinned by a
+> regression test that was checked by reverting the fix. Two more findings are accepted rather
+> than fixed and named in the repository.
+
+And the sentence to volunteer rather than wait to be caught on:
+
+> The deployed bytecode predates the last round, so three of those fixes are in the repository and
+> not on chain. Redeploying invalidates the canonical receipt, so it was not done. None of the
+> three affects this covenant, which uses the honest shipped verifier and was never paused.
 
 ## What not to say
 

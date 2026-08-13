@@ -1,8 +1,14 @@
 # KeeperHub execution semantics: five things a Direct Execution client has to get right
 
 A teardown, a reproduction, and the fixes. Written for the KeeperHub onboarding bounty from the
-friction actually hit while building [RESURV](../../README.md), which executes every one of its
-writes — including its own contract deployments — through the Direct Execution API.
+friction actually hit while building [RESURV](https://github.com/winsznx/resurv), which executes
+every one of its writes — including its own contract deployments — through the Direct Execution
+API.
+
+Every claim below is checkable from that repository: the measurement harness is
+`packages/seam-probe`, the evidence it wrote is committed, and 71 offline tests assert these
+findings against that evidence so a sentence here cannot drift away from the artifact it came
+from.
 
 Everything below was measured against the live API on 2026-08-12, from an organization key, with
 the evidence committed in this repository. Where the documentation and the measurement disagree,

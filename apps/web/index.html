@@ -26,6 +26,18 @@
       property="og:description"
       content="The transaction landed. That was never the question. Read the covenant, the refused primary action, the fallback, and the six logs of the transaction that paid the responder."
     />
+    <meta property="og:type" content="website" />
+    <!--
+      A capture of this page's own hero, taken from the production bundle by
+      `pnpm --filter @resurv/cli screenshots`, not a designed card. An unfurl that shows something
+      the page does not say would be the same defect this page exists to avoid.
+
+      Relative, because the deploy domain is not known at build time and every major crawler
+      resolves a relative og:image against the page URL.
+    -->
+    <meta property="og:image" content="/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="/og.png" />
   </head>
   <body>
     <div id="root"></div>

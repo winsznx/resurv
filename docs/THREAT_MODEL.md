@@ -485,3 +485,44 @@ that reason, and the covenant contract's real preconditions are not modeled at a
 - Gas sponsorship was observed once, on one organization, on one chain. It is reported as
   observed, never promised.
 - No external audit. Not production-ready, by definition of the production gate.
+
+## T17 — a deployment that ships bytes the tests never ran against
+
+**Status: IN PLACE, after it happened.**
+
+An artifact cache is not a build. `packages/cli/src/artifacts.ts` read `packages/contracts/out`
+and deployed whatever was there, and a mutation campaign that restored source with a file copy
+and never rebuilt left a mutant `ResurvCovenantManager` in that cache. It was deployed to Base
+Sepolia with the `maxTotalAttempts` check missing.
+
+Nothing RESURV checked could catch it, and that is the part worth keeping. The predicted address
+matched, because the prediction derives from the same init code that was sent. The manifest's
+bytecode hashes matched, because they were recorded from the same artifact. Every check was
+consistent with every other check and all of them were downstream of the same wrong bytes.
+
+Two controls now:
+
+- `rebuildContracts()` runs `forge build` before any artifact is read, so the cache cannot
+  outlive the source that produced it.
+- `packages/cli/test/deployment-provenance.test.ts` recompiles the current source and compares
+  against the manifest's recorded hashes, offline, on every gate run. Verified by restoring the
+  mutant's recorded hashes and confirming it fails with a message naming the cause.
+
+**Residual.** Both controls compare the manifest against the source. Neither reads the chain, so
+a manifest that was never written from a real deployment would pass. Sourcify is the independent
+check that closes that, and it is the one that actually caught this: it refused to verify the
+mutant while verifying the other five contracts from the same submission.
+
+## T18 — a caller who declines the stale-state check
+
+**Status: ACCEPTED, disclosed.**
+
+`executeAttempt` takes `expectedStateHash`, and passing `bytes32(0)` disables the freshness
+comparison entirely. `attemptSequence` is caller-chosen too. Both are documented in the contract,
+and together they mean an executor faces no onchain freshness bound of its own choosing. The
+protection that does not depend on the caller is the attempt-id burn, which is permanent, and the
+postcondition, which reverts the whole attempt when the outcome is false.
+
+This is the same shape as the rest of the executor trust model: `EXECUTOR_ROLE` is a trusted
+party, and on this deployment it is the same address as the admin and the requester.
+

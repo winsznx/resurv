@@ -89,8 +89,8 @@ judged against an independent reference model, and executed by
 
 | | |
 |---|---|
-| TypeScript | **735** |
-| Foundry unit and fuzz | **109** |
+| TypeScript | **736** |
+| Foundry unit and fuzz | **110** |
 | Foundry invariants | **13** |
 | `pnpm gate` | exit 0 |
 | Clean room cloned from github.com/winsznx/resurv, `TURBO_FORCE=true pnpm gate` | exit 0, `Cached: 0` |
@@ -215,7 +215,7 @@ pnpm install --frozen-lockfile      # exit 0
 TURBO_FORCE=true pnpm gate          # exit 0, Cached: 0 across 15 + 2 + 2 + 3 tasks
 ```
 
-122 Foundry tests and every TypeScript suite pass in the clone. No path in the repository depends
+123 Foundry tests and every TypeScript suite pass in the clone. No path in the repository depends
 on `/Users/mac`, on a sibling repository, or on a credential, outside two threat-model
 documents that quote a path as an example and one permission test that uses one as a fixture.
 
@@ -223,7 +223,7 @@ documents that quote a path as an example and one permission test that uses one 
 
 ```bash
 pnpm gate                                            # everything, no credential needed
-pnpm --filter contracts test                         # 122 Foundry tests
+pnpm --filter contracts test                         # 123 Foundry tests
 pnpm --filter @resurv/seam-probe test                # the Phase 0.5 findings vs their evidence
 
 pnpm --filter @resurv/cli live:contracts --dry-run   # predicts every address, sends nothing
@@ -285,6 +285,12 @@ before any artifact is read, the generation was redeployed as `resurv/v5`, and a
 now verify. The mutant generation is archived at
 `deployments/historical/base-sepolia-v4-MUTANT.json` rather than deleted.
 
+An independent `contracts-auditor` run, launched against the pre-fix commit and finishing after
+the redeployment, reached the same conclusion from the other direction: it counted the
+`AttemptLimitReached` revert site zero times in the deployed runtime and once in a clean build,
+measured the 56-byte length delta, and reproduced both manifest hashes by deleting that one line.
+Two independent derivations of the same defect.
+
 The lesson is the one this project keeps relearning in new costumes: a check that derives from
 the same source as the thing it checks proves nothing. Two independent RPC origins for receipts,
 a reference model that never calls the implementation, and an independent recompilation for
@@ -297,7 +303,10 @@ bytecode are all the same idea, and the third one is the only reason this was ca
   proceeded on 122 contract tests including the fuzz and invariant campaigns, plus six mutation
   regressions each verified to fail when its fix is reverted. That is a weaker gate than a
   completed audit and is recorded as one.
-- **The four specialist reviews were not re-run against the post-deployment tree.**
+- **The four specialist reviews were re-run.** KeeperHub returned PASS. Contracts and tests
+  returned FAIL, and both FAILs were acted on in this pass: the mutant deployment and two
+  surviving mutations. The claim audit's three findings were fixed. What remains unreviewed is
+  this final commit itself.
 - **Cloudflare is not deployed**, because `wrangler deploy` is denied to the build agent and the
   policy was not weakened to route around it.
 

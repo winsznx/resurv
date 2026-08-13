@@ -61,16 +61,16 @@ Counted so the number cannot flatter itself.
 | `@resurv/domain` | 63 |
 | `@resurv/config` | 39 |
 | `@resurv/keeperhub-client` | 36 |
-| `@resurv/orchestrator` | 32 |
+| `@resurv/orchestrator` | 33 |
 | `@resurv/cli` | 18 |
 | `apps/web` (page + timeline) | 16 |
 | `apps/worker` (8 unit + 6 integration) | 14 |
 | `@resurv/proof` | 13 |
 | `@resurv/chain`, `@resurv/db`, `@resurv/node-runtime` | 21 |
-| **TypeScript total** | **735** |
-| Foundry unit and fuzz | 109 |
+| **TypeScript total** | **736** |
+| Foundry unit and fuzz | 110 |
 | Foundry invariants | 13 |
-| **Foundry total** | **122** |
+| **Foundry total** | **123** |
 
 Fuzz: 512 runs per test. Invariants: 256 runs at depth 128. The `afterInvariant` block reports
 the **last run only**, not the campaign, and now says so in its first line.

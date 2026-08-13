@@ -9,7 +9,7 @@ The hackathon submission must reach at least rung 9.
 | # | Rung | Status | Evidence |
 |---|---|---|---|
 | 1 | Plain reference model | **REACHED** | `packages/domain`: the covenant state machine and the measured attempt lifecycle, each with an independent reference model, 63 tests |
-| 2 | Contract unit tests | **REACHED** | 109 Foundry unit and fuzz tests across `CovenantLifecycle`, `Adversarial`, `CovenantFuzz`, `AuditRegressions` and the state-machine suites |
+| 2 | Contract unit tests | **REACHED** | 110 Foundry unit and fuzz tests across `CovenantLifecycle`, `Adversarial`, `CovenantFuzz`, `AuditRegressions` and the state-machine suites |
 | 3 | Fuzz and invariant tests | **REACHED** | 9 fuzz tests at 512 runs; 8 covenant invariants plus 5 state-machine invariants at 256 runs × depth 128, judged against reference models. Confirmed by mutation across three campaigns. The third is the one that matters: it found a regression test that passed with the fund-loss guard it was named after deleted, and every test written since was checked by reverting its fix |
 | 4 | Local full lifecycle | **REACHED** | `test_primaryRefused_fallbackSucceeds_andPaysInTheSameTransaction` runs the whole demo against a local EVM, including the refused primary and both replays |
 | 5 | KeeperHub seam tests | **REACHED** | `packages/seam-probe`, 16 scenarios run live 2026-08-12, evidence committed, 42 offline tests asserting the findings against it |

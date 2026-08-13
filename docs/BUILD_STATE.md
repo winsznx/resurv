@@ -73,8 +73,15 @@ Counted so the number cannot flatter itself.
 Fuzz: 512 runs per test. Invariants: 256 runs at depth 128. The `afterInvariant` block reports
 the **last run only**, not the campaign, and now says so in its first line.
 
-`pnpm gate` exits 0. A clean-room clone with `pnpm install --frozen-lockfile` and
-`TURBO_FORCE=true pnpm gate` also exits 0 with `Cached: 0`.
+`pnpm gate` exits 0.
+
+A clean-room clone **from the public GitHub repository**, with `git clone --recurse-submodules`,
+`pnpm install --frozen-lockfile` and `TURBO_FORCE=true pnpm gate`, also exits 0 with `Cached: 0`.
+Run against `fe01c43`.
+
+GitHub Actions has run twice on clean runners and both were green on all four jobs:
+[31642439279](https://github.com/winsznx/resurv/actions/runs/31642439279) and
+[31653312589](https://github.com/winsznx/resurv/actions/runs/31653312589).
 
 `pnpm test:integration` and `pnpm test:e2e` are no longer empty. They were listed here as a known
 defect for two phases; they now carry 14 specs between them.

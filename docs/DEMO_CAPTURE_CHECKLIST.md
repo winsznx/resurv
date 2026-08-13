@@ -6,7 +6,9 @@ for the two things that can fail on the day.
 ## Before you start recording
 
 - [ ] `pnpm gate` exits 0
-- [ ] `pnpm --filter @resurv/web dev` is serving, or the deployed Cloudflare URL loads
+- [ ] `pnpm build && pnpm --filter @resurv/web preview` is serving on :4173, or the deployed
+      Cloudflare URL loads. Prefer the production bundle over `dev`: it is what the screenshots
+      in the README were taken from and what a judge will actually see
 - [ ] the "Verify now" card on the page shows `SATISFIED` and `agree`, which means both public
       RPC origins are answering right now
 - [ ] a terminal is open at the repository root with `cast --version` working
@@ -17,16 +19,27 @@ for the two things that can fail on the day.
 
 | # | What | URL |
 |---|---|---|
-| 1 | Proof page, hero | the deployed Worker URL, or `http://localhost:5173` |
+| 1 | Proof page, hero | the deployed Worker URL, or `http://localhost:4173` |
 | 2 | Proof page, timeline | same page, `#timeline` |
 | 3 | Trigger transaction | https://sepolia.basescan.org/tx/0x11d1b00ff207c3f87738c25c9be1e581867b2ed163bfe4c7efa73b3096a9609e |
-| 4 | Proof page, refused primary | same page, timeline step 7 |
+| 4 | Proof page, refused primary | same page, timeline beat 07 — the only orange on the page |
 | 5 | **The successful attempt** | https://sepolia.basescan.org/tx/0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab |
 | 6 | Its logs tab | the same URL, `#eventlog` |
 | 7 | Proof page, one transaction | same page, `#atomic` |
-| 8 | Proof page, duplicate protection | same page, timeline steps 9 and 10 |
+| 8 | Proof page, duplicate protection | same page, timeline beats 09 and 10 |
 | 9 | Proof page, verify now | same page, `#verify` |
 | 10 | Covenant manager | https://sepolia.basescan.org/address/0xfcafbc81f253e62a3818ecda7a7a71e557c65b21 |
+
+## If the public RPC origins are refusing
+
+They do, under repeated load: `docs/assets/capture-report.json` records CORS and TLS failures
+from back-to-back screenshot runs. The page shows `RPC down` rather than inventing a number,
+which is correct and also not what you want on camera.
+
+Wait a minute and reload. Everything the video actually claims comes from the committed receipt
+and from Basescan, both of which are unaffected. The "Verify now" card is the only live surface,
+and if it will not settle, run the `cast call` below on camera instead — it makes the same point
+more directly.
 
 ## Terminal commands, exactly as typed
 

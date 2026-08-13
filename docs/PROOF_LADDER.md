@@ -9,16 +9,24 @@ The hackathon submission must reach at least rung 9.
 | # | Rung | Status | Evidence |
 |---|---|---|---|
 | 1 | Plain reference model | **REACHED** | `packages/domain`: the covenant state machine and the measured attempt lifecycle, each with an independent reference model, 63 tests |
-| 2 | Contract unit tests | **REACHED** | 101 Foundry unit and fuzz tests across `CovenantLifecycle`, `Adversarial`, `CovenantFuzz`, `AuditRegressions` and the state-machine suites |
-| 3 | Fuzz and invariant tests | **REACHED** | 9 fuzz tests at 512 runs; 8 covenant invariants plus 5 state-machine invariants at 256 runs × depth 128, judged against reference models. Confirmed by mutation across two campaigns: 11 defects, 7 caught first time, 4 survivors found and closed |
+| 2 | Contract unit tests | **REACHED** | 109 Foundry unit and fuzz tests across `CovenantLifecycle`, `Adversarial`, `CovenantFuzz`, `AuditRegressions` and the state-machine suites |
+| 3 | Fuzz and invariant tests | **REACHED** | 9 fuzz tests at 512 runs; 8 covenant invariants plus 5 state-machine invariants at 256 runs × depth 128, judged against reference models. Confirmed by mutation across three campaigns. The third is the one that matters: it found a regression test that passed with the fund-loss guard it was named after deleted, and every test written since was checked by reverting its fix |
 | 4 | Local full lifecycle | **REACHED** | `test_primaryRefused_fallbackSucceeds_andPaysInTheSameTransaction` runs the whole demo against a local EVM, including the refused primary and both replays |
 | 5 | KeeperHub seam tests | **REACHED** | `packages/seam-probe`, 16 scenarios run live 2026-08-12, evidence committed, 42 offline tests asserting the findings against it |
 | 6 | Base fork integration | **not reached** | No `--fork-url` suite exists. Superseded in practice by rung 7: the contracts are deployed on the real chain and the demo ran against them, which is a stronger statement than a fork test, and is not the same statement |
-| 7 | Base Sepolia deployment | **REACHED** | Six contracts and three configuration calls, `deployments/base-sepolia.json`, every address predicted offchain and matched |
+| 7 | Base Sepolia deployment | **REACHED, with one qualifier** | Six contracts and three configuration calls, `deployments/base-sepolia.json`, every address predicted offchain and matched, all six verified on Sourcify at `match` level. The qualifier is below |
 | 8 | Real KeeperHub atomic attempt | **REACHED** | [`0xf7f9aace…`](https://sepolia.basescan.org/tx/0xf7f9aace84a73bc236b2b44468026137fa5a52a96511a28f2951001a729d86ab): six logs in one transaction, the action, the verifier result, the state transition and the fee |
 | 9 | Public proof page and verification | **REACHED, with one qualifier** | `apps/web` plus `/api/proof`, `/api/proof/summary`, `/api/deployment`. The qualifier is below |
 | 10 | Capped Base mainnet canary | out of scope for v1 | |
 | 11 | Independent audit and production launch | out of scope for v1 | |
+
+## The qualifier on rung 7
+
+The deployed bytecode was compiled from commit `2ccf02f`, and a later audit round found three
+escrow-trapping defects that are fixed in this repository and still present on chain. Redeploying
+invalidates the rung 8 receipt, so it was not done. Rung 7 is claimed for what is deployed, which
+is what Sourcify attests. It is not a claim that `main` is deployed.
+`docs/phase-logs/PHASE_07_FINAL_AUDIT.md` section 2.
 
 ## The qualifier on rung 9
 

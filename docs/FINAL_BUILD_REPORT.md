@@ -93,8 +93,8 @@ judged against an independent reference model, and executed by
 | Foundry unit and fuzz | **109** |
 | Foundry invariants | **13** |
 | `pnpm gate` | exit 0 |
-| Clean room from the GitHub clone, `TURBO_FORCE=true pnpm gate` | exit 0, `Cached: 0` |
-| GitHub Actions, clean runner | four jobs green, [run 31642439279](https://github.com/winsznx/resurv/actions/runs/31642439279) |
+| Clean room cloned from github.com/winsznx/resurv, `TURBO_FORCE=true pnpm gate` | exit 0, `Cached: 0` |
+| GitHub Actions, clean runner | four jobs green, twice: [31642439279](https://github.com/winsznx/resurv/actions/runs/31642439279) and [31653312589](https://github.com/winsznx/resurv/actions/runs/31653312589) |
 
 Fuzz 512 runs per test. Invariants 256 runs at depth 128, `fail_on_revert = true`. The
 `afterInvariant` coverage figures describe one run, not the campaign, and say so.

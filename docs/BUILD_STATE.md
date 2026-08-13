@@ -214,7 +214,7 @@ findings that reproduced against current `main` fixed with tests.
 
 Three human steps, in any order, none of them an agent's to do:
 
-1. `pnpm build && pnpm --filter @resurv/worker deploy` — `wrangler deploy` is denied to Claude
+1. `pnpm build && pnpm --filter @resurv/worker run deploy` — `wrangler deploy` is denied to Claude
    Code in every wrapper form, and `packages/repo-policy` fails if anyone allow-lists a path to
    it. That control backs a `VERIFIED (policy level)` row in `docs/CLAIMS.md`. Afterwards, set
    the repository homepage to the resulting URL and fill it into `README.md` and

@@ -166,7 +166,7 @@ written to that file.
 
 ```bash
 pnpm build                                  # builds apps/web then the worker bundle
-pnpm --filter @resurv/worker deploy         # wrangler deploy
+pnpm --filter @resurv/worker run deploy         # wrangler deploy
 ```
 
 `wrangler deploy` is denied to Claude Code in every wrapper form, so the deploy itself is a human

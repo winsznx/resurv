@@ -302,7 +302,7 @@ The web application deploys to Cloudflare and nowhere else:
 
 ```bash
 pnpm build
-pnpm --filter @resurv/worker deploy
+pnpm --filter @resurv/worker run deploy
 ```
 
 `wrangler deploy` is in this repository's own Claude Code deny list, in every wrapper form, and

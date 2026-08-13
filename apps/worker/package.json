@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration": "vitest run --dir test/integration --passWithNoTests",
-    "deploy": "wrangler deploy",
+    "deploy": "wrangler deploy --env production",
     "clean": "rm -rf dist .turbo .wrangler"
   },
   "dependencies": {

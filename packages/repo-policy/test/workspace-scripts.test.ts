@@ -51,11 +51,37 @@ describe('scripts reachable from an auto-approved root command', () => {
 
   it('keeps the one real deploy script off every reachable task name', () => {
     const worker = workspacePackages().find((pkg) => pkg.name === '@resurv/worker');
-    expect(worker?.scripts['deploy']).toBe('wrangler deploy');
+    // Pinned exactly. `--env production` is load-bearing rather than decorative: the top-level
+    // wrangler environment sets `ENVIRONMENT: "development"`, so a bare `wrangler deploy` would
+    // publish a production origin that reports itself as development.
+    expect(worker?.scripts['deploy']).toBe('wrangler deploy --env production');
     expect(hasExternalEffect(worker?.scripts['deploy'] ?? '')).toBe(true);
     expect(
       (TURBO_TASKS_REACHED_BY_ALLOWED_ROOT_COMMANDS as readonly string[]).includes('deploy'),
     ).toBe(false);
+  });
+
+  /**
+   * `deploy` is a built-in pnpm subcommand, and it shadows a package script of the same name.
+   * `pnpm --filter @resurv/worker deploy` therefore does not run the script above: it runs
+   * pnpm's own workspace-deploy and fails with `ERR_PNPM_INVALID_DEPLOY_TARGET`. Every document
+   * that tells a human how to publish this Worker has to say `run deploy`, and this test is what
+   * stops that instruction from rotting back.
+   */
+  it('documents the deploy with `run`, because pnpm shadows a script named deploy', () => {
+    const docs = [
+      'README.md',
+      'docs/BUILD_STATE.md',
+      'docs/DEPLOYMENTS.md',
+      'docs/SUBMISSION_READY_PACKET.md',
+      'docs/RUNBOOKS.md',
+    ];
+    for (const doc of docs) {
+      expect(
+        readRepoFile(doc),
+        `${doc} tells a human to run a command pnpm will shadow`,
+      ).not.toMatch(/pnpm --filter @resurv\/worker deploy/);
+    }
   });
 });
 
